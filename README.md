@@ -172,8 +172,7 @@ EHSAAN PLAY
     └── 📦 OFFLINE MODE
         │
         ├── Artwork stored in a dedicated browser cache
-        ├── "Download Artwork for My Library"
-        │   saves artwork for your library
+        ├── "Download Artwork for My Library" ~ saves artwork for your library
         ├── Automatic cache capacity limits
         └── LRU-based trimming removes older unused artwork
 ```
