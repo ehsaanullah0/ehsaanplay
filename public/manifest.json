@@ -1,0 +1,19 @@
+{
+  "name": "EHSAAN MOVIE — Personal Cinema Journal",
+  "short_name": "EHSAAN MOVIE",
+  "description": "A modern, beautiful, local-first personal movie and TV-series journal & library.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF8F2",
+  "theme_color": "#4E562F",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
