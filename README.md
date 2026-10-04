@@ -197,7 +197,7 @@ Core technologies include:
 
 ## 🎞️ TMDB
 
-Movie and TV information and artwork are provided through **The Movie Database (TMDB)**.
+Movie and TV information and artwork are provided through **[The Movie Database (TMDB)](https://www.themoviedb.org/)**.
 
 ### EHSAAN PLAY is **not affiliated with or endorsed by TMDB**.
 
