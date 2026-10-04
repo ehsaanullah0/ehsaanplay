@@ -241,7 +241,7 @@ AN PLAY** — Your personal movie & series library
 ## **This project is licencrd under GPN-3**
 
 ### Please[ check the repository license](https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file) before using, modifying, or redistributing the project.
-<img width="1021" height="130" alt="image" src="https://github.com/user-attachments/assets/47e572b9-dc1f-4638-9184-e7cdb7e5adc5" />
+<img width="2042" height="260" alt="temp-22-6-12-image_upscayl_2x_upscayl-lite-4x" src="https://github.com/user-attachments/assets/3ce2e126-3184-460b-80a4-e0c1254efb79" />
 
 ---
 
