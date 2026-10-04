@@ -238,9 +238,10 @@ AN PLAY** — Your personal movie & series library
 
 ## 📄 License
 
-### **This project is licencrd under GPN-3**
+## **This project is licencrd under GPN-3**
 
-Please check the repository license before using, modifying, or redistributing the project.
+### Please[ check the repository license](https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file) before using, modifying, or redistributing the project.
+<img width="1021" height="130" alt="image" src="https://github.com/user-attachments/assets/47e572b9-dc1f-4638-9184-e7cdb7e5adc5" />
 
 ---
 
