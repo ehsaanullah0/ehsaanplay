@@ -1,6 +1,9 @@
+<div align="center">
+<img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
+
 # 🎬 EHSAAN PLAY
 
-> **Your watchlist. Your taste. Your space.**
+## **Your watchlist. Your taste. Your space.**
 
 EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.
 
@@ -8,8 +11,9 @@ It is **not a streaming platform**. EHSAAN PLAY is a personal library for discov
 
 <p align="center">
   <strong>Beautiful • Personal • Local-first • Private</strong>
-</p>
 
+</div>
+  
 ---
 
 ## ✨ What is EHSAAN PLAY?
