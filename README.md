@@ -3,17 +3,39 @@
 
 # 🎬 EHSAAN PLAY
 
-## **Your watchlist. Your taste. Your space.**
+# **Your watchlist. Your taste. Your space.**
 
-EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.
+**EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 
-It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
+<p align="center">  
+<a href="https://www.youtube.com/watch?v=gPZd-t4EcNs" target="_blank">
+  <img
+    width="200"
+    src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3"
+    alt="Watch EHSAAN MOVIE Demo Video"
+  />
+</a>
 
-<p align="center">
-  <strong>Beautiful • Personal • Local-first • Private</strong>
+<p>
+  <a href="https://ehsaancolour.ai.studio/" target="_blank">
+    <img height="70" src="https://github.com/user-attachments/assets/102323a5-e5f2-4174-8a25-7be76d1ef7d3" />
+  </a>
+  <a href="https://ehsaanflow.ai.studio/" target="_blank">
+    <img height="70" src="https://github.com/user-attachments/assets/934bccf2-cafa-4494-a773-dd315ab51ccf" />
+  </a>
+  <a href="https://ehsaanqr.ai.studio/" target="_blank">
+    <img height="70" src="https://github.com/user-attachments/assets/1f63c7f3-7c86-45fd-9af6-ed9b14805820" />
+  </a>
+  <a href="https://ehsaanmovie.ai.studio/" target="_blank">
+   <img height="70" src="https://github.com/user-attachments/assets/7e3c4963-7c62-4175-9a77-b389a78a42e6" />
+  </a>
+  <a href="https://ehsaancompress.ai.studio/" target="_blank">
+   <img height="70" src="https://github.com/user-attachments/assets/de9dd1ed-3480-442f-af74-62c3924dd747" />
+</p>
+<br>
 
 </div>
-  
+
 ---
 
 ## ✨ What is EHSAAN PLAY?
@@ -39,22 +61,40 @@ Everything is designed around one idea:
 
 ---
 
-## 🌐 Local-first by Design
+# PREVIEW OF APP
 
-EHSAAN PLAY is built with a **local-first approach**.
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/703cfbec-5781-4205-b1ba-00f725236443" />
 
-Your personal library stays on your device rather than being uploaded to a personal EHSAAN server.
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/014c339e-518e-4e96-a8b2-17a239c390f3" />
 
-Your data can include:
+<img width="1365" height="754" alt="image" src="https://github.com/user-attachments/assets/c230d554-9efb-45e5-a0b6-052d02f8c9da" />
 
-* Watchlist
-* Watched status
-* Episode progress
-* Personal ratings
-* Notes
-* Custom lists
-* Preferences
-* Customization settings
+<details>
+<summary>View More Screenshots</summary>
+
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/3e669e86-9a89-4467-8769-b34b8eb2bdb1" />
+
+<img width="1366" height="670" alt="image" src="https://github.com/user-attachments/assets/171492be-b2c4-4878-a71c-fcdde32132c1" />
+
+<img width="1366" height="644" alt="image" src="https://github.com/user-attachments/assets/fc10ddb1-0d12-4e8f-babb-e7a3821be4b9" />
+
+<img width="1366" height="575" alt="image" src="https://github.com/user-attachments/assets/93e7d9cc-3cf5-40a5-a31d-b0caaa6588d2" />
+
+<img width="1366" height="741" alt="image" src="https://github.com/user-attachments/assets/299aaf6e-9a76-40b7-b4a0-9dc16da83021" />
+
+<img width="1366" height="722" alt="image" src="https://github.com/user-attachments/assets/7fa24011-8b39-46e7-ba69-8ce89ed18dcf" />
+
+<img width="1366" height="543" alt="image" src="https://github.com/user-attachments/assets/9be196a5-4741-4661-8b6d-1f9b581b45e9" />
+
+<img width="1366" height="701" alt="image" src="https://github.com/user-attachments/assets/af53afc7-932b-4b9c-8906-944e8cb0d5be" />
+
+<img width="1298" height="728" alt="image" src="https://github.com/user-attachments/assets/0ee180c6-06bc-449e-ae5d-10f38ecb519b" />
+
+</details>
+
+## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
+
+---
 
 ### 🔒 Your data stays yours
 
@@ -79,27 +119,6 @@ from
 Artwork can be fetched from TMDB when needed and handled through browser caching rather than unnecessarily storing large image files inside your personal library data.
 
 This keeps your actual library data lightweight even when your collection grows significantly.
-
----
-
-## 🌐 Online & Offline
-
-EHSAAN PLAY supports two artwork modes:
-
-### 🟢 ONLINE
-
-* Personal library remains stored locally
-* Artwork can be fetched from TMDB
-* Images are cached when useful
-* Keeps local storage usage lower
-
-### 🟡 OFFLINE
-
-* Previously downloaded artwork can remain available
-* Library can be used without depending on an active connection
-* Designed for users who want their collection available offline
-
-An explicit **Download Artwork for My Library** workflow can be used when offline access is needed.
 
 ---
 
@@ -128,117 +147,38 @@ Just your library.
 
 ---
 
-## 🧩 Core Features
-
-### 🏠 Home
-
-A personal home screen for:
-
-* Recently watched
-* Continue watching
-* Watchlist
-* Recommendations
-* Personal collections
-* Your movie and series library
-
-### 🔎 Universal Search
-
-Search for movies and TV series through TMDB and quickly add them to your personal library.
-
-### 🎞️ Movie & Series Library
-
-Keep your entire collection organized in one place.
-
-Each title can contain information such as:
-
-* Poster
-* Backdrop
-* Title
-* Release information
-* Genres
-* Overview
-* Personal rating
-* Notes
-* Watch status
-
-### 📺 Series Tracking
-
-Track individual episodes and seasons rather than treating an entire series as a single item.
-
-### ⭐ Personal Ratings
-
-Rate titles according to **your own taste**.
-
-The rating is personal — not a replacement for public ratings.
-
-### 📝 Notes
-
-Keep your own thoughts and observations about a title.
-
-### 📚 Custom Lists
-
-Create personal collections and organize titles however you want.
-
-Examples:
-
-* 🎬 Favourite Movies
-* 🍿 Weekend Watch
-* 🧠 Rewatch
-* ❤️ Comfort Movies
-* 📺 Must Finish
-
-### ⚙️ Settings
-
-A dedicated settings area for:
-
-* Storage management
-* Data export/import
-* Theme customization
-* Artwork management
-* Online/offline preferences
-* Application preferences
-
----
-
-## 💾 Data Management
-
-EHSAAN PLAY is designed with long-term personal-library management in mind.
-
-### Export
-
-Your personal library can be exported as compact JSON data.
-
-The export contains your **personal information**, not unnecessary image binaries.
-
-### Import
-
-An exported library can be restored to EHSAAN PLAY.
-
-### Storage
-
-The application keeps personal information separate from large artwork assets wherever possible.
-
-This means:
-
-> **A large library does not have to mean a huge JSON backup.**
-
----
-
-## 📱 Progressive Web App
-
-EHSAAN PLAY is designed to work as a **Progressive Web App (PWA)**.
-
-You can install it on supported devices and use it like a standalone application.
-
-### PWA benefits
-
-* 📱 Installable
-* 🖥️ Desktop support
-* ⚡ Fast loading
-* 📡 Offline-capable features
-* 🔄 Service-worker caching
-* 🪶 Lightweight personal data
-
+```text
+EHSAAN MOVIE
+│
+├── 👤 PERSONAL USER DATA
+│   │
+│   ├── Watchlist & watched status
+│   ├── Episode progress & seasonal checkmarks
+│   ├── Star ratings & personal notes
+│   ├── Custom lists & activities
+│   └── Preferences & custom genre palettes
+│
+│   → Stored locally in browser localStorage
+│   → Uses versioned storage keys
+│   → Never stores base64 images or image blobs
+│   → Compact JSON export for backup
+│
+└── 🎨 TMDB ARTWORK
+    │
+    ├── 🌐 ONLINE MODE · Default
+    │   │
+    │   ├── Posters & backdrops load from TMDB when needed
+    │   ├── No intentional permanent image archive
+    │   └── Helps prevent uncontrolled storage growth
+    │
+    └── 📦 OFFLINE MODE
+        │
+        ├── Artwork stored in a dedicated browser cache
+        ├── "Download Artwork for My Library"
+        │   saves artwork for your library
+        ├── Automatic cache capacity limits
+        └── LRU-based trimming removes older unused artwork
+```
 ---
 
 ## 🛠️ Technology
@@ -262,7 +202,7 @@ Core technologies include:
 
 Movie and TV information and artwork are provided through **The Movie Database (TMDB)**.
 
-EHSAAN PLAY is **not affiliated with or endorsed by TMDB**.
+### EHSAAN PLAY is **not affiliated with or endorsed by TMDB**.
 
 ---
 
@@ -274,17 +214,7 @@ EHSAAN PLAY follows a simple principle:
 
 The application is designed so that personal library data can remain on your device.
 
-EHSAAN PLAY does not need a traditional user account or personal cloud database to manage your collection.
-
----
-
-## 🚧 Development Status
-
-**EHSAAN PLAY is under active development.**
-
-Features, interface details, storage architecture, and PWA functionality may continue to evolve.
-
-Some features may change as the project develops.
+### EHSAAN PLAY does not need a traditional user account or personal cloud database to manage your collection.
 
 ---
 
@@ -304,44 +234,48 @@ Potential future improvements include:
 
 The roadmap may change as EHSAAN PLAY evolves.
 
----
-
-## 💛 Part of EHSAAN
-
-EHSAAN PLAY is part of the **EHSAAN** collection of small, useful digital products.
-
-> **Make useful things.
-> Make them feel good to use.**
-
-### More from EHSAAN
-
-* 🎨 **EHSAAN Colour Studio** — Explore colours, shades and palettes
-* 📦 **EHSAAN Compress** — Compress images directly in your browser
-* 🔳 **EHSAAN QR** — Create beautiful customizable QR codes
-* 🌊 **EHSAAN Flow** — Tasks, habits and personal planning
-* 🎬 **EHSAAN PLAY** — Your personal movie & series library
-
----
-
-## 📺 Demo
-
-**EHSAAN PLAY**
-Coming soon.
+AN PLAY** — Your personal movie & series library
 
 ---
 
 ## 📄 License
 
-This project is currently under development.
+### **This project is licencrd under GPN-3**
 
 Please check the repository license before using, modifying, or redistributing the project.
 
 ---
 
-<p align="center">
-  Made with ❤️ under <strong>EHSAAN</strong>
+<div align="center">
+
+## MADE BY EHSAAN ULLAH
+**Make useful things. Make them feel good to use.**
+
+# 💛 SUPPORT THE DEVELOPMENT
+## [ CLICK HERE TO PAY DIRECTLY.](https://ehsaan.odoo.com/support)
+
+<img width="250" height="250" alt="ehsaan-qr-1024x1024 (1)" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
 </p>
 
 <p align="center">
-  <sub>Useful things. Good feelings.</sub>
+  <sub> If you find something useful here, a ⭐ is always appreciated. </sub>
 </p>
+
+
+## **EHSAAN ULLAH**
+
+<a href="mailto:worsmon@gmail.com">
+  <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
+</a>
+&nbsp;
+<a href="https://github.com/ehsaanullah0">
+  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+</a>
+&nbsp;
+<a href="https://ehsaan.odoo.com/">
+  <img src="https://img.shields.io/badge/Website-0A84FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website">
+</a>
+
+<sub>Built with curiosity, too many tabs, and the occasional “let's see what happens.”</sub>
+
+</div>
