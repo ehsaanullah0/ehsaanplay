@@ -146,7 +146,7 @@ Just your library.
 ---
 
 ```text
-EHSAAN MOVIE
+EHSAAN PLAY
 │
 ├── 👤 PERSONAL USER DATA
 │   │
