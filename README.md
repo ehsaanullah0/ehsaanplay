@@ -31,6 +31,14 @@ You can:
 Everything is designed around one idea:
 
 > **Your library should feel like yours.**
+
+---
+## CURRENT CHANGES IN THIS PROJECT
+- FIXING TEXT IN DARK MODE
+- MAKING DARK MODE ADAPTIVE WITH THEME AND BACKGROUND CARDS
+
+THESE CHANGES ARE REFLECT TO MAIN BRANCH WITH COLLABRATIOJN WITH EHSAAN ULLAH
+
 ---
 
 THIS PROJECT IS A FORK OF **[EHSAANPLAY](https://github.com/ehsaanullah0/ehsaanplay)** AND HERE FOR UI INSPIRATION
@@ -223,4 +231,36 @@ AN PLAY** — Your personal movie & series library
 <div align="center">
 
 ## MADE BY EHSAAN ULLAH
+
 ## modified by DEVSTUDIO
+=======
+**Make useful things. Make them feel good to use.**
+
+#  SUPPORT THE DEVELOPMENT
+## [ CLICK HERE TO PAY DIRECTLY.](https://ehsaan.odoo.com/support)
+
+<img width="250" height="250" alt="ehsaan-qr-1024x1024 (1)" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
+</p>
+
+<p align="center">
+  <sub> If you find something useful here, a ⭐ is always appreciated. </sub>
+</p>
+
+
+## **EHSAAN ULLAH**
+
+<a href="mailto:worsmon@gmail.com">
+  <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
+</a>
+&nbsp;
+<a href="https://github.com/ehsaanullah0">
+  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+</a>
+&nbsp;
+<a href="https://ehsaan.odoo.com/">
+  <img src="https://img.shields.io/badge/Website-0A84FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website">
+</a>
+
+<sub>Built with curiosity, too many tabs, and the occasional “let's see what happens.”</sub>
+
+</div>
