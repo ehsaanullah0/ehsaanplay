@@ -70,12 +70,56 @@ Everything is designed around one idea:
 
 # PREVIEW OF APP
 
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/703cfbec-5781-4205-b1ba-00f725236443" />
+<!-- Desktop Screenshots -->
 
-<img width="1366" height="605" alt="image" src="https://github.com/user-attachments/assets/367acd6c-a606-44ec-897e-12776918d48a" />
+<p align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/703cfbec-5781-4205-b1ba-00f725236443" alt="Desktop Screenshot 1">
+</p>
 
-<img width="1365" height="754" alt="image" src="https://github.com/user-attachments/assets/c230d554-9efb-45e5-a0b6-052d02f8c9da" />
+<p align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/367acd6c-a606-44ec-897e-12776918d48a" alt="Desktop Screenshot 2">
+</p>
 
+<p align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/c230d554-9efb-45e5-a0b6-052d02f8c9da" alt="Desktop Screenshot 3">
+</p>
+
+<!-- Mobile Screenshots -->
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/72d3bb7f-e49e-4b93-be42-f7218c715bc4" width="100%">
+    </td>
+    <td align="center">
+    <img src="https://github.com/user-attachments/assets/505fb48e-08a2-420d-ac80-b85bd2d8fee2"  width="100%"/>
+  </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/90f6282f-7b95-40bd-8a28-431cc4101c83" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/e570d331-1833-4989-b9f7-1217b8ef28bf" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/0fc9de3a-73bd-46e4-b80b-a714b52a6bda" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/6c9ec9c1-2435-454b-8ca7-796bffdf1738" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+     <img src="https://github.com/user-attachments/assets/d715db75-68f6-47e7-9ada-51b95e6f0339" width="100%"/>
+    </td>
+   <td align="center">
+      <img src="https://github.com/user-attachments/assets/c56a331e-84e2-49fe-9197-fdae1ebdf82e" width="100%">
+    </td>
+   <td align="center">
+     <img src="https://github.com/user-attachments/assets/a49b8c5e-534a-4471-adec-4a0cb56a51a8" width="100%"/>
+
+</table>
 <details>
 <summary>View More Screenshots</summary>
 
