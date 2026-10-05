@@ -283,6 +283,8 @@ AN PLAY** — Your personal movie & series library
 
 <sub>Built with curiosity, too many tabs, and the occasional “let's see what happens.”</sub>
 
+<p align="center">
+  
 ```text
 I AM NOT A CODER AND THIS PROJECT IS DEVELOPED BY USING DIFFERENT AI MODELS 
  "CHANT-GPT" . "GEMINI" . "CLAUD AI" . " GAMMA" . "MY CREATIVITY"
