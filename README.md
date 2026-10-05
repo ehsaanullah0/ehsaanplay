@@ -249,7 +249,7 @@ AN PLAY** — Your personal movie & series library
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
 
-# 💛 SUPPORT THE DEVELOPMENT
+#  SUPPORT THE DEVELOPMENT
 ## [ CLICK HERE TO PAY DIRECTLY.](https://ehsaan.odoo.com/support)
 
 <img width="250" height="250" alt="ehsaan-qr-1024x1024 (1)" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
