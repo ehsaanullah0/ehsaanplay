@@ -58,15 +58,12 @@ Everything is designed around one idea:
 > **Your library should feel like yours.**
 
 ---
+
 ## CURRENT CHANGES IN THIS PROJECT
 - FIXING TEXT IN DARK MODE
 - MAKING DARK MODE ADAPTIVE WITH THEME AND BACKGROUND CARDS
 
 THESE CHANGES ARE REFLECT TO MAIN BRANCH WITH COLLABRATIOJN WITH EHSAAN ULLAH
-
----
-
-THIS PROJECT IS A FORK OF **[EHSAANPLAY](https://github.com/ehsaanullah0/ehsaanplay)** AND HERE FOR UI INSPIRATION
 
 ---
 
