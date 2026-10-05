@@ -1,38 +1,11 @@
 <div align="center">
 <img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
 
-# EHSAAN PLAY
+# WATCHTIME 
 
 # **Your watchlist. Your taste. Your space.**
 # [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
-### **EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
-
-<p align="center">  
-<a href="https://www.youtube.com/watch?v=gPZd-t4EcNs" target="_blank">
-  <img
-    width="200"
-    src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3"
-    alt="Watch EHSAAN MOVIE Demo Video"
-  />
-</a>
-
-<p>
-  <a href="https://ehsaancolour.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/102323a5-e5f2-4174-8a25-7be76d1ef7d3" />
-  </a>
-  <a href="https://ehsaanflow.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/934bccf2-cafa-4494-a773-dd315ab51ccf" />
-  </a>
-  <a href="https://ehsaanqr.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/1f63c7f3-7c86-45fd-9af6-ed9b14805820" />
-  </a>
-  <a href="https://ehsaanmovie.ai.studio/" target="_blank">
-   <img height="70" src="https://github.com/user-attachments/assets/7e3c4963-7c62-4175-9a77-b389a78a42e6" />
-  </a>
-  <a href="https://ehsaancompress.ai.studio/" target="_blank">
-   <img height="70" src="https://github.com/user-attachments/assets/de9dd1ed-3480-442f-af74-62c3924dd747" />
-</p>
-<br>
+### **watchtime is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 
 </div>
 
@@ -58,6 +31,17 @@ You can:
 Everything is designed around one idea:
 
 > **Your library should feel like yours.**
+
+---
+## CURRENT CHANGES IN THIS PROJECT
+- FIXING TEXT IN DARK MODE
+- MAKING DARK MODE ADAPTIVE WITH THEME AND BACKGROUND CARDS
+
+THESE CHANGES ARE REFLECT TO MAIN BRANCH WITH COLLABRATIOJN WITH EHSAAN ULLAH
+
+---
+
+THIS PROJECT IS A FORK OF **[EHSAANPLAY](https://github.com/ehsaanullah0/ehsaanplay)** AND HERE FOR UI INSPIRATION
 
 ---
 
@@ -247,6 +231,9 @@ AN PLAY** — Your personal movie & series library
 <div align="center">
 
 ## MADE BY EHSAAN ULLAH
+
+## modified by DEVSTUDIO
+=======
 **Make useful things. Make them feel good to use.**
 
 #  SUPPORT THE DEVELOPMENT
