@@ -33,7 +33,7 @@ Everything is designed around one idea:
 > **Your library should feel like yours.**
 ---
 
-THIS PROJECT IS A FORK IF **[EHSAANPLAY](https://github.com/ehsaanullah0/ehsaanplay)** AND HERE FOR UI INSPIRATION
+THIS PROJECT IS A FORK OF **[EHSAANPLAY](https://github.com/ehsaanullah0/ehsaanplay)** AND HERE FOR UI INSPIRATION
 
 ---
 
