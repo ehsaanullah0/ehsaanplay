@@ -5,7 +5,7 @@
 
 # **Your watchlist. Your taste. Your space.**
 # [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
-### **EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
+### **watchtime is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 
 </div>
 
