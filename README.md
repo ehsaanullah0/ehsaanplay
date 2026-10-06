@@ -94,18 +94,18 @@ sync system. which is currently in dev.
       <img src="https://github.com/user-attachments/assets/72d3bb7f-e49e-4b93-be42-f7218c715bc4" width="100%">
     </td>
     <td align="center">
-    <img src="https://github.com/user-attachments/assets/505fb48e-08a2-420d-ac80-b85bd2d8fee2"  width="100%"/>
+   <img width="720" src="https://github.com/user-attachments/assets/248524bf-5305-4274-9fa9-ef5897bf1089" />
   </td>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/90f6282f-7b95-40bd-8a28-431cc4101c83" width="100%">
+   <img width="720" src="https://github.com/user-attachments/assets/c466c0a7-8f41-4bfe-b863-d2635f31c210" />
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/e570d331-1833-4989-b9f7-1217b8ef28bf" width="100%">
+   <img width="720" height="1600" src="https://github.com/user-attachments/assets/bd21b38e-68db-49ab-9250-2186c7dea6ab" />
     </td>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/0fc9de3a-73bd-46e4-b80b-a714b52a6bda" width="100%">
+   <img width="720" height="1600" src="https://github.com/user-attachments/assets/cf1c76a1-b220-4b18-9d2c-f4787ae065da" />
     </td>
     <td align="center">
      <img src="https://github.com/user-attachments/assets/e55f2eca-7d44-4da5-9bd4-bbc427e5e487" width="100%">
@@ -113,13 +113,13 @@ sync system. which is currently in dev.
   </tr>
   <tr>
     <td align="center">
-     <img src="https://github.com/user-attachments/assets/d715db75-68f6-47e7-9ada-51b95e6f0339" width="100%"/>
+   <img src="https://github.com/user-attachments/assets/d68009b2-1cfb-4502-ab62-cf4ff0ab64f8" width="100%">
     </td>
    <td align="center">
       <img src="https://github.com/user-attachments/assets/c56a331e-84e2-49fe-9197-fdae1ebdf82e" width="100%">
     </td>
    <td align="center">
-     <img src="https://github.com/user-attachments/assets/a49b8c5e-534a-4471-adec-4a0cb56a51a8" width="100%"/>
+   <img width="720" height="1600" src="https://github.com/user-attachments/assets/63f99fdf-426e-4f47-a1f7-8074c591b7c6" />
 
 </table>
 <details>
