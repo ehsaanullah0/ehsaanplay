@@ -1,5 +1,5 @@
 <div align="center">
-<img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
+<img width="180" height="180" alt="ehsaan_play_clapper_icon" src="https://github.com/user-attachments/assets/a3ba47c4-21aa-44be-9c96-07fb04b4d65e" />
 
 # EHSAAN PLAY
 
