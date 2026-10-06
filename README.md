@@ -8,7 +8,7 @@
 ## THIS DOMAIN IS ONLY FOR PUBLISING THE WEBAPP , NOT CERTIFY BY AI STUDIO.
 ### **EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 
-<a href="https://www.youtube.com/watch?v=gPZd-t4EcNs" target="_blank">
+<a href="https://youtu.be/MXh9GdDQqJ4" target="_blank">
   <img
     width="200"
     src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3"
