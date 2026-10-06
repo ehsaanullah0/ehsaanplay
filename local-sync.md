@@ -344,4 +344,4 @@ The first milestone is a simple, safe **same-Wi-Fi device-to-device data transfe
 
 No full synchronization system will be introduced until the underlying local transfer mechanism has been successfully tested.
 
-# IF ANY DEVELOPER CAN MAKE THIS SYSTEM FOR THIS PROJECT IS WELCOMING FROM HEART | mailto:worsmon@proton.me
+# IF ANY DEVELOPER CAN MAKE THIS SYSTEM FOR THIS PROJECT IS WELCOMING FROM HEART | worsmon@proton.me
