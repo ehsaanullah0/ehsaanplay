@@ -116,7 +116,7 @@ sync system. which is currently in dev.
    <img src="https://github.com/user-attachments/assets/d68009b2-1cfb-4502-ab62-cf4ff0ab64f8" width="100%">
     </td>
    <td align="center">
-      <img src="https://github.com/user-attachments/assets/c56a331e-84e2-49fe-9197-fdae1ebdf82e" width="100%">
+   <img width="720"  src="https://github.com/user-attachments/assets/4f6176fe-6fff-4266-995c-5aab1fffcd6a" />
     </td>
    <td align="center">
    <img width="720" height="1600" src="https://github.com/user-attachments/assets/63f99fdf-426e-4f47-a1f7-8074c591b7c6" />
