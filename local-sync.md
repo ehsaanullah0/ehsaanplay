@@ -343,3 +343,5 @@ The goal is to make synchronization **quietly useful when the user wants it**.
 The first milestone is a simple, safe **same-Wi-Fi device-to-device data transfer test**.
 
 No full synchronization system will be introduced until the underlying local transfer mechanism has been successfully tested.
+
+# IF ANY DEVELOPER CAN MAKE THIS SYSTEM FOR THIS PROJECT IS WELCOMING FROM HEART | mailto:worsmon@proton.me
