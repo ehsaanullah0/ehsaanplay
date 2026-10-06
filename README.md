@@ -18,19 +18,19 @@
 
 <p>
   <a href="https://ehsaancolour.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/102323a5-e5f2-4174-8a25-7be76d1ef7d3" />
+   <img width="70" src="https://github.com/user-attachments/assets/00762234-2f32-40c0-8640-225206908e5a" />
   </a>
   <a href="https://ehsaanflow.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/934bccf2-cafa-4494-a773-dd315ab51ccf" />
+ <img width="70" src="https://github.com/user-attachments/assets/f1f073ca-70f6-418a-8ea8-dbf07780247f" />
   </a>
   <a href="https://ehsaanqr.ai.studio/" target="_blank">
-    <img height="70" src="https://github.com/user-attachments/assets/1f63c7f3-7c86-45fd-9af6-ed9b14805820" />
+ <img width="70" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" />
   </a>
   <a href="https://ehsaanmovie.ai.studio/" target="_blank">
-   <img height="70" src="https://github.com/user-attachments/assets/7e3c4963-7c62-4175-9a77-b389a78a42e6" />
+ <img width="70" src="https://github.com/user-attachments/assets/7d64243b-7eaa-49c8-bf67-897415f990ee" />
   </a>
   <a href="https://ehsaancompress.ai.studio/" target="_blank">
-   <img height="70" src="https://github.com/user-attachments/assets/de9dd1ed-3480-442f-af74-62c3924dd747" />
+ <img width="70" src="https://github.com/user-attachments/assets/d3a5b184-a158-4f39-abe6-a3795ef7c2eb" />
 </p>
 <br>
 </div>
