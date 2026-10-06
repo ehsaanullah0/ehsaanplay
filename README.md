@@ -37,34 +37,23 @@
 
 ---
 
-## ✨ What is EHSAAN PLAY?
-
-EHSAAN PLAY brings your personal movie and series collection into one clean interface.
-
-You can:
-
-* 🎬 Discover movies and TV series
-* 🔎 Search titles using TMDB
-* ❤️ Build your personal watchlist
-* ✅ Track watched movies and episodes
-* ⭐ Give your own ratings
-* 📝 Add personal notes
-* 📚 Organize titles into custom lists
-* 🎨 Customize your experience
-* 📊 Keep track of your viewing progress
-* 📱 Use it as an installable PWA
-
-Everything is designed around one idea:
-
-> **Your library should feel like yours.**
+# WHAT'S NEW IN LATEST RELEASE
+## **NEW ADAPTIVE THEME OPTIONS , TRY NOW**
+<img width="313" height="144" alt="image" src="https://github.com/user-attachments/assets/42bb35d9-3580-4561-af8e-4d9f1f32fc4c" />
 
 ---
 
-## CURRENT CHANGES IN THIS PROJECT BY [ [DEVSTUDIO](https://github.com/thmeo07/Watchtime) ]
-- FIXING TEXT IN DARK MODE
-- MAKING DARK MODE ADAPTIVE WITH THEME AND BACKGROUND CARDS
+# ⁉ WHY WEB APP NOT AN APK?
 
-**THESE CHANGES ARE REFLECT TO MAIN BRANCH WITH COLLABRATIOJN WITH THMEO.07**
+- take complex procss
+- high rate of bugs
+- difficult to update
+- compatibility issue
+- not available to desktop
+- difficult to maintain security
+- very time consuming
+- hard to make buttery smooth
+- and so many dificulties
 
 ---
 
@@ -142,6 +131,29 @@ Everything is designed around one idea:
 </details>
 
 ## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
+
+---
+
+## ✨ What is EHSAAN PLAY?
+
+EHSAAN PLAY brings your personal movie and series collection into one clean interface.
+
+You can:
+
+* 🎬 Discover movies and TV series
+* 🔎 Search titles using TMDB
+* ❤️ Build your personal watchlist
+* ✅ Track watched movies and episodes
+* ⭐ Give your own ratings
+* 📝 Add personal notes
+* 📚 Organize titles into custom lists
+* 🎨 Customize your experience
+* 📊 Keep track of your viewing progress
+* 📱 Use it as an installable PWA
+
+Everything is designed around one idea:
+
+> **Your library should feel like yours.**
 
 ---
 
