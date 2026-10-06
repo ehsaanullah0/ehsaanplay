@@ -38,8 +38,21 @@
 ---
 
 # WHAT'S NEW IN LATEST RELEASE
-## **NEW ADAPTIVE THEME OPTIONS , TRY NOW**
-<img width="313" height="144" alt="image" src="https://github.com/user-attachments/assets/42bb35d9-3580-4561-af8e-4d9f1f32fc4c" />
+## 📡 Local Wi-Fi Sync
+
+> **Planned / Experimental**
+
+EHSAAN PLAY will explore a serverless, same-Wi-Fi device-to-device
+sync system. which is currently in dev.
+
+**No account • No cloud • No internet • No EHSAAN server**
+
+📖 **[Read the Local Wi-Fi Sync Blueprint →](LOCAL-SYNC.md)**
+
+---
+
+# DEVELOPER NOTE
+<img width="771" height="133" alt="image" src="https://github.com/user-attachments/assets/584ae2fe-3aad-4e6f-9ad5-f2275d815d36" />
 
 ---
 
