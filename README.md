@@ -47,7 +47,7 @@ sync system. which is currently in dev.
 
 **No account • No cloud • No internet • No EHSAAN server**
 
-📖 **[Read the Local Wi-Fi Sync Blueprint →](LOCAL-SYNC.md)**
+📖 **[Read the Local Wi-Fi Sync Blueprint →](https://github.com/ehsaanullah0/ehsaanplay/blob/main/local-sync.md)**
 
 ---
 
