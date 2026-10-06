@@ -108,7 +108,7 @@ sync system. which is currently in dev.
       <img src="https://github.com/user-attachments/assets/0fc9de3a-73bd-46e4-b80b-a714b52a6bda" width="100%">
     </td>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/6c9ec9c1-2435-454b-8ca7-796bffdf1738" width="100%">
+     <img src="https://github.com/user-attachments/assets/e55f2eca-7d44-4da5-9bd4-bbc427e5e487" width="100%">
     </td>
   </tr>
   <tr>
