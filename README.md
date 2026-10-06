@@ -1,12 +1,8 @@
 <p align="center">
-<img width="1796" height="876" alt="Ehsaan ULLAH" src="https://github.com/user-attachments/assets/68630d20-e4d1-492c-ab24-659bfdd98f82" />
+<img width="1796" height="876" alt="Ehsaan ULLAH (1)" src="https://github.com/user-attachments/assets/44e8dbff-9318-44aa-b51d-90b8854ab44b" />
 </p>
 <br>
-<br>
 
-
-<div align="center">
-<img width="180" height="180" alt="ehsaan_play_clapper_icon" src="https://github.com/user-attachments/assets/a3ba47c4-21aa-44be-9c96-07fb04b4d65e" />
 
 # EHSAAN PLAY
 
