@@ -83,7 +83,7 @@ sync system. which is currently in dev.
 </p>
 
 <p align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/c230d554-9efb-45e5-a0b6-052d02f8c9da" alt="Desktop Screenshot 3">
+<img width="1366" height="760" alt="image" src="https://github.com/user-attachments/assets/d5ce31a0-f00c-41c8-a0de-255bf4cbfea0" />
 </p>
 
 <!-- Mobile Screenshots -->
