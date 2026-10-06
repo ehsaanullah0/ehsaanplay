@@ -5,8 +5,8 @@
 
 # **Your watchlist. Your taste. Your space.**
 # [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
-## THIS DOMAIN IS ONLY FOR PUBLISING THE WEBAPP , NOT CERTIFY BY AI STUDIO.
-### **EHSAAN PLAY is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
+### THIS DOMAIN IS ONLY FOR PUBLISING THE WEBAPP , NOT CERTIFY BY AI STUDIO.
+## **STILL TAKING SCREENSHOTS OF MOVIES , TRY EHSAAN PLAY AND TRACK - what you watch feel in simple, calm, and enjoyable way.**
 
 <a href="https://youtu.be/MXh9GdDQqJ4" target="_blank">
   <img
