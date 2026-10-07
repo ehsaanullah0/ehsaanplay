@@ -3,39 +3,29 @@
 </p>
 <br>
 
+<div align="center">
 
 # EHSAAN PLAY
 
-# **Your watchlist. Your taste. Your space.**
-# [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
-### THIS DOMAIN IS ONLY FOR PUBLISING THE WEBAPP , NOT CERTIFY BY AI STUDIO.
-## **STILL TAKING SCREENSHOTS OF MOVIES , TRY EHSAAN PLAY AND TRACK - what you watch feel in simple, calm, and enjoyable way.**
+## **Your watchlist. Your taste. Your space.**
 
-<a href="https://youtu.be/MXh9GdDQqJ4" target="_blank">
-  <img
-    width="200"
-    src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3"
-    alt="Watch EHSAAN MOVIE Demo Video"
-  />
+# [EHSAANPLAY.AI.STUDIO](https://ehsaanplay.ai.studio)
 </a>
 
 <p>
-  <a href="https://ehsaancolour.ai.studio/" target="_blank">
-   <img width="170" src="https://github.com/user-attachments/assets/00762234-2f32-40c0-8640-225206908e5a" />
-  </a>
-  <a href="https://ehsaanflow.ai.studio/" target="_blank">
- <img width="170" src="https://github.com/user-attachments/assets/f1f073ca-70f6-418a-8ea8-dbf07780247f" />
-  </a>
-  <a href="https://ehsaanqr.ai.studio/" target="_blank">
- <img width="170" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" />
-  </a>
-  <a href="https://ehsaanplay.ai.studio/" target="_blank">
- <img width="170" src="https://github.com/user-attachments/assets/7d64243b-7eaa-49c8-bf67-897415f990ee" />
-  </a>
-  <a href="https://ehsaancompress.ai.studio/" target="_blank">
- <img width="170" src="https://github.com/user-attachments/assets/d3a5b184-a158-4f39-abe6-a3795ef7c2eb" />
+  <strong>Still taking screenshots of movies?</strong><br>
+  Try EHSAAN PLAY and track what you watch in a simple,<br>
+  calm, and enjoyable way.
 </p>
+
 <br>
+
+  🌐 The domain above is used only to publish the web app.
+  It is not certified, endorsed, or affiliated with AI Studio.
+  If you do not trust the hosted version, simply fork this repository
+  and host EHSAAN PLAY yourself.
+
+
 </div>
 
 ---
@@ -70,6 +60,20 @@ sync system. which is currently in dev.
 - very time consuming
 - hard to make buttery smooth
 - and so many dificulties
+
+---
+
+# 🎥 Demo
+
+<p align="center">
+  <a href="https://youtu.be/MXh9GdDQqJ4">
+    <img width="420" src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Watch EHSAAN PLAY Demo" />
+  </a>
+</p>
+
+<p align="center">
+  <sub>▶️ Click the preview to watch the EHSAAN PLAY demo.</sub>
+</p>
 
 ---
 
@@ -328,18 +332,57 @@ AN PLAY** — Your personal movie & series library
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
 
-#  SUPPORT THE DEVELOPMENT
-## [ CLICK HERE TO PAY DIRECTLY.](https://ehsaan.odoo.com/support)
+# ❤️ Support the Development
 
-<img width="250" height="250" alt="ehsaan-qr-1024x1024 (1)" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
+If EHSAAN PLAY or any other EHSAAN project is useful to you, you can support the development directly.
+
+<p align="center">
+  <a href="https://ehsaan.odoo.com/support">
+    <strong>💛 CLICK HERE TO SUPPORT EHSAAN</strong>
+  </a>
 </p>
 
 <p align="center">
-  <sub> If you find something useful here, a ⭐ is always appreciated. </sub>
+  <img width="250" height="250" alt="Support EHSAAN" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
 </p>
 
+---
 
-## **EHSAAN ULLAH**
+# 🌐 More from EHSAAN
+
+<p align="center">
+
+  <a href="https://ehsaancolour.ai.studio/" target="_blank">
+    <img width="170" src="https://github.com/user-attachments/assets/00762234-2f32-40c0-8640-225206908e5a" alt="EHSAAN Colour" />
+  </a>
+
+  <a href="https://ehsaanflow.ai.studio/" target="_blank">
+    <img width="170" src="https://github.com/user-attachments/assets/f1f073ca-70f6-418a-8ea8-dbf07780247f" alt="EHSAAN Flow" />
+  </a>
+
+  <a href="https://ehsaanqr.ai.studio/" target="_blank">
+    <img width="170" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" alt="EHSAAN QR" />
+  </a>
+
+  <a href="https://ehsaanplay.ai.studio/" target="_blank">
+    <img width="170" src="https://github.com/user-attachments/assets/7d64243b-7eaa-49c8-bf67-897415f990ee" alt="EHSAAN PLAY" />
+  </a>
+
+  <a href="https://ehsaancompress.ai.studio/" target="_blank">
+    <img width="170" src="https://github.com/user-attachments/assets/d3a5b184-a158-4f39-abe6-a3795ef7c2eb" alt="EHSAAN Compress" />
+  </a>
+
+</p>
+
+---
+
+<div align="center">
+
+# MADE BY EHSAAN ULLAH
+
+**Make useful things. Make them feel good to use.**
+
+<br>
 
 <a href="mailto:worsmon@gmail.com">
   <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
@@ -352,3 +395,9 @@ AN PLAY** — Your personal movie & series library
 <a href="https://ehsaan.odoo.com/">
   <img src="https://img.shields.io/badge/Website-0A84FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website">
 </a>
+
+<br><br>
+
+<sub>If you find something useful here, a ⭐ is always appreciated.</sub>
+
+</div>
