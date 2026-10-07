@@ -29,7 +29,7 @@
   <a href="https://ehsaanqr.ai.studio/" target="_blank">
  <img width="170" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" />
   </a>
-  <a href="https://ehsaanmovie.ai.studio/" target="_blank">
+  <a href="https://ehsaanplay.ai.studio/" target="_blank">
  <img width="170" src="https://github.com/user-attachments/assets/7d64243b-7eaa-49c8-bf67-897415f990ee" />
   </a>
   <a href="https://ehsaancompress.ai.studio/" target="_blank">
