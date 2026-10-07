@@ -55,7 +55,7 @@ sync system. which is currently in dev.
 ---
 
 # DEVELOPER NOTE
-<img width="771" height="133" alt="image" src="https://github.com/user-attachments/assets/584ae2fe-3aad-4e6f-9ad5-f2275d815d36" />
+<img width="771" height="152" alt="image" src="https://github.com/user-attachments/assets/88b590ee-0819-4554-b61b-b81b246c31e8" />
 
 ---
 
