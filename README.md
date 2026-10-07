@@ -1,11 +1,11 @@
 <div align="center">
 <img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
 
-# WATCHTIME 
+# EHSAAN PLAY
 
 # **Your watchlist. Your taste. Your space.**
 # [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
-### **watchtime is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
+### **Ehsaan play is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 
 </div>
 
