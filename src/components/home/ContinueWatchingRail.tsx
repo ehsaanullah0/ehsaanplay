@@ -49,34 +49,29 @@ export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = ({
                   onSelectMedia(item);
                 }
               }}
-              className="group relative flex-none w-[280px] sm:w-[320px] text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4E562F] rounded-2xl select-none bg-[#FEDB99] text-[#624B15] p-3.5 sm:p-4 shadow-xs hover:shadow-md transition-all active:scale-[0.99] border-none flex items-center gap-3.5 sm:gap-4"
+              className="group relative flex-none w-[280px] sm:w-[320px] text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] rounded-2xl select-none bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] p-3.5 sm:p-4 shadow-xs hover:shadow-md transition-all active:scale-[0.99] border border-[var(--border-subtle)] flex items-center gap-3.5 sm:gap-4"
             >
               {/* Album / Poster Image on Left */}
-              <div className="relative w-16 h-24 sm:w-20 sm:h-28 rounded-xl overflow-hidden bg-[#FEF3D6] shadow-2xs flex-none">
+              <div className="relative w-16 h-24 sm:w-20 sm:h-28 rounded-xl overflow-hidden bg-black/15 shadow-2xs flex-none">
                 <SafeImage
                   src={item.posterUrl || item.backdropUrl}
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/15 group-hover:bg-black/25 transition flex items-center justify-center">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FAF8F2]/90 text-[#624B15] flex items-center justify-center shadow-xs transform group-hover:scale-110 transition">
-                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                  </div>
-                </div>
               </div>
 
-              {/* Right Side Info & Dark Yellow Progress Bar */}
+              {/* Right Side Info & Progress Bar */}
               <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm sm:text-base font-black text-[#624B15] leading-snug truncate pr-4">
+                    <h3 className="text-sm sm:text-base font-black text-[var(--text-card-yellow)] leading-snug truncate pr-4">
                       {item.title}
                     </h3>
                   </div>
 
-                  <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-[#8C6B1B]">
+                  <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-[var(--text-card-yellow)] opacity-85">
                     {epInfo ? (
-                      <span className="text-[#624B15]">{epInfo}</span>
+                      <span>{epInfo}</span>
                     ) : (
                       <span>{progress}% completed</span>
                     )}
@@ -85,11 +80,11 @@ export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = ({
                   </div>
                 </div>
 
-                {/* Dark Yellow Progress Bar */}
+                {/* Adaptive Progress Bar */}
                 <div className="mt-3">
-                  <div className="w-full h-2 rounded-full bg-[#E6C378] overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-black/20 overflow-hidden">
                     <div
-                      className="h-full bg-[#855D00] rounded-full transition-all duration-300"
+                      className="h-full bg-[var(--text-card-yellow)] rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -106,7 +101,7 @@ export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = ({
                   }}
                   aria-label="Remove from Continue Watching"
                   title="Remove from Continue Watching"
-                  className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full hover:bg-[#624B15]/15 text-[#624B15] flex items-center justify-center transition active:scale-90"
+                  className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full hover:bg-black/15 text-[var(--text-card-yellow)] flex items-center justify-center transition active:scale-90"
                 >
                   <X className="w-3.5 h-3.5 stroke-[2.5]" />
                 </button>

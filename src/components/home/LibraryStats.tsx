@@ -27,6 +27,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
 
   const sections = homeSections || {
+    showHeroSlideshow: true,
     showTopMovies: true,
     showTopSeries: true,
     showContinueWatching: true,
@@ -37,9 +38,10 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
 
   const handleToggle = (key: keyof HomeSectionsConfig) => {
     if (onUpdateHomeSections) {
+      const currentVal = sections[key] !== false;
       onUpdateHomeSections({
         ...sections,
-        [key]: sections[key] === undefined ? false : !sections[key],
+        [key]: !currentVal,
       });
     }
   };
@@ -79,15 +81,15 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
       </div>
 
       {/* Integrated Typographic Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 bg-[#E4EAB8] text-[#3B421E] p-5 sm:p-7 rounded-3xl shadow-2xs border border-[#4E562F]/15">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] p-5 sm:p-7 rounded-3xl shadow-2xs border border-[var(--border-subtle)]">
         <button
           onClick={() => onNavigateToWatchlist('all')}
           className="text-left group focus:outline-none rounded-xl p-1 -m-1"
         >
-          <div className="text-xs font-bold text-[#4E562F] group-hover:text-[#282C1B] transition-colors uppercase tracking-wider">
+          <div className="text-xs font-bold text-[var(--text-card-olive)] opacity-80 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
             Movies
           </div>
-          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#282C1B] tabular-nums tracking-tight mt-1 transition-colors">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
             {stats.moviesCount}
           </div>
         </button>
@@ -96,10 +98,10 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
           onClick={() => onNavigateToWatchlist('all')}
           className="text-left group focus:outline-none rounded-xl p-1 -m-1"
         >
-          <div className="text-xs font-bold text-[#4E562F] group-hover:text-[#282C1B] transition-colors uppercase tracking-wider">
+          <div className="text-xs font-bold text-[var(--text-card-olive)] opacity-80 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
             TV Series
           </div>
-          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#282C1B] tabular-nums tracking-tight mt-1 transition-colors">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
             {stats.seriesCount}
           </div>
         </button>
@@ -108,10 +110,10 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
           onClick={() => onNavigateToWatchlist('watched')}
           className="text-left group focus:outline-none rounded-xl p-1 -m-1"
         >
-          <div className="text-xs font-bold text-[#4E562F] group-hover:text-[#282C1B] transition-colors uppercase tracking-wider">
+          <div className="text-xs font-bold text-[var(--text-card-olive)] opacity-80 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
             Watched
           </div>
-          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#282C1B] tabular-nums tracking-tight mt-1 transition-colors">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
             {stats.watchedCount}
           </div>
         </button>
@@ -120,10 +122,10 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
           onClick={() => onNavigateToWatchlist('watchlist')}
           className="text-left group focus:outline-none rounded-xl p-1 -m-1"
         >
-          <div className="text-xs font-bold text-[#4E562F] group-hover:text-[#282C1B] transition-colors uppercase tracking-wider">
+          <div className="text-xs font-bold text-[var(--text-card-olive)] opacity-80 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
             Watchlist
           </div>
-          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#282C1B] tabular-nums tracking-tight mt-1">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1">
             {stats.watchlistCount}
           </div>
         </button>
@@ -144,6 +146,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
 
           <div className="mt-3 space-y-2">
             {[
+              { key: 'showHeroSlideshow', label: 'Featured Hero Slideshow' },
               { key: 'showContinueWatching', label: 'Continue Watching' },
               { key: 'showTopMovies', label: 'Top 10 Movies' },
               { key: 'showTopSeries', label: 'Top 10 Series' },
@@ -151,7 +154,9 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
               { key: 'showRecentlyWatched', label: 'Recently Watched' },
               { key: 'showExplore', label: 'Explore Recommendations' },
             ].map(({ key, label }) => {
-              const active = sections[key as keyof HomeSectionsConfig] !== false;
+              const active = key === 'showHeroSlideshow'
+                ? sections.showHeroSlideshow === true
+                : sections[key as keyof HomeSectionsConfig] !== false;
               return (
                 <button
                   key={key}

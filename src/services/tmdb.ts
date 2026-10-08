@@ -1,10 +1,286 @@
-import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider } from '../types/movie';
+import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo } from '../types/movie';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
 // Default TMDB API Key provided by system
-export const DEFAULT_TMDB_API_KEY = 'enter your own key here';
+export const DEFAULT_TMDB_API_KEY = 'put your own here';
+
+export interface KnownTVShowMetadata {
+  seasonsCount: number;
+  episodesCount: number;
+  seasons?: SeasonInfo[];
+}
+
+export const KNOWN_TV_SHOWS_METADATA: Record<number, KnownTVShowMetadata> = {
+  1396: {
+    seasonsCount: 5,
+    episodesCount: 62,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 7 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 13 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 13 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 13 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 16 },
+    ],
+  },
+  60059: {
+    seasonsCount: 6,
+    episodesCount: 63,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 10 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 10 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 10 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 10 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 10 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 13 },
+    ],
+  },
+  1399: {
+    seasonsCount: 8,
+    episodesCount: 73,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 10 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 10 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 10 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 10 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 10 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 10 },
+      { seasonNumber: 7, name: 'Season 7', episodeCount: 7 },
+      { seasonNumber: 8, name: 'Season 8', episodeCount: 6 },
+    ],
+  },
+  66732: {
+    seasonsCount: 4,
+    episodesCount: 34,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 8 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 9 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 8 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 9 },
+    ],
+  },
+  94605: {
+    seasonsCount: 2,
+    episodesCount: 18,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 9 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 9 },
+    ],
+  },
+  100088: {
+    seasonsCount: 1,
+    episodesCount: 9,
+    seasons: [{ seasonNumber: 1, name: 'Season 1', episodeCount: 9 }],
+  },
+  85271: {
+    seasonsCount: 1,
+    episodesCount: 9,
+    seasons: [{ seasonNumber: 1, name: 'Season 1', episodeCount: 9 }],
+  },
+  82856: {
+    seasonsCount: 3,
+    episodesCount: 24,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 8 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 8 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 8 },
+    ],
+  },
+  70523: {
+    seasonsCount: 3,
+    episodesCount: 26,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 10 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 8 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 8 },
+    ],
+  },
+  119051: {
+    seasonsCount: 1,
+    episodesCount: 8,
+    seasons: [{ seasonNumber: 1, name: 'Season 1', episodeCount: 8 }],
+  },
+  84958: {
+    seasonsCount: 2,
+    episodesCount: 12,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 6 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 6 },
+    ],
+  },
+  93405: {
+    seasonsCount: 2,
+    episodesCount: 16,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 9 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 7 },
+    ],
+  },
+  114472: { seasonsCount: 1, episodesCount: 15 },
+  95557: {
+    seasonsCount: 2,
+    episodesCount: 16,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 8 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 8 },
+    ],
+  },
+  71446: {
+    seasonsCount: 5,
+    episodesCount: 41,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 9 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 6 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 8 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 8 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 10 },
+    ],
+  },
+  1104: {
+    seasonsCount: 7,
+    episodesCount: 92,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 13 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 13 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 13 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 13 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 13 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 13 },
+      { seasonNumber: 7, name: 'Season 7', episodeCount: 14 },
+    ],
+  },
+  4614: {
+    seasonsCount: 6,
+    episodesCount: 86,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 13 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 13 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 13 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 13 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 13 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 21 },
+    ],
+  },
+  19885: {
+    seasonsCount: 4,
+    episodesCount: 13,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 3 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 3 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 3 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 4 },
+    ],
+  },
+  60625: {
+    seasonsCount: 7,
+    episodesCount: 71,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 11 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 10 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 10 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 10 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 10 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 10 },
+      { seasonNumber: 7, name: 'Season 7', episodeCount: 10 },
+    ],
+  },
+  37854: { seasonsCount: 21, episodesCount: 1100 },
+  85937: {
+    seasonsCount: 4,
+    episodesCount: 55,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 26 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 11 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 11 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 7 },
+    ],
+  },
+  1429: {
+    seasonsCount: 4,
+    episodesCount: 89,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 25 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 12 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 22 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 30 },
+    ],
+  },
+  46952: { seasonsCount: 10, episodesCount: 218 },
+  63174: {
+    seasonsCount: 6,
+    episodesCount: 93,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 13 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 18 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 26 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 10 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 16 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 10 },
+    ],
+  },
+  75219: {
+    seasonsCount: 4,
+    episodesCount: 32,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 8 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 8 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 8 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 8 },
+    ],
+  },
+  4607: {
+    seasonsCount: 6,
+    episodesCount: 121,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 25 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 24 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 23 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 14 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 17 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 18 },
+    ],
+  },
+  1402: { seasonsCount: 11, episodesCount: 177 },
+  1668: {
+    seasonsCount: 10,
+    episodesCount: 236,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 24 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 24 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 25 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 24 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 24 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 25 },
+      { seasonNumber: 7, name: 'Season 7', episodeCount: 24 },
+      { seasonNumber: 8, name: 'Season 8', episodeCount: 24 },
+      { seasonNumber: 9, name: 'Season 9', episodeCount: 24 },
+      { seasonNumber: 10, name: 'Season 10', episodeCount: 18 },
+    ],
+  },
+  2316: {
+    seasonsCount: 9,
+    episodesCount: 201,
+    seasons: [
+      { seasonNumber: 1, name: 'Season 1', episodeCount: 6 },
+      { seasonNumber: 2, name: 'Season 2', episodeCount: 22 },
+      { seasonNumber: 3, name: 'Season 3', episodeCount: 25 },
+      { seasonNumber: 4, name: 'Season 4', episodeCount: 19 },
+      { seasonNumber: 5, name: 'Season 5', episodeCount: 28 },
+      { seasonNumber: 6, name: 'Season 6', episodeCount: 26 },
+      { seasonNumber: 7, name: 'Season 7', episodeCount: 26 },
+      { seasonNumber: 8, name: 'Season 8', episodeCount: 24 },
+      { seasonNumber: 9, name: 'Season 9', episodeCount: 25 },
+    ],
+  },
+};
+
+export function getTVShowInitialMetadata(tmdbId: number): KnownTVShowMetadata {
+  if (KNOWN_TV_SHOWS_METADATA[tmdbId]) {
+    return KNOWN_TV_SHOWS_METADATA[tmdbId];
+  }
+  return { seasonsCount: 1, episodesCount: 8 };
+}
 
 // Official TMDB Genre ID dictionary
 const TMDB_GENRES: Record<number, string> = {
@@ -44,7 +320,7 @@ export function getEffectiveTMDBKey(customKey?: string): string {
   return DEFAULT_TMDB_API_KEY;
 }
 
-export function getTMDBImageUrl(path: string | null | undefined, size: 'w500' | 'original' = 'w500'): string {
+export function getTMDBImageUrl(path: string | null | undefined, size: 'w342' | 'w500' | 'w780' | 'original' = 'w500'): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
@@ -185,12 +461,35 @@ export async function fetchMediaDetails(
     // Parse genres
     const genres: string[] = (data.genres || []).map((g: { name?: string }) => g.name || '').filter(Boolean);
 
-    // Parse runtime
-    const runtime = type === 'movie' ? data.runtime : (data.episode_run_time?.[0] || 45);
+    // Parse runtime (guard against NaN or non-number)
+    let runtime: number | undefined = undefined;
+    if (type === 'movie' && typeof data.runtime === 'number' && !isNaN(data.runtime) && data.runtime > 0) {
+      runtime = data.runtime;
+    } else if (type === 'tv') {
+      const epRunTime = Array.isArray(data.episode_run_time) && data.episode_run_time.length > 0
+        ? Number(data.episode_run_time[0])
+        : typeof data.runtime === 'number' ? data.runtime : undefined;
+      runtime = typeof epRunTime === 'number' && !isNaN(epRunTime) && epRunTime > 0 ? epRunTime : undefined;
+    }
 
     // Seasons & Episodes for TV
-    const seasonsCount = type === 'tv' ? (data.number_of_seasons || 1) : undefined;
-    const episodesCount = type === 'tv' ? (data.number_of_episodes || (seasonsCount ? seasonsCount * 8 : 8)) : undefined;
+    const knownMeta = type === 'tv' ? KNOWN_TV_SHOWS_METADATA[tmdbId] : undefined;
+    const seasonsList: SeasonInfo[] = type === 'tv' && Array.isArray(data.seasons)
+      ? data.seasons
+          .filter((s: { season_number?: number }) => typeof s.season_number === 'number' && s.season_number > 0)
+          .map((s: { season_number: number; name?: string; episode_count?: number }) => ({
+            seasonNumber: s.season_number,
+            name: s.name || `Season ${s.season_number}`,
+            episodeCount: s.episode_count || 8,
+          }))
+      : (knownMeta?.seasons || []);
+
+    const seasonsCount = type === 'tv'
+      ? (data.number_of_seasons || (seasonsList.length > 0 ? seasonsList.length : undefined) || knownMeta?.seasonsCount || 1)
+      : undefined;
+    const episodesCount = type === 'tv'
+      ? (data.number_of_episodes || (seasonsList.length > 0 ? seasonsList.reduce((acc, s) => acc + s.episodeCount, 0) : undefined) || knownMeta?.episodesCount || (seasonsCount ? seasonsCount * 8 : 8))
+      : undefined;
 
     return {
       posterUrl: data.poster_path ? getTMDBImageUrl(data.poster_path, 'w500') : undefined,
@@ -199,6 +498,7 @@ export async function fetchMediaDetails(
       runtime,
       seasonsCount,
       episodesCount,
+      seasons: seasonsList.length > 0 ? seasonsList : undefined,
       cast,
       crew,
       providers,
@@ -211,6 +511,14 @@ export async function fetchMediaDetails(
       boxOffice: data.revenue ? `$${data.revenue.toLocaleString()}` : undefined,
     };
   } catch {
+    const known = type === 'tv' ? KNOWN_TV_SHOWS_METADATA[tmdbId] : undefined;
+    if (known) {
+      return {
+        seasonsCount: known.seasonsCount,
+        episodesCount: known.episodesCount,
+        seasons: known.seasons,
+      };
+    }
     return {};
   }
 }
@@ -288,6 +596,7 @@ export async function fetchNetflixTop10Series(customApiKey?: string): Promise<Me
     for (const item of (data.results || []).slice(0, 10)) {
       const year = item.first_air_date ? new Date(item.first_air_date).getFullYear() : 2025;
       const genres = (item.genre_ids || []).map((id: number) => TMDB_GENRES[id]).filter(Boolean);
+      const meta = getTVShowInitialMetadata(item.id);
 
       items.push({
         id: `tv-${item.id}`,
@@ -299,12 +608,13 @@ export async function fetchNetflixTop10Series(customApiKey?: string): Promise<Me
         year: isNaN(year) ? 2025 : year,
         overview: item.overview || 'No overview available.',
         posterUrl: item.poster_path ? getTMDBImageUrl(item.poster_path, 'w500') : '',
-        backdropUrl: item.backdrop_path ? getTMDBImageUrl(item.backdrop_path, 'original') : (item.poster_path ? getTMDBImageUrl(item.poster_path, 'original') : ''),
+        backdropUrl: item.backdrop_path ? getTMDBImageUrl(item.backdrop_path, 'w780') : (item.poster_path ? getTMDBImageUrl(item.poster_path, 'w780') : ''),
         tmdbRating: item.vote_average ? Number(item.vote_average.toFixed(1)) : 7.8,
         voteCount: item.vote_count || 0,
         genres: genres.length > 0 ? genres : ['TV Series', 'Drama'],
-        seasonsCount: 1,
-        episodesCount: 8,
+        seasonsCount: meta.seasonsCount,
+        episodesCount: meta.episodesCount,
+        seasons: meta.seasons,
         cast: [],
         crew: [],
         providers: [{ name: 'Netflix', type: 'stream' }],
@@ -356,6 +666,9 @@ export async function searchTMDB(query: string, customApiKey?: string): Promise<
         genres.push(isMovie ? 'Movie' : 'TV Series');
       }
 
+      const isTv = !isMovie;
+      const meta = isTv ? getTVShowInitialMetadata(item.id) : undefined;
+
       results.push({
         id: `${item.media_type[0]}-${item.id}`,
         tmdbId: item.id,
@@ -366,12 +679,13 @@ export async function searchTMDB(query: string, customApiKey?: string): Promise<
         year: isNaN(year) ? 2025 : year,
         overview: item.overview || 'No overview available.',
         posterUrl: item.poster_path ? getTMDBImageUrl(item.poster_path, 'w500') : '',
-        backdropUrl: item.backdrop_path ? getTMDBImageUrl(item.backdrop_path, 'original') : (item.poster_path ? getTMDBImageUrl(item.poster_path, 'original') : ''),
+        backdropUrl: item.backdrop_path ? getTMDBImageUrl(item.backdrop_path, 'w780') : (item.poster_path ? getTMDBImageUrl(item.poster_path, 'w780') : ''),
         tmdbRating: item.vote_average ? Number(item.vote_average.toFixed(1)) : 0,
         voteCount: item.vote_count || 0,
         genres,
-        seasonsCount: isMovie ? undefined : 1,
-        episodesCount: isMovie ? undefined : 8,
+        seasonsCount: isTv ? (item.number_of_seasons || meta?.seasonsCount || 1) : undefined,
+        episodesCount: isTv ? (item.number_of_episodes || meta?.episodesCount || 8) : undefined,
+        seasons: isTv ? meta?.seasons : undefined,
         cast: [],
         crew: [],
         providers: [{ name: 'Netflix', type: 'stream' }],
@@ -460,14 +774,14 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
 
   try {
     const endpoints = [
-      `${TMDB_BASE_URL}/trending/movie/week?api_key=${encodeURIComponent(apiKey)}&page=1`,
-      `${TMDB_BASE_URL}/trending/tv/week?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/trending/movie/day?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/trending/tv/day?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/movie/now_playing?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/tv/on_the_air?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/movie/popular?api_key=${encodeURIComponent(apiKey)}&page=1`,
+      `${TMDB_BASE_URL}/tv/popular?api_key=${encodeURIComponent(apiKey)}&page=1`,
       `${TMDB_BASE_URL}/movie/top_rated?api_key=${encodeURIComponent(apiKey)}&page=1`,
       `${TMDB_BASE_URL}/tv/top_rated?api_key=${encodeURIComponent(apiKey)}&page=1`,
-      `${TMDB_BASE_URL}/movie/popular?api_key=${encodeURIComponent(apiKey)}&page=2`,
-      `${TMDB_BASE_URL}/tv/popular?api_key=${encodeURIComponent(apiKey)}&page=2`,
-      `${TMDB_BASE_URL}/discover/movie?api_key=${encodeURIComponent(apiKey)}&sort_by=vote_count.desc&page=1`,
-      `${TMDB_BASE_URL}/discover/tv?api_key=${encodeURIComponent(apiKey)}&sort_by=vote_count.desc&page=1`,
     ];
 
     const responses = await Promise.allSettled(
@@ -525,6 +839,9 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
           genres.push(isMovie ? 'Movie' : 'TV Series');
         }
 
+        const isTv = !isMovie;
+        const meta = isTv ? getTVShowInitialMetadata(raw.id) : undefined;
+
         items.push({
           id: uniqueId,
           tmdbId: raw.id,
@@ -535,12 +852,13 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
           year: isNaN(year) ? 2025 : year,
           overview: raw.overview || 'No overview available.',
           posterUrl: raw.poster_path ? getTMDBImageUrl(raw.poster_path, 'w500') : '',
-          backdropUrl: raw.backdrop_path ? getTMDBImageUrl(raw.backdrop_path, 'original') : (raw.poster_path ? getTMDBImageUrl(raw.poster_path, 'original') : ''),
+          backdropUrl: raw.backdrop_path ? getTMDBImageUrl(raw.backdrop_path, 'w780') : (raw.poster_path ? getTMDBImageUrl(raw.poster_path, 'w780') : ''),
           tmdbRating: raw.vote_average ? Number(raw.vote_average.toFixed(1)) : 7.5,
           voteCount: raw.vote_count || 0,
           genres,
-          seasonsCount: isMovie ? undefined : 1,
-          episodesCount: isMovie ? undefined : 8,
+          seasonsCount: isTv ? ((raw as { number_of_seasons?: number }).number_of_seasons || meta?.seasonsCount || 1) : undefined,
+          episodesCount: isTv ? ((raw as { number_of_episodes?: number }).number_of_episodes || meta?.episodesCount || 8) : undefined,
+          seasons: isTv ? meta?.seasons : undefined,
           cast: [],
           crew: [],
           providers: [{ name: 'Netflix', type: 'stream' }],
@@ -554,6 +872,8 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
         const uniqueId = `${fb.type === 'movie' ? 'm' : 'tv'}-${fb.id}`;
         if (!seenIds.has(uniqueId)) {
           seenIds.add(uniqueId);
+          const isTv = fb.type === 'tv';
+          const meta = isTv ? getTVShowInitialMetadata(fb.id) : undefined;
           items.push({
             id: uniqueId,
             tmdbId: fb.id,
@@ -564,12 +884,13 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
             year: fb.year,
             overview: fb.overview,
             posterUrl: getTMDBImageUrl(fb.poster_path, 'w500'),
-            backdropUrl: getTMDBImageUrl(fb.backdrop_path, 'original'),
+            backdropUrl: getTMDBImageUrl(fb.backdrop_path, 'w780'),
             tmdbRating: fb.rating,
             voteCount: fb.votes,
             genres: fb.genres,
-            seasonsCount: fb.type === 'tv' ? 1 : undefined,
-            episodesCount: fb.type === 'tv' ? 8 : undefined,
+            seasonsCount: isTv ? meta?.seasonsCount : undefined,
+            episodesCount: isTv ? meta?.episodesCount : undefined,
+            seasons: isTv ? meta?.seasons : undefined,
             cast: [],
             crew: [],
             providers: [{ name: 'Netflix', type: 'stream' }],
@@ -581,7 +902,18 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
     return items;
   } catch {
     // Return curated 50+ recommendations if offline or network failure
-    return CURATED_EXPLORE_FALLBACKS.map(fb => ({
+    return getCuratedExploreMediaItems();
+  }
+}
+
+/**
+ * Returns all 50+ curated fallback media items with rich metadata and full TV seasons
+ */
+export function getCuratedExploreMediaItems(): MediaItem[] {
+  return CURATED_EXPLORE_FALLBACKS.map(fb => {
+    const isTv = fb.type === 'tv';
+    const meta = isTv ? getTVShowInitialMetadata(fb.id) : undefined;
+    return {
       id: `${fb.type === 'movie' ? 'm' : 'tv'}-${fb.id}`,
       tmdbId: fb.id,
       type: fb.type,
@@ -591,15 +923,16 @@ export async function fetchExploreRecommendations(customApiKey?: string): Promis
       year: fb.year,
       overview: fb.overview,
       posterUrl: getTMDBImageUrl(fb.poster_path, 'w500'),
-      backdropUrl: getTMDBImageUrl(fb.backdrop_path, 'original'),
+      backdropUrl: getTMDBImageUrl(fb.backdrop_path, 'w780'),
       tmdbRating: fb.rating,
       voteCount: fb.votes,
       genres: fb.genres,
-      seasonsCount: fb.type === 'tv' ? 1 : undefined,
-      episodesCount: fb.type === 'tv' ? 8 : undefined,
+      seasonsCount: isTv ? meta?.seasonsCount : undefined,
+      episodesCount: isTv ? meta?.episodesCount : undefined,
+      seasons: isTv ? meta?.seasons : undefined,
       cast: [],
       crew: [],
       providers: [{ name: 'Netflix', type: 'stream' }],
-    }));
-  }
+    };
+  });
 }

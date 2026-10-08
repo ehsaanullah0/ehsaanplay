@@ -11,7 +11,9 @@ interface ExploreSectionProps {
   onRemoveFromWatchlist?: (id: string) => void;
   onMarkWatching?: (id: string) => void;
   onMarkWatched?: (id: string) => void;
+  onDismissFromWatching?: (id: string) => void;
   onToggleWatchlist?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
   tmdbApiKey?: string;
   onAddMediaToLibrary?: (item: MediaItem) => void;
 }
@@ -23,13 +25,15 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
   onRemoveFromWatchlist,
   onMarkWatching,
   onMarkWatched,
+  onDismissFromWatching,
   onToggleWatchlist,
+  onToggleFavorite,
   tmdbApiKey,
   onAddMediaToLibrary,
 }) => {
   const [extraExploreItems, setExtraExploreItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<'all' | MediaType | 'top_rated'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | MediaType | 'top_rated' | 'new_releases'>('all');
   const [genreFilter, setGenreFilter] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState<number>(18);
 
@@ -40,16 +44,13 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
       const items = await fetchExploreRecommendations(tmdbApiKey);
       if (items.length > 0) {
         setExtraExploreItems(items);
-        if (onAddMediaToLibrary) {
-          items.forEach(item => onAddMediaToLibrary(item));
-        }
       }
     } catch (err) {
       console.error('Failed to load explore recommendations:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tmdbApiKey, onAddMediaToLibrary]);
+  }, [tmdbApiKey]);
 
   useEffect(() => {
     loadExploreData();
@@ -76,10 +77,11 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
       // Exclude if already in watchlist
       if (state?.inWatchlist) return false;
 
-      // Filter by type or top rated
+      // Filter by type or top rated or new releases
       if (typeFilter === 'movie' && item.type !== 'movie') return false;
       if (typeFilter === 'tv' && item.type !== 'tv') return false;
-      if (typeFilter === 'top_rated' && (item.tmdbRating || 0) < 7.8) return false;
+      if (typeFilter === 'top_rated' && (item.tmdbRating || 0) < 7.5) return false;
+      if (typeFilter === 'new_releases' && (item.year || 0) < 2025) return false;
 
       // Filter by genre
       if (genreFilter !== 'all' && !(item.genres || []).some(g => g.toLowerCase() === genreFilter.toLowerCase())) {
@@ -88,11 +90,18 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
 
       return true;
     }).sort((a, b) => {
-      // Sort by rating & vote weight
+      // Sort by newest release date first to ensure live updates of new releases are prioritized
       if (typeFilter === 'top_rated') {
         return (b.tmdbRating || 0) - (a.tmdbRating || 0);
       }
-      return (b.tmdbRating || 0) * (b.voteCount || 10) - (a.tmdbRating || 0) * (a.voteCount || 10);
+      
+      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      
+      if (dateB !== dateA) {
+        return dateB - dateA;
+      }
+      return (b.tmdbRating || 0) - (a.tmdbRating || 0);
     });
   }, [allPool, userStates, typeFilter, genreFilter]);
 
@@ -131,22 +140,33 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
         {/* Filter Pills & Refresh Button */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Format Type Filter */}
-          <div className="inline-flex p-1 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-2xs">
+          <div className="inline-flex p-1 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-2xs border border-[var(--border-subtle)]">
             <button
               onClick={() => setTypeFilter('all')}
               className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                 typeFilter === 'all'
-                  ? 'bg-[#3A2C10] text-[#FED898] shadow-xs'
+                  ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
                   : 'opacity-80 hover:opacity-100'
               }`}
             >
-              All ({exploreRecommendations.length})
+              All
+            </button>
+            <button
+              onClick={() => setTypeFilter('new_releases')}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition ${
+                typeFilter === 'new_releases'
+                  ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
+                  : 'opacity-80 hover:opacity-100'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
+              <span>New Releases</span>
             </button>
             <button
               onClick={() => setTypeFilter('movie')}
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition ${
                 typeFilter === 'movie'
-                  ? 'bg-[#3A2C10] text-[#FED898] shadow-xs'
+                  ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
                   : 'opacity-80 hover:opacity-100'
               }`}
             >
@@ -157,7 +177,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
               onClick={() => setTypeFilter('tv')}
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition ${
                 typeFilter === 'tv'
-                  ? 'bg-[#3A2C10] text-[#FED898] shadow-xs'
+                  ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
                   : 'opacity-80 hover:opacity-100'
               }`}
             >
@@ -168,7 +188,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
               onClick={() => setTypeFilter('top_rated')}
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition ${
                 typeFilter === 'top_rated'
-                  ? 'bg-[#3A2C10] text-[#FED898] shadow-xs'
+                  ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
                   : 'opacity-80 hover:opacity-100'
               }`}
             >
@@ -182,7 +202,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
             onClick={loadExploreData}
             disabled={isLoading}
             title="Refresh TMDB recommendations"
-            className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition active:scale-95 disabled:opacity-50"
+            className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition active:scale-95 disabled:opacity-50 border border-[var(--border-subtle)]"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -240,7 +260,9 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
               onRemoveFromWatchlist={onRemoveFromWatchlist}
               onMarkWatching={onMarkWatching}
               onMarkWatched={onMarkWatched}
+              onDismissFromWatching={onDismissFromWatching}
               onToggleWatchlist={onToggleWatchlist}
+              onToggleFavorite={onToggleFavorite}
               onAddMediaToLibrary={onAddMediaToLibrary}
             />
           ))}

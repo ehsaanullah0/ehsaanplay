@@ -27,6 +27,7 @@ interface ListDetailViewProps {
   onRemoveFromWatchlist?: (id: string) => void;
   onMarkWatching?: (id: string) => void;
   onMarkWatched?: (id: string) => void;
+  onDismissFromWatching?: (id: string) => void;
 }
 
 export const ListDetailView: React.FC<ListDetailViewProps> = ({
@@ -43,6 +44,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
   onRemoveFromWatchlist,
   onMarkWatching,
   onMarkWatched,
+  onDismissFromWatching,
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddMediaOpen, setIsAddMediaOpen] = useState(false);
@@ -66,32 +68,32 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
       {/* Back button */}
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FEDB99] hover:opacity-90 text-[#624B15] text-xs sm:text-sm font-bold mb-6 sm:mb-8 transition group shadow-3xs border border-[#624B15]/10"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] text-xs sm:text-sm font-bold mb-6 sm:mb-8 transition group shadow-3xs border border-[var(--border-subtle)]"
       >
-        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1 text-[#624B15]" />
+        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
         <span>Back to All Collections</span>
       </button>
 
       {/* Playlist Hero Section */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 bg-[#F3EFE4] p-6 sm:p-8 rounded-3xl border border-[#4E562F]/10 mb-10">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 bg-[var(--bg-surface-card)] p-6 sm:p-8 rounded-3xl border border-[var(--border-subtle)] mb-10 shadow-xs">
         {/* Dynamic Collage Cover */}
         <ListCoverCollage items={listItems} size="lg" className="shadow-md" />
 
         <div className="flex-1 text-center md:text-left flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#6A7056]">
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
               Custom Collection
             </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#282C1B] tracking-tight mt-1">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--text-primary)] tracking-tight mt-1">
               {list.title}
             </h1>
             {list.description && (
-              <p className="mt-2 text-sm sm:text-base text-[#6A7056] leading-relaxed max-w-2xl">
+              <p className="mt-2 text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
                 {list.description}
               </p>
             )}
-            <div className="mt-3 text-xs text-[#6A7056] flex items-center justify-center md:justify-start gap-2">
-              <span className="font-semibold text-[#282C1B]">
+            <div className="mt-3 text-xs text-[var(--text-secondary)] flex items-center justify-center md:justify-start gap-2">
+              <span className="font-semibold text-[var(--text-primary)]">
                 {listItems.length} {listItems.length === 1 ? 'title' : 'titles'}
               </span>
               <span aria-hidden="true">·</span>
@@ -103,7 +105,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
           <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
             <button
               onClick={() => setIsAddMediaOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition shadow-xs active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Movies & Series</span>
@@ -112,7 +114,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
             {listItems.length > 0 && (
               <button
                 onClick={() => onRandomPickFromList(listItems)}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#E4EAB8] text-[#3B421E] text-xs font-bold hover:bg-[#D7DE9E] transition active:scale-95"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Shuffle Pick</span>
@@ -121,10 +123,10 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
 
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="p-2.5 rounded-full bg-[#FEDB99] hover:opacity-90 text-[#624B15] transition border border-[#624B15]/15 active:scale-95 shadow-3xs"
+              className="p-2.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition border border-[var(--border-subtle)] active:scale-95 shadow-3xs"
               title="Edit List Details"
             >
-              <Edit2 className="w-4 h-4 text-[#624B15]" />
+              <Edit2 className="w-4 h-4 text-[var(--text-card-yellow)]" />
             </button>
 
             <button
@@ -134,7 +136,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
                   onBack();
                 }
               }}
-              className="p-2.5 rounded-full bg-[#FAF8F2] hover:bg-rose-50 text-rose-600 transition border border-rose-200/50 active:scale-95"
+              className="p-2.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition active:scale-95 shadow-xs"
               title="Delete Collection"
             >
               <Trash2 className="w-4 h-4" />
@@ -146,7 +148,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
       {/* Media Grid */}
       {listItems.length > 0 ? (
         <div>
-          <h2 className="text-xl font-bold text-[#282C1B] mb-5 tracking-tight">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-5 tracking-tight">
             Titles in this Collection
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
@@ -159,6 +161,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
                   onRemoveFromWatchlist={onRemoveFromWatchlist}
                   onMarkWatching={onMarkWatching}
                   onMarkWatched={onMarkWatched}
+                  onDismissFromWatching={onDismissFromWatching}
                 />
                 {/* Remove from list quick trigger */}
                 <button
@@ -167,7 +170,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
                     e.stopPropagation();
                     onRemoveItemFromList(list.id, item.id);
                   }}
-                  className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-black/60 text-white hover:bg-rose-600 transition opacity-0 group-hover:opacity-100 z-10"
+                  className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition opacity-0 group-hover:opacity-100 z-10 shadow-xs"
                   title="Remove from list"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -178,12 +181,12 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
         </div>
       ) : (
         <div className="text-center py-16 px-4 max-w-sm mx-auto">
-          <p className="text-sm text-[#6A7056] leading-relaxed">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
             This collection is empty right now. Add titles from your library to start building your shelf.
           </p>
           <button
             onClick={() => setIsAddMediaOpen(true)}
-            className="mt-4 px-5 py-2.5 rounded-full bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition shadow-xs"
+            className="mt-4 px-5 py-2.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs"
           >
             Browse & Add Titles
           </button>
@@ -194,25 +197,25 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
       {isAddMediaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="absolute inset-0" onClick={() => setIsAddMediaOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col bg-[#FAF8F2] rounded-3xl p-6 shadow-2xl border border-[#4E562F]/15 text-[#282C1B] z-10">
-            <div className="flex items-center justify-between pb-4 border-b border-[#4E562F]/10">
+          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col bg-[var(--modal-bg)] rounded-3xl p-6 shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
               <h3 className="text-lg font-bold">Add to {list.title}</h3>
               <button
                 onClick={() => setIsAddMediaOpen(false)}
-                className="p-2 rounded-full bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#4E562F] transition"
+                className="p-2 rounded-full bg-[var(--chip-bg)] hover:opacity-85 text-[var(--text-primary)] transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="my-3 relative">
-              <Search className="w-4 h-4 text-[#748547] absolute left-3 top-1/2 -translate-y-1/2 stroke-[2.5]" />
+              <Search className="w-4 h-4 text-[var(--accent-primary)] absolute left-3 top-1/2 -translate-y-1/2 stroke-[2.5]" />
               <input
                 type="text"
                 value={addSearchQuery}
                 onChange={e => setAddSearchQuery(e.target.value)}
                 placeholder="Search library to add..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#EFECE1] text-[#282C1B] placeholder-[#8C9277] text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#4E562F]"
+                className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[var(--chip-bg)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               />
             </div>
 
@@ -221,19 +224,19 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
                 availableToAdd.map(item => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F3EFE4] hover:bg-[#EBE7DC] transition"
+                    className="flex items-center justify-between p-2.5 rounded-2xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] transition"
                   >
                     <div className="flex items-center gap-3">
                       <img
                         src={item.posterUrl}
                         alt={item.title}
-                        className="w-10 h-14 object-cover rounded-lg bg-[#EAE7DC]"
+                        className="w-10 h-14 object-cover rounded-lg bg-[var(--bg-surface-elevated)]"
                       />
                       <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-[#282C1B]">
+                        <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
                           {item.title}
                         </h4>
-                        <span className="text-[11px] text-[#6A7056]">
+                        <span className="text-[11px] text-[var(--text-secondary)]">
                           {item.year} · {item.type === 'tv' ? 'Series' : 'Movie'}
                         </span>
                       </div>
@@ -241,7 +244,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
 
                     <button
                       onClick={() => onAddItemToList(list.id, item.id)}
-                      className="p-2 rounded-full bg-[#4E562F] text-[#FAF8F2] hover:bg-[#3E4524] transition shadow-xs active:scale-95"
+                      className="p-2 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90 transition shadow-xs active:scale-95"
                       title="Add title"
                     >
                       <Plus className="w-4 h-4" />
@@ -249,7 +252,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
                   </div>
                 ))
               ) : (
-                <p className="text-center py-8 text-xs text-[#6A7056]">
+                <p className="text-center py-8 text-xs text-[var(--text-secondary)]">
                   No additional titles found.
                 </p>
               )}

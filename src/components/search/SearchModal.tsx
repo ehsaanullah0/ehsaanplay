@@ -138,8 +138,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               onClick={() => setFormatFilter('all')}
               className={`px-3 py-1 rounded-full font-bold transition text-xs ${
                 formatFilter === 'all'
-                  ? 'bg-[#624B15] text-[#FEDB99] shadow-xs'
-                  : 'text-[#624B15]/75 hover:text-[#624B15]'
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                  : 'text-[var(--text-card-yellow)] opacity-75 hover:opacity-100'
               }`}
             >
               All
@@ -148,8 +148,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               onClick={() => setFormatFilter('movie')}
               className={`px-3 py-1 rounded-full font-bold transition text-xs ${
                 formatFilter === 'movie'
-                  ? 'bg-[#624B15] text-[#FEDB99] shadow-xs'
-                  : 'text-[#624B15]/75 hover:text-[#624B15]'
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                  : 'text-[var(--text-card-yellow)] opacity-75 hover:opacity-100'
               }`}
             >
               Movies
@@ -158,17 +158,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               onClick={() => setFormatFilter('tv')}
               className={`px-3 py-1 rounded-full font-bold transition text-xs ${
                 formatFilter === 'tv'
-                  ? 'bg-[#624B15] text-[#FEDB99] shadow-xs'
-                  : 'text-[#624B15]/75 hover:text-[#624B15]'
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                  : 'text-[var(--text-card-yellow)] opacity-75 hover:opacity-100'
               }`}
             >
               Series
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-[#624B15] tabular-nums font-bold text-xs">
+          <div className="flex items-center gap-2 text-[var(--text-card-yellow)] tabular-nums font-bold text-xs">
             {isSearching ? (
-              <span className="text-[#624B15] flex items-center gap-1">
+              <span className="flex items-center gap-1">
                 Searching TMDB...
               </span>
             ) : (
@@ -180,7 +180,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Results List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2">
           {!query.trim() && (
-            <div className="text-xs font-bold uppercase tracking-widest text-[#6A7056] px-1 mb-2">
+            <div className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] px-1 mb-2">
               Featured in Library
             </div>
           )}
@@ -290,10 +290,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     title={isWatched ? 'Watched (click to cycle)' : isWatching ? 'Watching (click to mark watched)' : 'Mark Watched'}
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition active:scale-90 shadow-2xs ${
                       isWatched
-                        ? 'bg-[#E4EAB8] text-[#3B421E]'
+                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)]'
                         : isWatching
-                        ? 'bg-[#FAF8F2] text-[#4E562F] border-2 border-[#4E562F]'
-                        : 'bg-[#FAF8F2] hover:bg-[#EFECE1] text-[#282C1B] border border-[#4E562F]/15'
+                        ? 'bg-[var(--modal-bg)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)]'
+                        : 'bg-[var(--chip-bg)] hover:opacity-90 text-[var(--text-primary)] border border-[var(--border-subtle)]'
                     }`}
                   >
                     <Check className="w-4 h-4 stroke-[2.5]" />
@@ -305,10 +305,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
           {!isSearching && searchResults.length === 0 && (
             <div className="text-center py-12 px-4">
-              <p className="text-sm font-semibold text-[#282C1B]">
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
                 No matching movies or series found.
               </p>
-              <p className="text-xs text-[#6A7056] mt-1">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Try searching for another movie title, actor, or genre.
               </p>
             </div>

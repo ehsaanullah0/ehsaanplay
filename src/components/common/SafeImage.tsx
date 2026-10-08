@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Film } from 'lucide-react';
 import { getArtworkDisplaySrc, resolveArtworkUrl } from '../../services/imageStorage';
+import { loadUserSettings } from '../../services/storage';
 import { useOnlineStatus } from '../../hooks/usePWAInstall';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -25,7 +26,52 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   ...props
 }) => {
   const isOnline = useOnlineStatus();
-  const isOffline = forceOffline || !isOnline;
+  const [isStorageOffline, setIsStorageOffline] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const settings = loadUserSettings();
+        if (settings && settings.imageStorageMode) {
+          return settings.imageStorageMode === 'offline';
+        }
+        const raw = localStorage.getItem('ehsaan_user_settings_v1') || localStorage.getItem('ehsaan_movie_user_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return parsed.imageStorageMode === 'offline';
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      try {
+        const settings = loadUserSettings();
+        if (settings && settings.imageStorageMode) {
+          setIsStorageOffline(settings.imageStorageMode === 'offline');
+          return;
+        }
+        const raw = localStorage.getItem('ehsaan_user_settings_v1') || localStorage.getItem('ehsaan_movie_user_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setIsStorageOffline(parsed.imageStorageMode === 'offline');
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener('ehsaan:settings-change', handleSettingsUpdate);
+    window.addEventListener('storage', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('ehsaan:settings-change', handleSettingsUpdate);
+      window.removeEventListener('storage', handleSettingsUpdate);
+    };
+  }, []);
+
+  const isOffline = forceOffline || !isOnline || isStorageOffline;
 
   const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -73,14 +119,34 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   }, [src, isOffline, size]);
 
   const handleImageError = () => {
-    // If online, attempt fallback to original or smaller resolution once
-    if (!isOffline && src && size === 'w500') {
-      const fallbackUrl = resolveArtworkUrl(src, 'original');
-      if (fallbackUrl && fallbackUrl !== resolvedSrc) {
-        setResolvedSrc(fallbackUrl);
-        return;
-      }
+    // Attempt fallback from offline cache first if not already a blob URL
+    if (src && !resolvedSrc?.startsWith('blob:')) {
+      getArtworkDisplaySrc(src, true, size)
+        .then(cachedBlobUrl => {
+          if (cachedBlobUrl) {
+            setResolvedSrc(cachedBlobUrl);
+            setHasError(false);
+            setIsLoading(false);
+            return;
+          }
+          // If online, attempt fallback to original or smaller resolution once
+          if (!isOffline && size === 'w500') {
+            const fallbackUrl = resolveArtworkUrl(src, 'original');
+            if (fallbackUrl && fallbackUrl !== resolvedSrc) {
+              setResolvedSrc(fallbackUrl);
+              return;
+            }
+          }
+          setHasError(true);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setHasError(true);
+          setIsLoading(false);
+        });
+      return;
     }
+
     setHasError(true);
     setIsLoading(false);
   };

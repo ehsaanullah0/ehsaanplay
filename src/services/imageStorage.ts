@@ -41,15 +41,21 @@ export function resolveArtworkUrl(
   const trimmed = rawPath.trim();
   if (!trimmed) return '';
 
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+  if (trimmed.startsWith('data:')) {
     return trimmed;
   }
 
-  if (trimmed.startsWith('/')) {
-    return `${TMDB_IMAGE_BASE}/${size}${trimmed}`;
+  // Normalize TMDB image resolution even if already an absolute URL
+  if (trimmed.includes('image.tmdb.org/t/p/')) {
+    return trimmed.replace(/\/t\/p\/(w[0-9]+|original)\//, `/t/p/${size}/`);
   }
 
-  return trimmed;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${TMDB_IMAGE_BASE}/${size}${clean}`;
 }
 
 /**
@@ -94,12 +100,12 @@ export async function getArtworkDisplaySrc(
           }
         }
 
-        // 3. Fallback: Search keys for path suffix matching
+        // 3. Fallback: Search keys for path suffix / filename matching
         if (!match && rawPath) {
-          const pathEnd = rawPath.includes('/') ? rawPath.substring(rawPath.lastIndexOf('/')) : rawPath;
-          if (pathEnd && pathEnd.length > 3) {
+          const filename = rawPath.split('/').pop()?.split('?')[0];
+          if (filename && filename.length > 4) {
             const keys = await cache.keys();
-            const matchedKey = keys.find(k => k.url.includes(pathEnd));
+            const matchedKey = keys.find(k => k.url.includes(filename));
             if (matchedKey) {
               match = await cache.match(matchedKey);
             }
@@ -300,17 +306,51 @@ export async function preCacheLibraryImages(
 
           const res = await fetch(url, {
             signal: controller.signal,
-            referrerPolicy: 'no-referrer',
           });
           clearTimeout(timeoutId);
 
           if (res.ok && res.status === 200) {
-            const clone = res.clone();
-            const blob = await clone.blob();
+            const blob = await res.blob();
 
             // Validate that we received an actual image
-            if (blob.size > 500 && (blob.type.includes('image') || url.includes('.jpg') || url.includes('.png') || url.includes('.webp'))) {
-              await cache.put(url, res);
+            if (blob.size > 200 && (blob.type.includes('image') || url.includes('.jpg') || url.includes('.png') || url.includes('.webp'))) {
+              const cacheResponse = new Response(blob, {
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                  'Content-Type': blob.type || 'image/jpeg',
+                  'Content-Length': String(blob.size),
+                  'Cache-Control': 'public, max-age=31536000, immutable',
+                },
+              });
+              await cache.put(url, cacheResponse);
+
+              // Also store clones for other size variants of this artwork
+              const filename = url.split('/').pop()?.split('?')[0];
+              if (filename && filename.length > 4 && url.includes('image.tmdb.org/t/p/')) {
+                for (const s of ['w342', 'w500', 'w780', 'original'] as const) {
+                  const altSizeUrl = `https://image.tmdb.org/t/p/${s}/${filename}`;
+                  if (altSizeUrl !== url) {
+                    try {
+                      await cache.put(
+                        altSizeUrl,
+                        new Response(blob, {
+                          status: 200,
+                          statusText: 'OK',
+                          headers: {
+                            'Content-Type': blob.type || 'image/jpeg',
+                            'Content-Length': String(blob.size),
+                            'Cache-Control': 'public, max-age=31536000, immutable',
+                          },
+                        })
+                      );
+                    } catch {
+                      // ignore individual variant errors
+                    }
+                  }
+                }
+              }
+
               newlyCached++;
             } else {
               failedCount++;

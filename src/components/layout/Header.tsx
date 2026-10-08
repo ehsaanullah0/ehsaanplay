@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ActiveTab } from '../../types/movie';
-import { Search, Download, Sparkles } from 'lucide-react';
+import { Search, Download, Sparkles, Maximize2, Minimize2, Layers } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useFullscreen } from '../../hooks/useFullscreen';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -9,6 +10,8 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onRandomPick: () => void;
   autoHideHeader?: boolean;
+  swapSearchAndLists?: boolean;
+  onTriggerSwapConfirm?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,13 +20,111 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onRandomPick,
   autoHideHeader = true,
+  swapSearchAndLists = false,
+  onTriggerSwapConfirm,
 }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
-  const [showIOSModal, setShowIOSModal] = React.useState(false);
-  const [isVisible, setIsVisible] = React.useState(true);
-  const lastScrollYRef = React.useRef(0);
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const [showIOSModal, setShowIOSModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
 
-  React.useEffect(() => {
+  // Long press detection on the top corner action button (Search or Lists)
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const startPress = (x: number, y: number) => {
+    isLongPressRef.current = false;
+    startPosRef.current = { x, y };
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(40);
+        } catch {
+          // ignore
+        }
+      }
+      if (onTriggerSwapConfirm) {
+        onTriggerSwapConfirm();
+      }
+    }, 450);
+  };
+
+  const cancelPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      startPress(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startPosRef.current && e.touches.length === 1) {
+      const dx = Math.abs(e.touches[0].clientX - startPosRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - startPosRef.current.y);
+      if (dx > 10 || dy > 10) {
+        cancelPress();
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    cancelPress();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      startPress(e.clientX, e.clientY);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (startPosRef.current) {
+      const dx = Math.abs(e.clientX - startPosRef.current.x);
+      const dy = Math.abs(e.clientY - startPosRef.current.y);
+      if (dx > 10 || dy > 10) {
+        cancelPress();
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    cancelPress();
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    cancelPress();
+    if (onTriggerSwapConfirm) {
+      onTriggerSwapConfirm();
+    }
+  };
+
+  const handleCornerButtonClick = (e: React.MouseEvent) => {
+    if (isLongPressRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPressRef.current = false;
+      return;
+    }
+
+    if (swapSearchAndLists) {
+      onSelectTab('lists');
+    } else {
+      onOpenSearch();
+    }
+  };
+
+  useEffect(() => {
     if (!autoHideHeader) {
       setIsVisible(true);
       return;
@@ -122,24 +223,76 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Zone 3: Primary Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Quick Force Fullscreen Toggle */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className={`p-2 rounded-full text-xs font-bold transition border shadow-2xs active:scale-95 flex items-center justify-center ${
+              isFullscreen
+                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent'
+                : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+            }`}
+            title={isFullscreen ? 'Exit Fullscreen Mode' : 'Enter Force OS Fullscreen Mode'}
+            aria-label="Toggle Fullscreen Mode"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4 stroke-[2.5]" />
+            ) : (
+              <Maximize2 className="w-4 h-4 stroke-[2.5]" />
+            )}
+          </button>
+
           {/* Quick Random Pick Button */}
           <button
             onClick={onRandomPick}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#E4EAB8] text-[#3B421E] hover:bg-[#D8E0A3] active:scale-95 transition border border-[#4E562F]/20 shadow-xs"
+            className={`hidden sm:inline-flex ${!swapSearchAndLists ? 'md:hidden' : ''} items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85 active:scale-95 transition border border-[var(--border-subtle)] shadow-xs`}
             title="Pick a random film from your library"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#3B421E]" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>Random Pick</span>
           </button>
 
-          {/* Search Trigger */}
+          {/* Corner Interactive Action Button (Search Bar OR Custom Lists with Long-Press Exchange) */}
           <button
-            onClick={onOpenSearch}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] text-xs sm:text-sm font-bold transition focus:outline-none shadow-3xs"
-            aria-label="Search movies and series"
+            onClick={handleCornerButtonClick}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onContextMenu={handleContextMenu}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition focus:outline-none shadow-3xs active:scale-95 select-none ${
+              swapSearchAndLists
+                ? activeTab === 'lists'
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                  : 'bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)]'
+                : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] md:w-56 md:justify-start md:pl-4'
+            }`}
+            aria-label={
+              swapSearchAndLists
+                ? 'Custom lists (long press to exchange position)'
+                : 'Search movies and series (long press to exchange position)'
+            }
+            title={
+              swapSearchAndLists
+                ? 'Custom Lists — Long-press to swap with Search Bar'
+                : 'Search — Long-press to swap with Custom Lists'
+            }
           >
-            <Search className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline font-black">Search...</span>
+            {swapSearchAndLists ? (
+              <>
+                <Layers className="w-4 h-4 stroke-[2.5]" />
+                <span className="font-black">Lists</span>
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4 stroke-[2.5] md:mr-1" />
+                <span className="hidden sm:inline font-black">Search...</span>
+              </>
+            )}
           </button>
 
           {/* PWA Install Button (if available) */}

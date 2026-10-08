@@ -94,14 +94,18 @@ export function useOnlineStatus() {
 export interface PWAUpdateState {
   hasUpdate: boolean;
   isUpdating: boolean;
+  isChecking: boolean;
+  checkMessage: string | null;
   applyUpdate: () => void;
   dismissUpdate: () => void;
-  checkForUpdate: () => void;
+  checkForUpdate: () => Promise<void>;
 }
 
 export function usePWAUpdate(): PWAUpdateState {
   const [hasUpdate, setHasUpdate] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkMessage, setCheckMessage] = useState<string | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
@@ -126,8 +130,6 @@ export function usePWAUpdate(): PWAUpdateState {
       registrationRef.current = reg;
 
       // Check if a waiting worker already exists (and an existing worker was already controlling the page)
-      // `navigator.serviceWorker.controller` is present ONLY IF an existing version was already active.
-      // This guarantees FIRST-TIME INSTALLS NEVER SHOW UPDATE NOTIFICATIONS!
       if (reg.waiting && navigator.serviceWorker.controller) {
         waitingWorkerRef.current = reg.waiting;
         setHasUpdate(true);
@@ -182,10 +184,35 @@ export function usePWAUpdate(): PWAUpdateState {
     };
   }, []);
 
-  const checkForUpdate = () => {
-    if (navigator.onLine && registrationRef.current) {
-      registrationRef.current.update().catch(() => {});
+  const checkForUpdate = async () => {
+    setIsChecking(true);
+    setCheckMessage('Checking version...');
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          registrationRef.current = reg;
+          await reg.update();
+        } else {
+          const newReg = await navigator.serviceWorker.register('/sw.js');
+          registrationRef.current = newReg;
+          await newReg.update();
+        }
+      } catch (err) {
+        console.warn('Update check failed:', err);
+      }
     }
+
+    setTimeout(() => {
+      setIsChecking(false);
+      if (!hasUpdate && !waitingWorkerRef.current) {
+        setCheckMessage("You're on the latest version ✦");
+        setTimeout(() => setCheckMessage(null), 3500);
+      } else {
+        setCheckMessage(null);
+      }
+    }, 1000);
   };
 
   const applyUpdate = () => {
@@ -205,6 +232,8 @@ export function usePWAUpdate(): PWAUpdateState {
   return {
     hasUpdate: hasUpdate && !isDismissed,
     isUpdating,
+    isChecking,
+    checkMessage,
     applyUpdate,
     dismissUpdate,
     checkForUpdate,
