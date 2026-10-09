@@ -4,7 +4,7 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
 // Default TMDB API Key provided by system
-export const DEFAULT_TMDB_API_KEY = 'put your own here';
+export const DEFAULT_TMDB_API_KEY = 'add your own key here';
 
 export interface KnownTVShowMetadata {
   seasonsCount: number;

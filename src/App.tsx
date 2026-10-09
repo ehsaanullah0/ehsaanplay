@@ -16,7 +16,7 @@ import { SettingsView, SettingsTopicId } from './components/settings/SettingsVie
 import { MoviePreviewModal } from './components/preview/MoviePreviewModal';
 import { SearchModal } from './components/search/SearchModal';
 import { RandomModal } from './components/watchlist/RandomModal';
-import { LoadingScreen } from './components/layout/LoadingScreen';
+import { StartGuideModal } from './components/onboarding/StartGuideModal';
 import { UpdateNotification } from './components/layout/UpdateNotification';
 import { SwapNavModal } from './components/common/SwapNavModal';
 import { usePWAUpdate } from './hooks/usePWAInstall';
@@ -71,6 +71,13 @@ export default function App() {
   const [globalIncomingTransfer, setGlobalIncomingTransfer] = useState<IncomingTransferEvent | null>(null);
 
   const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('ehsaan_start_guide_completed_v1');
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     // Listen for incoming Wi-Fi transfers across all screens persistently
@@ -319,10 +326,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  if (!isInitialized) {
-    return <LoadingScreen message="Entering Cinema..." />;
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200 selection:bg-[var(--accent-primary)] selection:text-[var(--bg-primary)]">
       {/* Top Bar Navigation */}
@@ -414,6 +417,7 @@ export default function App() {
             onDeleteAllData={deleteAllData}
             onRestoreBackup={restoreBackup}
             onClearCachedTitlesAndImages={clearCachedTitlesAndImages}
+            onReplayGuide={() => setIsOnboardingOpen(true)}
             mediaItems={mediaItems}
             initialTopic={settingsTopic}
             onRefreshData={refreshLibrary}
@@ -554,6 +558,15 @@ export default function App() {
           <span>{syncSuccessToast}</span>
         </div>
       )}
+
+      {/* First Visit Start Guide / Onboarding Flow */}
+      <StartGuideModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        settings={settings}
+        onUpdateSettings={updateSettings}
+        onRestoreBackup={restoreBackup}
+      />
     </div>
   );
 }

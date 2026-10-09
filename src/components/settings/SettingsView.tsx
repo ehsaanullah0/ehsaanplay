@@ -72,6 +72,7 @@ import {
   RotateCcw,
   QrCode,
   Wifi,
+  Compass,
 } from 'lucide-react';
 
 export type SettingsTopicId =
@@ -95,6 +96,7 @@ interface SettingsViewProps {
   initialTopic?: SettingsTopicId | null;
   onRefreshData?: () => void;
   onClearCachedTitlesAndImages?: () => Promise<boolean | void> | void;
+  onReplayGuide?: () => void;
 }
 
 /**
@@ -211,6 +213,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   initialTopic,
   onRefreshData,
   onClearCachedTitlesAndImages,
+  onReplayGuide,
 }) => {
   const { isInstallable, isInstalled, install } = usePWAInstall();
   const { hasUpdate, isUpdating, isChecking, checkMessage, applyUpdate, checkForUpdate } = usePWAUpdate();
@@ -1826,8 +1829,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                 </div>
 
-                {/* Right circle social icons */}
+                {/* Right circle social icons & Start Guide */}
                 <div className="flex items-center gap-2">
+                  {onReplayGuide && (
+                    <button
+                      type="button"
+                      onClick={onReplayGuide}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--accent-primary)] hover:text-[var(--bg-primary)] text-xs font-bold transition active:scale-95 shadow-2xs border border-[var(--border-subtle)]"
+                      title="Replay introductory start guide"
+                    >
+                      <Compass className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Start Guide</span>
+                    </button>
+                  )}
                   <a
                     href="https://github.com/ehsaanullah0/ehsaanplay"
                     target="_blank"
