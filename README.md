@@ -146,7 +146,9 @@
 ## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
 
 ---
-
+## ❤SPECIAL THANKS TO [TOMATO](https://github.com/nsh07/Tomato) | [PIX-PLAYER](https://github.com/PixelPlayerHQ/PixelPlayer)
+- the ui is inspired by tomato pomodoro
+- the first visit guide is inspired by pixal player
 ## ✨ What is EHSAAN PLAY?
 
 EHSAAN PLAY brings your personal movie and series collection into one clean interface.
