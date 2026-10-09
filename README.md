@@ -34,7 +34,7 @@
 - in built trailer player ✔
 - beautiful analytics page
 - automatic backup in choosen folder
-
+- a good looking first visit guide ✔
 ---
 
 # DEVELOPER NOTE
