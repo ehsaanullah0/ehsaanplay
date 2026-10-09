@@ -369,8 +369,6 @@ If EHSAAN PLAY or any other EHSAAN project is useful to you, you can support the
   <img src="https://img.shields.io/badge/Website-0A84FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website">
 </a>
 
-<br><br>
-
 <sub>If you find something useful here, a ⭐ is always appreciated.</sub>
 
 </div>
