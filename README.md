@@ -298,8 +298,11 @@ The application is designed so that personal library data can remain on your dev
 ## **This project is licencrd under GPN-3**
 
 ### Please[ check the repository license](https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file) before using, modifying, or redistributing the project.
-<img width="720" height="634" alt="Screenshot_20261007-113639_19" src="https://github.com/user-attachments/assets/bc20935a-ab23-4158-a307-3ab4c2f31625" />
 
+<p align="center">
+<img width="720" height="634" alt="Screenshot_20261007-113639_19" src="https://github.com/user-attachments/assets/bc20935a-ab23-4158-a307-3ab4c2f31625" />
+<p/>
+  
 ---
 
 <div align="center">
