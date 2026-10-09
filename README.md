@@ -27,17 +27,13 @@
 
 ## ‼️ DISCLAIMER
 - No fork of this project will recieve support, if you use a fork, ask the forker to support you. 
-# WHAT'S NEW IN LATEST RELEASE
-## 📡 Local Wi-Fi Sync
-
-> **Planned / Experimental**
-
-EHSAAN PLAY will explore a serverless, same-Wi-Fi device-to-device
-sync system. which is currently in dev.
-
-**No account • No cloud • No internet • No EHSAAN server**
-
-📖 **[Read the Local Wi-Fi Sync Blueprint →](https://github.com/ehsaanullah0/ehsaanplay/blob/main/local-sync.md)**
+## WHAT'S NEW IN LATEST RELEASE
+> **EHSAAN PLAY now planning to introduce:**
+- multi api fallback support
+- local wi-fi peer to peer sync(beta) ✔
+- in built trailer player ✔
+- beautiful analytics page
+- automatic backup in choosen folder
 
 ---
 
@@ -292,26 +288,6 @@ EHSAAN PLAY follows a simple principle:
 The application is designed so that personal library data can remain on your device.
 
 ### EHSAAN PLAY does not need a traditional user account or personal cloud database to manage your collection.
-
----
-
-## 🗺️ Roadmap
-
-Potential future improvements include:
-
-* [ ] More advanced library filtering
-* [ ] Better recommendation system
-* [ ] Advanced statistics
-* [ ] Improved episode tracking
-* [ ] More customization options
-* [ ] Better offline artwork management
-* [ ] Storage optimization
-* [ ] Enhanced PWA capabilities
-* [ ] Additional personal library tools
-
-The roadmap may change as EHSAAN PLAY evolves.
-
-AN PLAY** — Your personal movie & series library
 
 ---
 
