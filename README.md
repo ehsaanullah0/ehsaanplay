@@ -3,8 +3,6 @@
 </p>
 <br>
 
-<div align="center">
-
 # EHSAAN PLAY
 
 ## **Your watchlist. Your taste. Your space.**
@@ -25,11 +23,10 @@
   If you do not trust the hosted version, simply fork this repository
   and host EHSAAN PLAY yourself.
 
-
-</div>
-
 ---
 
+## ‼️ DISCLAIMER
+- No fork of this project will recieve support, if you use a fork, ask the forker to support you.
 # WHAT'S NEW IN LATEST RELEASE
 ## 📡 Local Wi-Fi Sync
 
