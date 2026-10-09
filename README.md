@@ -21,12 +21,12 @@
   🌐 The domain above is used only to publish the web app.
   It is not certified, endorsed, or affiliated with AI Studio.
   If you do not trust the hosted version, simply fork this repository
-  and host EHSAAN PLAY yourself.
+  and host EHSAAN PLAY yourself at your machine.
 
 ---
 
 ## ‼️ DISCLAIMER
-- No fork of this project will recieve support, if you use a fork, ask the forker to support you.
+- No fork of this project will recieve support, if you use a fork, ask the forker to support you. 
 # WHAT'S NEW IN LATEST RELEASE
 ## 📡 Local Wi-Fi Sync
 
