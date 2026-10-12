@@ -35,6 +35,7 @@
 - beautiful analytics page
 - automatic backup in choosen folder
 - a good looking first visit guide ✔
+- personal favourite section with full controll ✔
 ---
 
 # DEVELOPER NOTE
