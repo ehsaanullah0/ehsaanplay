@@ -5,8 +5,27 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+// Module-level prompt capture singleton so beforeinstallprompt is never missed
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+const promptListeners = new Set<(prompt: BeforeInstallPromptEvent | null) => void>();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    globalDeferredPrompt = e as BeforeInstallPromptEvent;
+    promptListeners.forEach(listener => listener(globalDeferredPrompt));
+  });
+
+  window.addEventListener('appinstalled', () => {
+    globalDeferredPrompt = null;
+    promptListeners.forEach(listener => listener(null));
+  });
+}
+
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => globalDeferredPrompt
+  );
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -25,43 +44,55 @@ export function usePWAInstall() {
       setIsIOS(isIOSDevice);
     }
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const listener = (prompt: BeforeInstallPromptEvent | null) => {
+      setDeferredPrompt(prompt);
+      if (!prompt) {
+        // App might have been installed
+        const standaloneNow =
+          window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator as unknown as { standalone?: boolean })?.standalone === true;
+        if (standaloneNow) setIsInstalled(true);
+      }
     };
+
+    promptListeners.add(listener);
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      globalDeferredPrompt = null;
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      promptListeners.delete(listener);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
-  const install = async () => {
-    if (!deferredPrompt) return false;
+  const install = async (): Promise<boolean> => {
+    const activePrompt = deferredPrompt || globalDeferredPrompt;
+    if (!activePrompt) {
+      return false;
+    }
     try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+      await activePrompt.prompt();
+      const { outcome } = await activePrompt.userChoice;
       if (outcome === 'accepted') {
         setIsInstalled(true);
         setDeferredPrompt(null);
+        globalDeferredPrompt = null;
         return true;
       }
+      return false;
     } catch {
       return false;
     }
-    return false;
   };
 
   return {
-    isInstallable: !!deferredPrompt,
+    isInstallable: !!(deferredPrompt || globalDeferredPrompt),
     isInstalled,
     isIOS,
     install,
@@ -94,14 +125,18 @@ export function useOnlineStatus() {
 export interface PWAUpdateState {
   hasUpdate: boolean;
   isUpdating: boolean;
+  isChecking: boolean;
+  checkMessage: string | null;
   applyUpdate: () => void;
   dismissUpdate: () => void;
-  checkForUpdate: () => void;
+  checkForUpdate: () => Promise<void>;
 }
 
 export function usePWAUpdate(): PWAUpdateState {
   const [hasUpdate, setHasUpdate] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkMessage, setCheckMessage] = useState<string | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
@@ -126,8 +161,6 @@ export function usePWAUpdate(): PWAUpdateState {
       registrationRef.current = reg;
 
       // Check if a waiting worker already exists (and an existing worker was already controlling the page)
-      // `navigator.serviceWorker.controller` is present ONLY IF an existing version was already active.
-      // This guarantees FIRST-TIME INSTALLS NEVER SHOW UPDATE NOTIFICATIONS!
       if (reg.waiting && navigator.serviceWorker.controller) {
         waitingWorkerRef.current = reg.waiting;
         setHasUpdate(true);
@@ -182,10 +215,35 @@ export function usePWAUpdate(): PWAUpdateState {
     };
   }, []);
 
-  const checkForUpdate = () => {
-    if (navigator.onLine && registrationRef.current) {
-      registrationRef.current.update().catch(() => {});
+  const checkForUpdate = async () => {
+    setIsChecking(true);
+    setCheckMessage('Checking version...');
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          registrationRef.current = reg;
+          await reg.update();
+        } else {
+          const newReg = await navigator.serviceWorker.register('/sw.js');
+          registrationRef.current = newReg;
+          await newReg.update();
+        }
+      } catch (err) {
+        console.warn('Update check failed:', err);
+      }
     }
+
+    setTimeout(() => {
+      setIsChecking(false);
+      if (!hasUpdate && !waitingWorkerRef.current) {
+        setCheckMessage("You're on the latest version ✦");
+        setTimeout(() => setCheckMessage(null), 3500);
+      } else {
+        setCheckMessage(null);
+      }
+    }, 1000);
   };
 
   const applyUpdate = () => {
@@ -205,6 +263,8 @@ export function usePWAUpdate(): PWAUpdateState {
   return {
     hasUpdate: hasUpdate && !isDismissed,
     isUpdating,
+    isChecking,
+    checkMessage,
     applyUpdate,
     dismissUpdate,
     checkForUpdate,

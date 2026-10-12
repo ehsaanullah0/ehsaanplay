@@ -13,7 +13,9 @@ interface RankingRailProps {
   onRemoveFromWatchlist?: (id: string) => void;
   onMarkWatching?: (id: string) => void;
   onMarkWatched?: (id: string) => void;
+  onDismissFromWatching?: (id: string) => void;
   onToggleWatchlist?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
 }
 
 export const RankingRail: React.FC<RankingRailProps> = ({
@@ -26,7 +28,9 @@ export const RankingRail: React.FC<RankingRailProps> = ({
   onRemoveFromWatchlist,
   onMarkWatching,
   onMarkWatched,
+  onDismissFromWatching,
   onToggleWatchlist,
+  onToggleFavorite,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -60,14 +64,14 @@ export const RankingRail: React.FC<RankingRailProps> = ({
           <button
             onClick={() => handleScroll('left')}
             aria-label="Scroll left"
-            className="p-2 rounded-full bg-[#FEDB99] hover:opacity-90 text-[#624B15] transition focus:outline-none shadow-3xs"
+            className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-3xs border border-[var(--border-subtle)]"
           >
             <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
           <button
             onClick={() => handleScroll('right')}
             aria-label="Scroll right"
-            className="p-2 rounded-full bg-[#FEDB99] hover:opacity-90 text-[#624B15] transition focus:outline-none shadow-3xs"
+            className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-3xs border border-[var(--border-subtle)]"
           >
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
@@ -92,7 +96,9 @@ export const RankingRail: React.FC<RankingRailProps> = ({
               onRemoveFromWatchlist={onRemoveFromWatchlist}
               onMarkWatching={onMarkWatching}
               onMarkWatched={onMarkWatched}
+              onDismissFromWatching={onDismissFromWatching}
               onToggleWatchlist={onToggleWatchlist}
+              onToggleFavorite={onToggleFavorite}
             />
           </div>
         ))}

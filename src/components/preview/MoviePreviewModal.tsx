@@ -4,6 +4,7 @@ import {
   PersonalMediaState,
   CustomList,
 } from '../../types/movie';
+import { KNOWN_TV_SHOWS_METADATA } from '../../services/tmdb';
 import { SafeImage } from '../common/SafeImage';
 import { StarRating } from '../common/StarRating';
 import { StreamingBrandIcon } from '../common/StreamingBrandIcon';
@@ -31,6 +32,10 @@ import {
   Image as ImageIcon,
   User,
   Users,
+  FileText,
+  FolderPlus,
+  Trash2,
+  CheckCircle2,
 } from 'lucide-react';
 
 export type PreviewCardId =
@@ -99,6 +104,11 @@ export interface HeroCustomizerConfig {
   showWatchTrailerButton: boolean;
   showSynopsisInHero: boolean;
   showStreamingProviders: boolean;
+  showWatchlistButton: boolean;
+  showWatchedButton: boolean;
+  showFavoriteButton: boolean;
+  showAddToListButton: boolean;
+  buttonDisplayMode: 'full' | 'icon';
 }
 
 const DEFAULT_HERO_CUSTOMIZER: HeroCustomizerConfig = {
@@ -113,6 +123,11 @@ const DEFAULT_HERO_CUSTOMIZER: HeroCustomizerConfig = {
   showWatchTrailerButton: true,
   showSynopsisInHero: false,
   showStreamingProviders: false,
+  showWatchlistButton: true,
+  showWatchedButton: true,
+  showFavoriteButton: true,
+  showAddToListButton: true,
+  buttonDisplayMode: 'full',
 };
 
 const PREVIEW_SECTIONS_STORAGE_KEY = 'ehsaan_preview_cards_order_v2';
@@ -126,13 +141,14 @@ interface MoviePreviewModalProps {
   customLists: CustomList[];
   backdropOpacity: number;
   onHydrateDetails?: (item: MediaItem) => Promise<MediaItem | undefined>;
-  onToggleWatchlist: (id: string) => void;
-  onToggleWatched: (id: string) => void;
-  onToggleFavorite: (id: string) => void;
+  onToggleWatchlist: (id: string, item?: MediaItem) => void;
+  onToggleWatched: (id: string, item?: MediaItem) => void;
+  onToggleFavorite: (id: string, item?: MediaItem) => void;
   onSetRating: (id: string, rating: number) => void;
   onSetNotes: (id: string, notes: string) => void;
-  onSetProgress: (id: string, progress: number) => void;
-  onToggleTVEpisode: (id: string, season: number, episode: number) => void;
+  onSetProgress: (id: string, progress: number, item?: MediaItem) => void;
+  onToggleTVEpisode: (id: string, season: number, episode: number, item?: MediaItem) => void;
+  onToggleSeasonEpisodes?: (id: string, season: number, episodeNumbers: number[], forceMarkDone: boolean, item?: MediaItem) => void;
   onAddItemToList: (listId: string, mediaId: string) => void;
 }
 
@@ -151,6 +167,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   onSetNotes,
   onSetProgress,
   onToggleTVEpisode,
+  onToggleSeasonEpisodes,
   onAddItemToList,
 }) => {
   const [item, setItem] = useState<MediaItem | null>(initialItem);
@@ -158,6 +175,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [notesDraft, setNotesDraft] = useState(userState?.notes || '');
+  const [isSavedFeedback, setIsSavedFeedback] = useState(false);
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showRearrangeModal, setShowRearrangeModal] = useState(false);
@@ -282,10 +300,32 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const isWatching = !isWatched && progressPercent > 0;
   const personalRating = userState?.personalRating || 0;
 
-  // TV Episode and season calculations
-  const seasonsCount = item.type === 'tv' ? (item.seasonsCount || 1) : undefined;
-  const totalEpisodesCount = item.type === 'tv' ? (item.episodesCount || (seasonsCount ? seasonsCount * 8 : 8)) : undefined;
-  const episodesPerSeason = seasonsCount && totalEpisodesCount ? Math.ceil(totalEpisodesCount / seasonsCount) : 8;
+  // TV Episode and season calculations (Prioritizes accurate known metadata over outdated cache)
+  const knownMeta = item.type === 'tv' && item.tmdbId ? KNOWN_TV_SHOWS_METADATA[item.tmdbId] : undefined;
+  const seasonsList = (item.seasons && item.seasons.length > 0)
+    ? (knownMeta?.seasons && knownMeta.seasons.length > item.seasons.length ? knownMeta.seasons : item.seasons)
+    : (knownMeta?.seasons || []);
+  const seasonsCount = item.type === 'tv'
+    ? Math.max(
+        item.seasons?.length || 0,
+        item.seasonsCount || 0,
+        knownMeta?.seasonsCount || 0,
+        seasonsList.length || 0,
+        1
+      )
+    : undefined;
+  const totalEpisodesCount = item.type === 'tv'
+    ? Math.max(
+        item.episodesCount || 0,
+        knownMeta?.episodesCount || 0,
+        seasonsList.reduce((acc, s) => acc + (s.episodeCount || 0), 0),
+        (seasonsCount || 1) * 8
+      )
+    : undefined;
+  const currentSeasonInfo = seasonsList.find(s => s.seasonNumber === selectedSeason);
+  const episodesPerSeason = currentSeasonInfo
+    ? currentSeasonInfo.episodeCount
+    : (seasonsCount && totalEpisodesCount ? Math.ceil(totalEpisodesCount / seasonsCount) : 8);
 
   const getYoutubeEmbedUrl = (url?: string) => {
     if (!url) return '';
@@ -296,25 +336,27 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const embedUrl = getYoutubeEmbedUrl(item.trailerUrl);
 
   return (
-    <div className="fixed inset-0 z-50 w-full h-full bg-[#F6F4E5] bg-[var(--bg-primary,#F6F4E5)] overflow-y-auto text-[#282C1B] animate-fade-in flex flex-col">
+    <div className="fixed inset-0 z-50 w-full h-full bg-[var(--modal-bg)] overflow-y-auto text-[var(--text-primary)] animate-fade-in flex flex-col">
       
       {/* ========================================================================= */}
-      {/* CINEMATIC HERO SECTION (Full-Width Dark Backdrop on Desktop, Clean on Mobile) */}
+      {/* CINEMATIC HERO SECTION (Artwork visible only for tablet & desktop screens) */}
       {/* ========================================================================= */}
-      <div className="relative w-full bg-[#F6F4E5] sm:bg-[#181B13] min-h-[380px] sm:min-h-[540px] md:min-h-[620px] lg:min-h-[680px] flex flex-col justify-between shrink-0 border-b border-[#4E562F]/10 sm:border-[#282C1B]/20">
+      <div className={`relative w-full min-h-[340px] sm:min-h-[540px] md:min-h-[620px] lg:min-h-[680px] flex flex-col justify-between shrink-0 border-b border-[var(--border-subtle)] transition-colors ${
+        heroCustomizer.artOn ? 'bg-[var(--modal-bg)] sm:bg-[#000000]' : 'bg-[var(--modal-bg)]'
+      }`}>
         
-        {/* Backdrop Image Layer (Controlled via Art On / Opacity - Available on both Mobile & Desktop) */}
+        {/* Backdrop Image Layer (Turned off on mobile screens < sm, visible for tablet and desktop >= sm) */}
         {heroCustomizer.artOn && (
-          <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute inset-0 z-0 overflow-hidden hidden sm:block bg-[#000000]">
             <SafeImage
               src={item.backdropUrl || item.posterUrl}
               alt={item.title}
               className="w-full h-full object-cover transition-opacity duration-300"
               style={{ opacity: heroCustomizer.opacity }}
             />
-            {/* Directional gradient shadow for text legibility on all devices */}
+            {/* Directional gradient shadow for text legibility and deep dark fog */}
             <div
-              className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20 sm:bg-[linear-gradient(to_right,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.5)_45%,rgba(0,0,0,0.1)_75%,transparent_100%)]"
+              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/30 sm:bg-[linear-gradient(to_right,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.65)_45%,rgba(0,0,0,0.3)_75%,rgba(0,0,0,0.15)_100%)] pointer-events-none"
             />
           </div>
         )}
@@ -326,40 +368,107 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             <button
               onClick={onClose}
               aria-label="Back to library"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#EFECE1] sm:bg-black/50 hover:bg-[#E5E1D3] sm:hover:bg-black/70 text-[#282C1B] sm:text-[#FAF8F2] text-xs font-bold transition sm:backdrop-blur-md border border-[#4E562F]/10 sm:border-white/15 active:scale-95 shadow-xs sm:shadow-md"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition border active:scale-95 shadow-xs ${
+                heroCustomizer.artOn
+                  ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
+              }`}
             >
-              <ArrowLeft className="w-4 h-4 text-[#4E562F] sm:text-[#E4EAB8]" />
+              <ArrowLeft className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
               <span>Back</span>
             </button>
 
             {item.productionCompany && (
-              <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-black/50 text-white/90 text-xs font-semibold backdrop-blur-md border border-white/15 truncate max-w-[280px]">
+              <span className={`hidden sm:inline-block px-3.5 py-1.5 rounded-full text-xs font-semibold border truncate max-w-[280px] ${
+                heroCustomizer.artOn
+                  ? 'bg-black/50 text-white/90 backdrop-blur-md border-white/15'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+              }`}>
                 {item.productionCompany}
               </span>
             )}
           </div>
 
-          {/* Right: Customizer Tool (ICON ONLY), Rearrange Tool, Favorite, Close button */}
+          {/* Right: Customizer Tool, Rearrange Tool, Favorite, Close button */}
           <div className="flex items-center gap-2">
+            {/* ADD TO LIST TRIGGER (ICON ONLY) */}
+            {heroCustomizer.showAddToListButton !== false && (
+              <div className="relative hidden sm:inline-block">
+                <button
+                  onClick={() => setIsAddingToList(!isAddingToList)}
+                  aria-label="Add to Collection List"
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
+                    heroCustomizer.artOn
+                      ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                      : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
+                  } ${isAddingToList ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
+                  title="Add to Collection List"
+                >
+                  <FolderPlus className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+                </button>
+
+                {isAddingToList && (
+                  <div className="absolute top-full mt-2 right-0 w-60 p-2.5 rounded-2xl bg-[var(--modal-bg)] text-[var(--text-primary)] shadow-2xl border border-[var(--border-subtle)] z-50 animate-fade-in text-left">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] px-2 py-1 flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 mb-1.5">
+                      <span>Add to Collection</span>
+                      <button
+                        onClick={() => setIsAddingToList(false)}
+                        className="p-0.5 rounded hover:text-[var(--text-primary)] text-[var(--text-secondary)]"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
+                      {customLists.map(list => {
+                        const alreadyIn = list.itemIds.includes(item.id);
+                        return (
+                          <button
+                            key={list.id}
+                            disabled={alreadyIn}
+                            onClick={() => {
+                              onAddItemToList(list.id, item.id);
+                              setIsAddingToList(false);
+                            }}
+                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium transition flex items-center justify-between ${
+                              alreadyIn
+                                ? 'text-[var(--text-secondary)] opacity-60 cursor-not-allowed bg-[var(--chip-bg)]/40'
+                                : 'hover:bg-[var(--chip-bg)] text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <span className="truncate">{list.title}</span>
+                            {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* PREVIEW CUSTOMIZER TRIGGER (ICON ONLY) */}
             <div className="relative">
               <button
                 onClick={() => setShowCustomizer(!showCustomizer)}
                 aria-label="Preview Customizer"
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#EFECE1] sm:bg-black/50 hover:bg-[#E5E1D3] sm:hover:bg-black/70 text-[#282C1B] sm:text-white flex items-center justify-center transition sm:backdrop-blur-md border border-[#4E562F]/10 sm:border-white/15 active:scale-95"
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
+                  heroCustomizer.artOn
+                    ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                    : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
+                }`}
                 title="Preview Customizer"
               >
-                <Sliders className="w-4 h-4 text-[#4E562F] sm:text-[#E4EAB8]" />
+                <Sliders className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
               </button>
 
               {/* PREVIEW CUSTOMIZER POPUP CARD */}
               {showCustomizer && (
-                <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm sm:max-w-none max-h-[80vh] sm:max-h-[520px] overflow-y-auto p-5 bg-[#F6F4E5] text-[#282C1B] rounded-3xl shadow-2xl border border-[#4E562F]/20 z-50 animate-fade-in no-scrollbar mx-auto sm:mx-0">
+                <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-84 max-w-sm sm:max-w-none max-h-[80vh] sm:max-h-[540px] overflow-y-auto p-5 bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] z-50 animate-fade-in no-scrollbar mx-auto sm:mx-0">
                   {/* Header: Title + Art On / Off */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4 text-[#4E562F]" />
-                      <span className="text-xs font-black tracking-wider uppercase text-[#282C1B]">
+                      <ImageIcon className="w-4 h-4 text-[var(--accent-primary)]" />
+                      <span className="text-xs font-black tracking-wider uppercase text-[var(--text-primary)]">
                         PREVIEW CUSTOMIZER
                       </span>
                     </div>
@@ -368,8 +477,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       onClick={() => updateHeroCustomizer({ artOn: !heroCustomizer.artOn })}
                       className={`px-3 py-1 rounded-full text-xs font-black transition ${
                         heroCustomizer.artOn
-                          ? 'bg-[#282C1B] text-[#FAF8F2]'
-                          : 'bg-[#EAE5D8] text-[#6A7056]'
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)]'
                       }`}
                     >
                       {heroCustomizer.artOn ? 'ART ON' : 'ART OFF'}
@@ -378,9 +487,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                   {/* Backdrop Opacity Range */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-[#6A7056]">
+                    <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary)]">
                       <span>Backdrop Opacity:</span>
-                      <span className="text-[#4E562F] font-mono font-bold">
+                      <span className="text-[var(--accent-primary)] font-mono font-bold">
                         {heroCustomizer.artOn ? `${Math.round(heroCustomizer.opacity * 100)}%` : '0%'}
                       </span>
                     </div>
@@ -392,27 +501,122 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       value={heroCustomizer.artOn ? heroCustomizer.opacity : 0}
                       onChange={e => updateHeroCustomizer({ opacity: Number(e.target.value) })}
                       disabled={!heroCustomizer.artOn}
-                      className="w-full h-2 bg-[#E2DEC8] rounded-lg appearance-none cursor-pointer accent-[#4E562F] disabled:opacity-30"
+                      className="w-full h-2 bg-[var(--chip-bg)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)] disabled:opacity-30"
                     />
                   </div>
 
-                  <div className="border-t border-[#4E562F]/15 my-4" />
+                  {/* ACTION BUTTON CONTROLS */}
+                  <div className="border-t border-[var(--border-subtle)] my-4" />
+                  <div className="text-[11px] font-black text-[var(--text-secondary)] tracking-wider uppercase mb-3">
+                    ACTION BUTTONS (STYLE & VISIBILITY):
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    {/* Button Display Mode: Full Text vs Icon Only */}
+                    <div className="flex items-center justify-between py-1 bg-[var(--chip-bg)] p-2.5 rounded-2xl border border-[var(--border-subtle)]">
+                      <span className="font-bold text-[var(--text-primary)]">Button Format</span>
+                      <div className="flex items-center gap-1 bg-[var(--bg-surface)] p-1 rounded-full text-xs">
+                        <button
+                          onClick={() => updateHeroCustomizer({ buttonDisplayMode: 'full' })}
+                          className={`px-3 py-1 rounded-full font-bold transition ${
+                            (heroCustomizer.buttonDisplayMode || 'full') === 'full'
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          Full Text
+                        </button>
+                        <button
+                          onClick={() => updateHeroCustomizer({ buttonDisplayMode: 'icon' })}
+                          className={`px-3 py-1 rounded-full font-bold transition ${
+                            heroCustomizer.buttonDisplayMode === 'icon'
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          Icon Only
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Show/Hide Favorite */}
+                    <div className="flex items-center justify-between py-1">
+                      <span className="font-semibold text-[var(--text-primary)]">Favorite Button</span>
+                      <button
+                        onClick={() => updateHeroCustomizer({ showFavoriteButton: heroCustomizer.showFavoriteButton === false ? true : false })}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          heroCustomizer.showFavoriteButton !== false
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {heroCustomizer.showFavoriteButton !== false ? 'Show' : 'Hide'}
+                      </button>
+                    </div>
+
+                    {/* Show/Hide Add to List */}
+                    <div className="flex items-center justify-between py-1">
+                      <span className="font-semibold text-[var(--text-primary)]">Add to List Button</span>
+                      <button
+                        onClick={() => updateHeroCustomizer({ showAddToListButton: heroCustomizer.showAddToListButton === false ? true : false })}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          heroCustomizer.showAddToListButton !== false
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {heroCustomizer.showAddToListButton !== false ? 'Show' : 'Hide'}
+                      </button>
+                    </div>
+
+                    {/* Show/Hide Watched/Watching */}
+                    <div className="flex items-center justify-between py-1">
+                      <span className="font-semibold text-[var(--text-primary)]">Watched / Watching Button</span>
+                      <button
+                        onClick={() => updateHeroCustomizer({ showWatchedButton: heroCustomizer.showWatchedButton === false ? true : false })}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          heroCustomizer.showWatchedButton !== false
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {heroCustomizer.showWatchedButton !== false ? 'Show' : 'Hide'}
+                      </button>
+                    </div>
+
+                    {/* Show/Hide Watchlist */}
+                    <div className="flex items-center justify-between py-1">
+                      <span className="font-semibold text-[var(--text-primary)]">Watchlist Button</span>
+                      <button
+                        onClick={() => updateHeroCustomizer({ showWatchlistButton: heroCustomizer.showWatchlistButton === false ? true : false })}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          heroCustomizer.showWatchlistButton !== false
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {heroCustomizer.showWatchlistButton !== false ? 'Show' : 'Hide'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[var(--border-subtle)] my-4" />
 
                   {/* TOGGLE HERO ELEMENTS LIST */}
-                  <div className="text-[11px] font-black text-[#6A7056] tracking-wider uppercase mb-3">
+                  <div className="text-[11px] font-black text-[var(--text-secondary)] tracking-wider uppercase mb-3">
                     TOGGLE HERO ELEMENTS:
                   </div>
 
                   <div className="space-y-2 text-xs">
                     {/* 1. Title Background Card */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Title Background Card</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Title Background Card</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showTitleBackgroundCard: !heroCustomizer.showTitleBackgroundCard })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showTitleBackgroundCard
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showTitleBackgroundCard ? 'Show' : 'Hide'}
@@ -421,13 +625,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 2. Tagline Quote */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Tagline Quote</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Tagline Quote</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showTaglineQuote: !heroCustomizer.showTaglineQuote })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showTaglineQuote
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showTaglineQuote ? 'Show' : 'Hide'}
@@ -436,13 +640,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 3. Genre Pills in Hero */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Genre Pills in Hero</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Genre Pills in Hero</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showGenrePills: !heroCustomizer.showGenrePills })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showGenrePills
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showGenrePills ? 'Show' : 'Hide'}
@@ -451,13 +655,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 4. % Match Score */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">% Match Score</span>
+                      <span className="font-semibold text-[var(--text-primary)]">% Match Score</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showMatchScore: !heroCustomizer.showMatchScore })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showMatchScore
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showMatchScore ? 'Show' : 'Hide'}
@@ -466,13 +670,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 5. ★ Rating Badge */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">★ Rating Badge</span>
+                      <span className="font-semibold text-[var(--text-primary)]">★ Rating Badge</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showRatingBadge: !heroCustomizer.showRatingBadge })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showRatingBadge
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showRatingBadge ? 'Show' : 'Hide'}
@@ -481,13 +685,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 6. HD Quality Badge */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">HD Quality Badge</span>
+                      <span className="font-semibold text-[var(--text-primary)]">HD Quality Badge</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showHDQualityBadge: !heroCustomizer.showHDQualityBadge })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showHDQualityBadge
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showHDQualityBadge ? 'Show' : 'Hide'}
@@ -496,13 +700,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 7. Watch Trailer Button */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Watch Trailer Button</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Watch Trailer Button</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showWatchTrailerButton: !heroCustomizer.showWatchTrailerButton })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showWatchTrailerButton
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showWatchTrailerButton ? 'Show' : 'Hide'}
@@ -511,13 +715,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 8. Synopsis in Hero */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Synopsis in Hero</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Synopsis in Hero</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showSynopsisInHero: !heroCustomizer.showSynopsisInHero })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showSynopsisInHero
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showSynopsisInHero ? 'Show' : 'Hide'}
@@ -526,13 +730,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     {/* 9. Streaming Providers */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[#282C1B]">Streaming Providers</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Streaming Providers</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showStreamingProviders: !heroCustomizer.showStreamingProviders })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                           heroCustomizer.showStreamingProviders
-                            ? 'bg-[#282C1B] text-[#FAF8F2]'
-                            : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {heroCustomizer.showStreamingProviders ? 'Show' : 'Hide'}
@@ -547,17 +751,25 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             <button
               onClick={() => setShowRearrangeModal(true)}
               aria-label="Rearrange cards"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#EFECE1] sm:bg-black/50 hover:bg-[#E5E1D3] sm:hover:bg-black/70 text-[#282C1B] sm:text-white flex items-center justify-center transition sm:backdrop-blur-md border border-[#4E562F]/10 sm:border-white/15 active:scale-95"
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
+                heroCustomizer.artOn
+                  ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
+              }`}
               title="Rearrange & Customize Cards Order"
             >
-              <Pencil className="w-4 h-4 text-[#4E562F] sm:text-[#E4EAB8]" />
+              <Pencil className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
             </button>
 
             {/* Close Button */}
             <button
               onClick={onClose}
               aria-label="Close preview"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#EFECE1] sm:bg-black/50 hover:bg-[#E5E1D3] sm:hover:bg-black/70 text-[#282C1B] sm:text-white flex items-center justify-center transition sm:backdrop-blur-md border border-[#4E562F]/10 sm:border-white/15 active:scale-95"
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
+                heroCustomizer.artOn
+                  ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
+              }`}
             >
               <X className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -585,7 +797,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           /* Hero Content Area: Left-Anchored Poster & Left-Aligned Information */
           <div className="relative z-10 w-full px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 sm:pb-8 pt-2 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-8">
             {/* Anchored Left Poster / Album Artwork */}
-            <div className="w-32 sm:w-48 md:w-56 flex-none aspect-[2/3] rounded-2xl overflow-hidden bg-[#FAF8F2] sm:bg-[#24291B] shadow-sm sm:shadow-2xl border border-[#4E562F]/15 sm:border-white/25 select-none transition-transform duration-300 hover:scale-[1.02] relative self-start">
+            <div className={`w-40 xs:w-44 sm:w-48 md:w-56 flex-none aspect-[2/3] rounded-2xl overflow-hidden shadow-sm sm:shadow-2xl border select-none transition-transform duration-300 hover:scale-[1.02] relative self-start ${
+              heroCustomizer.artOn
+                ? 'bg-[var(--bg-surface-elevated)] sm:bg-[#24291B] border-[var(--border-subtle)] sm:border-white/25'
+                : 'bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+            }`}>
               <SafeImage
                 src={item.posterUrl || item.backdropUrl}
                 alt={item.title}
@@ -598,12 +814,18 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             <div
               className={`flex-1 min-w-0 flex flex-col items-start text-left w-full transition-all ${
                 heroCustomizer.showTitleBackgroundCard
-                  ? 'p-4 sm:p-6 rounded-3xl bg-[#F3EFE4] sm:bg-black/60 sm:backdrop-blur-md border border-[#4E562F]/10 sm:border-white/15 shadow-sm sm:shadow-xl'
+                  ? heroCustomizer.artOn
+                    ? 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] sm:bg-black/60 sm:backdrop-blur-md border border-[var(--border-subtle)] sm:border-white/15 shadow-sm sm:shadow-xl'
+                    : 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shadow-sm'
                   : ''
               }`}
             >
               {/* Media Type & Metadata Line (Cleanly on top of title) */}
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#6A7056] sm:text-[#E4EAB8] uppercase tracking-wider mb-1">
+              <div className={`flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider mb-1 ${
+                heroCustomizer.artOn
+                  ? 'text-[var(--text-secondary)] sm:text-white/90'
+                  : 'text-[var(--text-secondary)]'
+              }`}>
                 <span className="flex items-center gap-1">
                   {item.type === 'tv' ? <Tv className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
                   {item.type === 'tv' ? 'TV SERIES' : 'MOVIE'}
@@ -619,19 +841,27 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 {seasonsCount ? (
                   <>
                     <span aria-hidden="true">·</span>
-                    <span>{seasonsCount > 3 ? `${seasonsCount} SEASONS` : `${seasonsCount} ${seasonsCount === 1 ? 'SEASON' : 'SEASONS'}`}</span>
+                    <span>{seasonsCount > 1 ? `${seasonsCount} SEASONS` : '1 SEASON'}</span>
                   </>
                 ) : null}
               </div>
 
               {/* Primary Title (Bold, Left-Aligned) */}
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#282C1B] sm:text-[#FAF8F2] tracking-tight leading-[1.18] sm:leading-[1.12] text-left">
+              <h1 className={`text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12] text-left ${
+                heroCustomizer.artOn
+                  ? 'text-[var(--text-primary)] sm:text-white'
+                  : 'text-[var(--text-primary)]'
+              }`}>
                 {item.title}
               </h1>
 
               {/* Tagline Quote */}
               {heroCustomizer.showTaglineQuote && item.tagline && (
-                <p className="mt-1 text-xs sm:text-sm text-[#6A7056] sm:text-white/85 italic line-clamp-2 text-left">
+                <p className={`mt-1 text-xs sm:text-sm italic line-clamp-2 text-left ${
+                  heroCustomizer.artOn
+                    ? 'text-[var(--text-secondary)] sm:text-white/85'
+                    : 'text-[var(--text-secondary)]'
+                }`}>
                   "{item.tagline}"
                 </p>
               )}
@@ -642,7 +872,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   {(item.genres && item.genres.length > 0 ? item.genres : ['Animation', 'Action', 'Fantasy']).map((genre) => (
                     <span
                       key={genre}
-                      className="inline-flex items-center px-3 py-1 rounded-full bg-[#E4EAB8] text-[#3B421E] text-xs font-bold shadow-xs"
+                      className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border border-[var(--border-subtle)] text-xs font-bold shadow-xs"
                     >
                       {genre}
                     </span>
@@ -654,26 +884,38 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               <div className="mt-3.5 flex flex-wrap items-center justify-start gap-2.5">
                 {/* 1. Rating Pill Badge */}
                 {heroCustomizer.showRatingBadge && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F2] sm:bg-black/60 text-[#282C1B] sm:text-[#E4EAB8] text-xs font-bold border border-[#4E562F]/15 sm:border-white/20 shadow-2xs">
-                    <Star className="w-3.5 h-3.5 fill-[#4E562F] sm:fill-[#E4EAB8] text-[#4E562F] sm:text-[#E4EAB8]" />
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-2xs ${
+                    heroCustomizer.artOn
+                      ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/20'
+                      : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                  }`}>
+                    <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
                     <span className="tabular-nums font-black">{item.tmdbRating > 0 ? item.tmdbRating.toFixed(1) : '8.8'} / 10</span>
                   </span>
                 )}
 
                 {/* Vote Count */}
                 {item.voteCount > 0 ? (
-                  <span className="text-xs text-[#6A7056] sm:text-white/70 font-medium tabular-nums">
+                  <span className={`text-xs font-medium tabular-nums ${
+                    heroCustomizer.artOn
+                      ? 'text-[var(--text-secondary)] sm:text-white/70'
+                      : 'text-[var(--text-secondary)]'
+                  }`}>
                     ({item.voteCount.toLocaleString()} votes)
                   </span>
                 ) : (
-                  <span className="text-xs text-[#6A7056] sm:text-white/70 font-medium tabular-nums">
+                  <span className={`text-xs font-medium tabular-nums ${
+                    heroCustomizer.artOn
+                      ? 'text-[var(--text-secondary)] sm:text-white/70'
+                      : 'text-[var(--text-secondary)]'
+                  }`}>
                     (2,230 votes)
                   </span>
                 )}
 
                 {/* % Match Score Badge (Optional) */}
                 {heroCustomizer.showMatchScore && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#E4EAB8] text-[#3B421E] text-xs font-extrabold shadow-xs">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] border border-[var(--border-subtle)] text-xs font-extrabold shadow-xs">
                     <Sparkles className="w-3 h-3" />
                     <span>{Math.min(99, Math.max(82, Math.round((item.tmdbRating || 7.5) * 10 + 12)))}% Match</span>
                   </span>
@@ -681,7 +923,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                 {/* HD Quality Badge (Optional) */}
                 {heroCustomizer.showHDQualityBadge && (
-                  <span className="px-2.5 py-1 rounded-full bg-[#EFECE1] sm:bg-black/60 text-[#282C1B] sm:text-white/90 text-[11px] font-bold border border-[#4E562F]/10 sm:border-white/20 uppercase tracking-wider">
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+                    heroCustomizer.artOn
+                      ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white/90 border-[var(--border-subtle)] sm:border-white/20'
+                      : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                  }`}>
                     4K Ultra HD
                   </span>
                 )}
@@ -690,7 +936,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 {heroCustomizer.showWatchTrailerButton && item.trailerUrl && !isPlayingTrailer && (
                   <button
                     onClick={() => setIsPlayingTrailer(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition shadow-xs active:scale-95 ml-auto sm:ml-0"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 ml-auto sm:ml-0"
                   >
                     <Play className="w-3 h-3 fill-current ml-0.5" />
                     <span>Trailer</span>
@@ -700,7 +946,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
               {/* Optional Synopsis in Hero */}
               {heroCustomizer.showSynopsisInHero && item.overview && (
-                <p className="mt-3 text-xs sm:text-sm text-[#494E38] sm:text-white/85 line-clamp-2 max-w-2xl leading-relaxed text-left">
+                <p className={`mt-3 text-xs sm:text-sm line-clamp-2 max-w-2xl leading-relaxed text-left ${
+                  heroCustomizer.artOn
+                    ? 'text-[var(--text-secondary)] sm:text-white/85'
+                    : 'text-[var(--text-secondary)]'
+                }`}>
                   {item.overview}
                 </p>
               )}
@@ -711,7 +961,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   {cleanedProviders.slice(0, 3).map((p, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF8F2] sm:bg-black/60 text-[#282C1B] sm:text-white text-[11px] font-bold border border-[#4E562F]/10 sm:border-white/20"
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                        heroCustomizer.artOn
+                          ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/20'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                      }`}
                     >
                       <StreamingBrandIcon name={p.name} className="w-3.5 h-3.5 rounded-sm" />
                       <span>{p.name}</span>
@@ -720,88 +974,126 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 </div>
               )}
 
-              {/* Hero Action Buttons (2x2 Pill Grid on Mobile, Flex on Desktop) */}
-              <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full">
+              {/* Hero Action Buttons (Configurable Full text vs Icon Only, and visibility toggles) */}
+              <div className="mt-4 flex flex-wrap items-center gap-2.5 sm:gap-3 w-full">
                 {/* 1. Add to Watchlist */}
-                <button
-                  onClick={() => onToggleWatchlist(item.id)}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition shadow-xs active:scale-95 ${
-                    inWatchlist
-                      ? 'bg-[#4E562F] text-[#FAF8F2]'
-                      : 'bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#282C1B] border border-[#4E562F]/10'
-                  }`}
-                >
-                  <Bookmark className={`w-3.5 h-3.5 ${inWatchlist ? 'fill-current' : ''}`} />
-                  <span>{inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}</span>
-                </button>
+                {heroCustomizer.showWatchlistButton !== false && (
+                  <button
+                    onClick={() => onToggleWatchlist(item.id, item)}
+                    title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    className={`inline-flex items-center justify-center transition shadow-xs active:scale-95 ${
+                      heroCustomizer.buttonDisplayMode === 'icon'
+                        ? 'w-28 sm:w-36 h-11 px-4 rounded-full'
+                        : 'w-11 h-11 sm:w-auto sm:px-4 sm:py-3 rounded-full text-xs font-bold gap-2'
+                    } ${
+                      inWatchlist
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                        : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    <Bookmark className={`w-3.5 h-3.5 ${inWatchlist ? 'fill-current' : ''}`} />
+                    {heroCustomizer.buttonDisplayMode !== 'icon' && (
+                      <span className="hidden sm:inline">{inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}</span>
+                    )}
+                  </button>
+                )}
 
                 {/* 2. Mark Watched */}
-                <button
-                  onClick={() => onToggleWatched(item.id)}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition shadow-xs active:scale-95 ${
-                    isWatched
-                      ? 'bg-[#E4EAB8] text-[#3B421E] border border-[#4E562F]/20'
-                      : isWatching
-                      ? 'bg-[#FAF8F2] text-[#4E562F] border-2 border-[#4E562F]'
-                      : 'bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#282C1B] border border-[#4E562F]/10'
-                  }`}
-                >
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>{isWatched ? 'Watched' : isWatching ? `Watching (${progressPercent}%)` : 'Mark Watched'}</span>
-                </button>
+                {heroCustomizer.showWatchedButton !== false && (
+                  <button
+                    onClick={() => onToggleWatched(item.id, item)}
+                    title={isWatched ? 'Watched' : isWatching ? `Watching (${progressPercent}%)` : 'Mark Watched'}
+                    aria-label={isWatched ? 'Watched' : isWatching ? `Watching (${progressPercent}%)` : 'Mark Watched'}
+                    className={`inline-flex items-center justify-center transition shadow-xs active:scale-95 ${
+                      heroCustomizer.buttonDisplayMode === 'icon'
+                        ? 'w-11 h-11 rounded-full'
+                        : 'w-11 h-11 sm:w-auto sm:px-4 sm:py-3 rounded-full text-xs font-bold gap-2'
+                    } ${
+                      isWatched
+                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border border-[var(--border-subtle)]'
+                        : isWatching
+                        ? 'bg-[var(--bg-surface-elevated)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)]'
+                        : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    {heroCustomizer.buttonDisplayMode !== 'icon' && (
+                      <span className="hidden sm:inline">{isWatched ? 'Watched' : isWatching ? `Watching (${progressPercent}%)` : 'Mark Watched'}</span>
+                    )}
+                  </button>
+                )}
 
                 {/* 3. Favorite */}
-                <button
-                  onClick={() => onToggleFavorite(item.id)}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition shadow-xs active:scale-95 ${
-                    isFavorite
-                      ? 'bg-[#FEDB99] text-[#624B15] border border-[#624B15]/20 font-black'
-                      : 'bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#282C1B] border border-[#4E562F]/10'
-                  }`}
-                >
-                  <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current text-[#624B15]' : ''}`} />
-                  <span>{isFavorite ? 'Favorited' : 'Favorite'}</span>
-                </button>
-
-                {/* 4. Add to List */}
-                <div className="relative">
+                {heroCustomizer.showFavoriteButton !== false && (
                   <button
-                    onClick={() => setIsAddingToList(!isAddingToList)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#282C1B] text-xs font-bold transition active:scale-95 shadow-xs border border-[#4E562F]/10"
+                    onClick={() => onToggleFavorite(item.id, item)}
+                    title={isFavorite ? 'Favorited' : 'Favorite'}
+                    aria-label={isFavorite ? 'Favorited' : 'Favorite'}
+                    className={`inline-flex items-center justify-center transition shadow-xs active:scale-95 ${
+                      heroCustomizer.buttonDisplayMode === 'icon'
+                        ? 'w-11 h-11 rounded-full'
+                        : 'w-11 h-11 sm:w-auto sm:px-4 sm:py-3 rounded-full text-xs font-bold gap-2 font-black'
+                    } ${
+                      isFavorite
+                        ? 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] border border-[var(--border-subtle)]'
+                        : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                    }`}
                   >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Add to List</span>
+                    <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current text-[var(--text-card-yellow)]' : ''}`} />
+                    {heroCustomizer.buttonDisplayMode !== 'icon' && (
+                      <span className="hidden sm:inline">{isFavorite ? 'Favorited' : 'Favorite'}</span>
+                    )}
                   </button>
+                )}
 
-                  {isAddingToList && (
-                    <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 w-56 p-2 rounded-2xl bg-[#F6F4E5] shadow-2xl border border-[#4E562F]/15 z-30 animate-fade-in text-left">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-[#6A7056] px-2 py-1">
-                        Select Collection
-                      </div>
-                      {customLists.map(list => {
-                        const alreadyIn = list.itemIds.includes(item.id);
-                        return (
-                          <button
-                            key={list.id}
-                            disabled={alreadyIn}
-                            onClick={() => {
-                              onAddItemToList(list.id, item.id);
-                              setIsAddingToList(false);
-                            }}
-                            className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-between ${
-                              alreadyIn
-                                ? 'text-[#6A7056] opacity-60'
-                                : 'hover:bg-[#EFECE1] text-[#282C1B]'
-                            }`}
-                          >
-                            <span className="truncate">{list.title}</span>
-                            {alreadyIn && <Check className="w-3 h-3 text-[#4E562F]" />}
+                {/* 4. Add to List (Mobile view fallback when desktop has top-right icon) */}
+                {heroCustomizer.showAddToListButton !== false && (
+                  <div className="relative sm:hidden">
+                    <button
+                      onClick={() => setIsAddingToList(!isAddingToList)}
+                      title="Add to Collection List"
+                      aria-label="Add to Collection List"
+                      className="w-11 h-11 rounded-full inline-flex items-center justify-center transition active:scale-95 shadow-xs border border-[var(--border-subtle)] bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)]"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+
+                    {isAddingToList && (
+                      <div className="absolute bottom-full mb-2 left-0 w-60 p-2.5 rounded-2xl bg-[var(--modal-bg)] shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-50 animate-fade-in text-left">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] px-2 py-1 flex items-center justify-between border-b border-[var(--border-subtle)] pb-1.5 mb-1">
+                          <span>Select Collection</span>
+                          <button onClick={() => setIsAddingToList(false)} className="p-0.5 text-[var(--text-secondary)]">
+                            <X className="w-3.5 h-3.5" />
                           </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                        </div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+                          {customLists.map(list => {
+                            const alreadyIn = list.itemIds.includes(item.id);
+                            return (
+                              <button
+                                key={list.id}
+                                disabled={alreadyIn}
+                                onClick={() => {
+                                  onAddItemToList(list.id, item.id);
+                                  setIsAddingToList(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-between ${
+                                  alreadyIn
+                                    ? 'text-[var(--text-secondary)] opacity-60'
+                                    : 'hover:bg-[var(--chip-bg)] text-[var(--text-primary)]'
+                                }`}
+                              >
+                                <span className="truncate">{list.title}</span>
+                                {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -810,7 +1102,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
       {/* Subtle Divider Line below Hero */}
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16">
-        <div className="border-t border-[#4E562F]/15 mt-2 mb-2" />
+        <div className="border-t border-[var(--border-subtle)] mt-2 mb-2" />
       </div>
 
       {/* ========================================================================= */}
@@ -824,10 +1116,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           // 1. Personal Rating & Reflections Card (FULL WIDTH)
           if (section.id === 'journal') {
             return (
-              <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[#F3EFE4] border border-[#4E562F]/10 shadow-xs space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+              <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-2 border-b border-[var(--border-subtle)]">
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-[#6A7056] mb-3">
+                    <label className="block text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3">
                       YOUR PERSONAL RATING
                     </label>
                     <StarRating
@@ -840,44 +1132,124 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                   {/* Watch Progress Slider */}
                   <div className="w-full sm:w-80">
-                    <div className="flex items-center justify-between text-xs text-[#6A7056] mb-1.5">
+                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
                       <span className="font-black uppercase tracking-wider">PROGRESS</span>
-                      <span className="font-bold text-[#282C1B] tabular-nums">
+                      <span className="font-bold text-[var(--text-primary)] tabular-nums">
                         {progressPercent}%
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={progressPercent}
-                      onChange={e => onSetProgress(item.id, Number(e.target.value))}
-                      className="w-full h-2.5 bg-[#E2DEC8] rounded-lg appearance-none cursor-pointer accent-[#4E562F]"
-                    />
+                    <div className="relative w-full py-1 flex items-center select-none">
+                      {/* Thick M3 Tactile Track */}
+                      <div className="relative w-full h-3 rounded-full flex items-center overflow-hidden bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
+                        <div
+                          className="h-full bg-[var(--accent-primary)] transition-all duration-75 rounded-l-full"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                        <div className="h-full flex-1 bg-[var(--chip-bg)] relative">
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/35" />
+                        </div>
+                      </div>
+
+                      {/* M3 Vertical Pill Thumb */}
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-75 flex items-center justify-center z-10"
+                        style={{ left: `${progressPercent}%` }}
+                      >
+                        <div className="w-1.5 h-5 rounded-full bg-[var(--accent-primary)] shadow-sm ring-2 ring-[var(--bg-primary)]" />
+                      </div>
+
+                      {/* Native Range Input */}
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={progressPercent}
+                        onChange={e => onSetProgress(item.id, Number(e.target.value), item)}
+                        aria-label="Watch progress"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Personal Notes */}
-                <div className="pt-2">
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6A7056] mb-2.5">
-                    PERSONAL NOTES & REFLECTIONS
-                  </label>
-                  <div className="flex gap-2.5">
-                    <input
-                      type="text"
+                {/* Improved Personal Notes & Reflections Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[var(--accent-primary)]" />
+                      <label className="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">
+                        PERSONAL NOTES & REFLECTIONS
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 text-[11px]">
+                      {isSavedFeedback && (
+                        <span className="inline-flex items-center gap-1 text-emerald-500 font-bold animate-fade-in bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Saved to journal</span>
+                        </span>
+                      )}
+                      <span className="text-[var(--text-secondary)] tabular-nums font-mono">
+                        {notesDraft.trim() ? `${notesDraft.trim().split(/\s+/).length} words · ${notesDraft.length} chars` : '0 words'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] focus-within:ring-2 focus-within:ring-[var(--accent-primary)] focus-within:border-transparent transition-all p-3.5 sm:p-4">
+                    <textarea
+                      rows={4}
                       value={notesDraft}
                       onChange={e => setNotesDraft(e.target.value)}
-                      onBlur={() => onSetNotes(item.id, notesDraft)}
-                      placeholder="Record your thoughts, memorable scenes, or reflections..."
-                      className="w-full px-4 py-3 rounded-2xl bg-[#FAF8F2] text-[#282C1B] placeholder-[#8C9277] text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#4E562F] border border-[#4E562F]/15"
+                      onBlur={() => {
+                        onSetNotes(item.id, notesDraft);
+                        if (notesDraft.trim()) {
+                          setIsSavedFeedback(true);
+                          setTimeout(() => setIsSavedFeedback(false), 2200);
+                        }
+                      }}
+                      placeholder="Write your personal reflections, memorable quotes, favorite scenes, or review notes on this title..."
+                      className="w-full bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-xs sm:text-sm leading-relaxed focus:outline-none resize-y min-h-[100px]"
                     />
-                    <button
-                      onClick={() => onSetNotes(item.id, notesDraft)}
-                      className="px-5 py-3 rounded-2xl bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition shrink-0 shadow-xs"
-                    >
-                      Save Note
-                    </button>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)] mt-2">
+                      <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                        <span>Auto-saves on blur · Stored locally</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {notesDraft.trim().length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('Clear your personal reflection note for this title?')) {
+                                setNotesDraft('');
+                                onSetNotes(item.id, '');
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-xs transition active:scale-95"
+                            title="Clear personal note"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Clear</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSetNotes(item.id, notesDraft);
+                            setIsSavedFeedback(true);
+                            setTimeout(() => setIsSavedFeedback(false), 2500);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Save Note</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -887,12 +1259,34 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           // 2. TV SERIES EPISODES CHECKLIST (FULL WIDTH)
           if (section.id === 'episodes') {
             if (item.type !== 'tv') return null;
+            
+            const eps = Array.from({ length: episodesPerSeason }, (_, i) => i + 1);
+            const isAllCompletedInSeason = eps.every(ep => !!userState?.tvProgress?.completedEpisodes[`s${selectedSeason}e${ep}`]);
+
             return (
-              <div key="episodes" className="w-full p-6 sm:p-7 rounded-3xl bg-[#FAF8F2] border border-[#4E562F]/15 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-[#282C1B] tracking-tight">
-                    Episodes & Seasons
-                  </h3>
+              <div key="episodes" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-subtle)]">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                      Episodes & Seasons
+                    </h3>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)]">
+                      S{selectedSeason} · {eps.length} Eps
+                    </span>
+                    {onToggleSeasonEpisodes && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleSeasonEpisodes(item.id, selectedSeason, eps, !isAllCompletedInSeason, item)}
+                        className={`px-3 py-1 rounded-full text-[10px] uppercase font-black tracking-wider transition-all active:scale-95 shadow-2xs border ${
+                          isAllCompletedInSeason
+                            ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border-[var(--border-subtle)]'
+                            : 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent'
+                        }`}
+                      >
+                        {isAllCompletedInSeason ? 'Unmark All' : 'Mark All'}
+                      </button>
+                    )}
+                  </div>
                   {/* Season tabs */}
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     {Array.from({ length: seasonsCount || 1 }, (_, i) => i + 1).map(s => {
@@ -904,8 +1298,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                           onClick={() => setSelectedSeason(s)}
                           className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
                             selectedSeason === s
-                              ? 'bg-[#4E562F] text-[#FAF8F2]'
-                              : 'bg-[#EAE5D8] text-[#6A7056] hover:text-[#282C1B]'
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                              : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                           }`}
                         >
                           {label}
@@ -924,11 +1318,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     return (
                       <button
                         key={ep}
-                        onClick={() => onToggleTVEpisode(item.id, selectedSeason, ep)}
+                        onClick={() => onToggleTVEpisode(item.id, selectedSeason, ep, item)}
                         className={`flex items-center justify-between p-3 rounded-xl text-xs font-medium transition border active:scale-95 shadow-2xs ${
                           isDone
-                            ? 'bg-[#E4EAB8] text-[#3B421E] border-[#4E562F]/25 font-bold'
-                            : 'bg-[#EAE5D8] hover:bg-[#E2DEC8] text-[#282C1B] border-[#4E562F]/10'
+                            ? 'bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] border-[var(--border-subtle)] font-bold'
+                            : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border-[var(--border-subtle)]'
                         }`}
                       >
                         <span>Ep. {ep}</span>
@@ -949,63 +1343,63 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             }
 
             return (
-              <div key="overview_merged" className="w-full p-6 sm:p-7 rounded-3xl bg-[#FAF8F2] border border-[#4E562F]/15 shadow-xs space-y-6">
+              <div key="overview_merged" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
                 {/* Full Overview Paragraph */}
                 <div>
-                  <h3 className="text-lg font-bold text-[#282C1B] mb-3 tracking-tight">
+                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 tracking-tight">
                     Overview
                   </h3>
-                  <p className="text-sm sm:text-base text-[#494E38] leading-relaxed whitespace-pre-line">
+                  <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
                     {item.overview || 'No synopsis available for this title.'}
                   </p>
                 </div>
 
                 {/* Merged Production Details */}
-                <div className="pt-4 border-t border-[#4E562F]/15">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[#6A7056] mb-3">
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3">
                     Production Details
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-[#6A7056]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-[var(--text-secondary)]">
                     {item.originalTitle && item.originalTitle !== item.title && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Original Title:</span>
-                        <strong className="text-[#282C1B] truncate ml-2">{item.originalTitle}</strong>
+                        <strong className="text-[var(--text-primary)] truncate ml-2">{item.originalTitle}</strong>
                       </div>
                     )}
                     {item.releaseDate && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Release Date:</span>
-                        <strong className="text-[#282C1B]">{item.releaseDate}</strong>
+                        <strong className="text-[var(--text-primary)]">{item.releaseDate}</strong>
                       </div>
                     )}
                     {item.productionCompany && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Production:</span>
-                        <strong className="text-[#282C1B] truncate ml-2">{item.productionCompany}</strong>
+                        <strong className="text-[var(--text-primary)] truncate ml-2">{item.productionCompany}</strong>
                       </div>
                     )}
                     {item.country && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Country:</span>
-                        <strong className="text-[#282C1B]">{item.country}</strong>
+                        <strong className="text-[var(--text-primary)]">{item.country}</strong>
                       </div>
                     )}
                     {item.budget && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Budget:</span>
-                        <strong className="text-[#282C1B]">{item.budget}</strong>
+                        <strong className="text-[var(--text-primary)]">{item.budget}</strong>
                       </div>
                     )}
                     {item.boxOffice && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Box Office:</span>
-                        <strong className="text-[#282C1B]">{item.boxOffice}</strong>
+                        <strong className="text-[var(--text-primary)]">{item.boxOffice}</strong>
                       </div>
                     )}
                     {item.status && (
-                      <div className="flex justify-between border-b border-[#4E562F]/10 pb-1.5">
+                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
                         <span>Status:</span>
-                        <strong className="text-[#282C1B]">{item.status}</strong>
+                        <strong className="text-[var(--text-primary)]">{item.status}</strong>
                       </div>
                     )}
                   </div>
@@ -1017,13 +1411,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           // 5. WHERE TO WATCH CARD (INDEPENDENT)
           if (section.id === 'where_to_watch') {
             return (
-              <div key="where_to_watch" className="w-full p-6 sm:p-7 rounded-3xl bg-[#FAF8F2] border border-[#4E562F]/15 shadow-xs flex flex-col justify-between">
+              <div key="where_to_watch" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#282C1B] tracking-tight">
+                    <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                       Where to Watch
                     </h3>
-                    <span className="text-[11px] font-semibold text-[#6A7056] bg-[#EAE5D8] px-2.5 py-1 rounded-full">
+                    <span className="text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-1 rounded-full">
                       {cleanedProviders.length} Platform{cleanedProviders.length === 1 ? '' : 's'}
                     </span>
                   </div>
@@ -1033,21 +1427,21 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     {cleanedProviders.map((p, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 rounded-2xl bg-[#EAE5D8] hover:bg-[#E2DEC8] border border-[#4E562F]/10 transition group shadow-2xs"
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] transition group shadow-2xs"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <StreamingBrandIcon name={p.name} className="w-6 h-6 rounded-lg shrink-0 shadow-xs" />
-                          <span className="text-xs font-bold text-[#282C1B] truncate">
+                          <span className="text-xs font-bold text-[var(--text-primary)] truncate">
                             {p.name}
                           </span>
                         </div>
                         <span
                           className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
                             p.type === 'stream'
-                              ? 'bg-[#4E562F] text-[#FAF8F2]'
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
                               : p.type === 'rent'
-                              ? 'bg-[#FAF8F2] text-[#4E562F] border border-[#4E562F]/20'
-                              : 'bg-[#E4EAB8] text-[#3B421E]'
+                              ? 'bg-[var(--modal-bg)] text-[var(--accent-primary)] border border-[var(--border-subtle)]'
+                              : 'bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)]'
                           }`}
                         >
                           {p.type}
@@ -1057,9 +1451,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[#4E562F]/10 flex items-center justify-between text-[11px] text-[#6A7056]">
+                <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
                   <span>Availability verified via TMDB</span>
-                  <span className="font-semibold text-[#4E562F]">4K / HD Support</span>
+                  <span className="font-semibold text-[var(--accent-primary)]">4K / HD Support</span>
                 </div>
               </div>
             );
@@ -1068,13 +1462,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           // 6. TOP CAST & CREW CARD (INDEPENDENT)
           if (section.id === 'cast_crew') {
             return (
-              <div key="cast_crew" className="w-full p-6 sm:p-7 rounded-3xl bg-[#FAF8F2] border border-[#4E562F]/15 shadow-xs flex flex-col justify-between">
+              <div key="cast_crew" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#282C1B] tracking-tight">
+                    <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                       Top Cast & Crew
                     </h3>
-                    <span className="text-[11px] font-semibold text-[#6A7056] bg-[#EAE5D8] px-2.5 py-1 rounded-full">
+                    <span className="text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-1 rounded-full">
                       {item.cast?.length || 0} Actors recorded
                     </span>
                   </div>
@@ -1085,10 +1479,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       {item.cast.slice(0, 6).map((c, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[#EAE5D8] border border-[#4E562F]/10 shadow-2xs hover:bg-[#E2DEC8] transition"
+                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shadow-2xs hover:bg-[var(--bg-surface-elevated)] transition"
                         >
                           {/* Cast Member Profile Avatar */}
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-[#D8D3C3] shrink-0 border border-[#4E562F]/15 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] flex items-center justify-center">
                             {c.profileUrl ? (
                               <SafeImage
                                 src={c.profileUrl}
@@ -1096,19 +1490,19 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <User className="w-5 h-5 text-[#4E562F]/60" />
+                              <User className="w-5 h-5 text-[var(--text-secondary)]" />
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-[#282C1B] truncate">{c.name}</div>
-                            <div className="text-[11px] text-[#6A7056] truncate">{c.character}</div>
+                            <div className="text-xs font-bold text-[var(--text-primary)] truncate">{c.name}</div>
+                            <div className="text-[11px] text-[var(--text-secondary)] truncate">{c.character}</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-[#EAE5D8] text-xs text-[#6A7056]">
+                    <div className="p-4 rounded-2xl bg-[var(--chip-bg)] text-xs text-[var(--text-secondary)]">
                       Featured narrative cast & production crew recorded in journal.
                     </div>
                   )}
@@ -1116,17 +1510,17 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                 {/* Production Crew Row with Profile Avatars */}
                 {item.crew && item.crew.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-[#4E562F]/10 space-y-2">
-                    <div className="text-[11px] font-black uppercase tracking-wider text-[#6A7056]">
+                  <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] space-y-2">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
                       Key Production Crew
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                       {item.crew.slice(0, 4).map((cr, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[#EAE5D8]/70 border border-[#4E562F]/5"
+                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)]"
                         >
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#D8D3C3] shrink-0 border border-[#4E562F]/10 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] flex items-center justify-center">
                             {cr.profileUrl ? (
                               <SafeImage
                                 src={cr.profileUrl}
@@ -1134,12 +1528,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <User className="w-4 h-4 text-[#4E562F]/60" />
+                              <User className="w-4 h-4 text-[var(--text-secondary)]" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0 text-xs">
-                            <div className="font-bold text-[#282C1B] truncate">{cr.name}</div>
-                            <div className="text-[10px] font-semibold text-[#4E562F] truncate uppercase tracking-wider">{cr.job}</div>
+                            <div className="font-bold text-[var(--text-primary)] truncate">{cr.name}</div>
+                            <div className="text-[10px] font-semibold text-[var(--accent-primary)] truncate uppercase tracking-wider">{cr.job}</div>
                           </div>
                         </div>
                       ))}
@@ -1159,23 +1553,23 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       {/* ========================================================================= */}
       {showRearrangeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="w-full max-w-lg bg-[#F6F4E5] rounded-3xl shadow-2xl border border-[#4E562F]/20 p-6 text-[#282C1B] animate-scale-up">
-            <div className="flex items-center justify-between pb-4 border-b border-[#4E562F]/10">
+          <div className="w-full max-w-lg bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] p-6 text-[var(--text-primary)] animate-scale-up">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-[#4E562F]" />
-                <h2 className="text-base sm:text-lg font-bold text-[#282C1B]">
+                <Pencil className="w-4 h-4 text-[var(--accent-primary)]" />
+                <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
                   Rearrange Preview Cards
                 </h2>
               </div>
               <button
                 onClick={() => setShowRearrangeModal(false)}
-                className="p-1.5 rounded-full hover:bg-[#EFECE1] text-[#6A7056] transition"
+                className="p-1.5 rounded-full hover:bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-[#6A7056] mt-3 mb-4">
+            <p className="text-xs text-[var(--text-secondary)] mt-3 mb-4">
               Reorder or toggle sections to personalize your movie and series preview window.
             </p>
 
@@ -1186,15 +1580,15 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   key={section.id}
                   className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition ${
                     section.visible
-                      ? 'bg-[#EAE5D8] border-[#4E562F]/20 text-[#282C1B]'
-                      : 'bg-[#F3EFE4] border-[#4E562F]/10 text-[#8C9277] opacity-60'
+                      ? 'bg-[var(--chip-bg)] border-[var(--border-subtle)] text-[var(--text-primary)]'
+                      : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-muted)] opacity-60'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-[#282C1B] truncate flex items-center gap-2">
+                    <div className="text-xs font-bold text-[var(--text-primary)] truncate flex items-center gap-2">
                       <span>{section.label}</span>
                     </div>
-                    <p className="text-[11px] text-[#6A7056] truncate mt-0.5">
+                    <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
                       {section.description}
                     </p>
                   </div>
@@ -1204,7 +1598,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     <button
                       disabled={idx === 0}
                       onClick={() => moveSection(idx, 'up')}
-                      className="p-1.5 rounded-lg bg-[#FAF8F2] text-[#282C1B] hover:bg-[#EFECE1] disabled:opacity-30 disabled:pointer-events-none transition shadow-2xs"
+                      className="p-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)] disabled:opacity-30 disabled:pointer-events-none transition shadow-2xs border border-[var(--border-subtle)]"
                       title="Move Up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
@@ -1214,7 +1608,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     <button
                       disabled={idx === cardSections.length - 1}
                       onClick={() => moveSection(idx, 'down')}
-                      className="p-1.5 rounded-lg bg-[#FAF8F2] text-[#282C1B] hover:bg-[#EFECE1] disabled:opacity-30 disabled:pointer-events-none transition shadow-2xs"
+                      className="p-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)] disabled:opacity-30 disabled:pointer-events-none transition shadow-2xs border border-[var(--border-subtle)]"
                       title="Move Down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
@@ -1225,8 +1619,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       onClick={() => toggleSectionVisibility(section.id)}
                       className={`p-1.5 rounded-lg transition shadow-2xs ${
                         section.visible
-                          ? 'bg-[#4E562F] text-[#FAF8F2]'
-                          : 'bg-[#FAF8F2] text-[#8C9277] hover:text-[#282C1B]'
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                       title={section.visible ? 'Hide section' : 'Show section'}
                     >
@@ -1242,10 +1636,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             </div>
 
             {/* Modal Actions */}
-            <div className="mt-6 pt-4 border-t border-[#4E562F]/10 flex items-center justify-between gap-3">
+            <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
               <button
                 onClick={resetSectionOrder}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#6A7056] hover:text-[#282C1B] hover:bg-[#EFECE1] transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset Default</span>
@@ -1253,7 +1647,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
               <button
                 onClick={() => setShowRearrangeModal(false)}
-                className="px-5 py-2 rounded-full bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition active:scale-95 shadow-xs"
+                className="px-5 py-2 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
               >
                 Done
               </button>

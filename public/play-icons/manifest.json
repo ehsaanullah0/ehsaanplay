@@ -1,0 +1,310 @@
+{
+  "generatedAt": "2026-10-09T09:22:43.949Z",
+  "totalIcons": 19,
+  "themes": [
+    {
+      "id": "olive",
+      "name": "Olive (Default)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-olive.svg",
+        "png512": "play-icon-olive.png",
+        "png192": "play-icon-olive-192.png"
+      },
+      "palette": {
+        "base": "#E4EAB8",
+        "clapper": "#FFFFFF",
+        "stroke": "#282C1B",
+        "play": "#4E562F"
+      }
+    },
+    {
+      "id": "orange",
+      "name": "Orange (Warm Peach)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-orange.svg",
+        "png512": "play-icon-orange.png",
+        "png192": "play-icon-orange-192.png"
+      },
+      "palette": {
+        "base": "#FFCCA7",
+        "clapper": "#FFFFFF",
+        "stroke": "#3D200F",
+        "play": "#7C4022"
+      }
+    },
+    {
+      "id": "blue",
+      "name": "Blue (Sky Blue)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-blue.svg",
+        "png512": "play-icon-blue.png",
+        "png192": "play-icon-blue-192.png"
+      },
+      "palette": {
+        "base": "#B6CFFC",
+        "clapper": "#FFFFFF",
+        "stroke": "#14254A",
+        "play": "#2B447A"
+      }
+    },
+    {
+      "id": "pink",
+      "name": "Pink (Rose Blush)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-pink.svg",
+        "png512": "play-icon-pink.png",
+        "png192": "play-icon-pink-192.png"
+      },
+      "palette": {
+        "base": "#FBA4BC",
+        "clapper": "#FFFFFF",
+        "stroke": "#20102B",
+        "play": "#4F266F"
+      }
+    },
+    {
+      "id": "purple",
+      "name": "Purple (Lavender)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-purple.svg",
+        "png512": "play-icon-purple.png",
+        "png192": "play-icon-purple-192.png"
+      },
+      "palette": {
+        "base": "#D0B4F8",
+        "clapper": "#FFFFFF",
+        "stroke": "#2D1947",
+        "play": "#634982"
+      }
+    },
+    {
+      "id": "mint",
+      "name": "Mint (Fresh Sage)",
+      "category": "Light Themes",
+      "files": {
+        "svg": "play-icon-mint.svg",
+        "png512": "play-icon-mint.png",
+        "png192": "play-icon-mint-192.png"
+      },
+      "palette": {
+        "base": "#B4F8D8",
+        "clapper": "#FFFFFF",
+        "stroke": "#0A2D2A",
+        "play": "#13635B"
+      }
+    },
+    {
+      "id": "dark-olive",
+      "name": "Dark Olive (Default)",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-olive.svg",
+        "png512": "play-icon-dark-olive.png",
+        "png192": "play-icon-dark-olive-192.png"
+      },
+      "palette": {
+        "base": "#1C1F14",
+        "clapper": "#272D1E",
+        "stroke": "#E4EAB8",
+        "play": "#E4EAB8"
+      }
+    },
+    {
+      "id": "dark-orange",
+      "name": "Dark Orange",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-orange.svg",
+        "png512": "play-icon-dark-orange.png",
+        "png192": "play-icon-dark-orange-192.png"
+      },
+      "palette": {
+        "base": "#1A110B",
+        "clapper": "#2A1C14",
+        "stroke": "#FFB084",
+        "play": "#FFB084"
+      }
+    },
+    {
+      "id": "dark-blue",
+      "name": "Dark Blue",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-blue.svg",
+        "png512": "play-icon-dark-blue.png",
+        "png192": "play-icon-dark-blue-192.png"
+      },
+      "palette": {
+        "base": "#0D1524",
+        "clapper": "#19253C",
+        "stroke": "#ADC8FA",
+        "play": "#ADC8FA"
+      }
+    },
+    {
+      "id": "dark-pink",
+      "name": "Dark Pink",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-pink.svg",
+        "png512": "play-icon-dark-pink.png",
+        "png192": "play-icon-dark-pink-192.png"
+      },
+      "palette": {
+        "base": "#1C1014",
+        "clapper": "#2E1A20",
+        "stroke": "#EE91A0",
+        "play": "#EE91A0"
+      }
+    },
+    {
+      "id": "dark-purple",
+      "name": "Dark Purple",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-purple.svg",
+        "png512": "play-icon-dark-purple.png",
+        "png192": "play-icon-dark-purple-192.png"
+      },
+      "palette": {
+        "base": "#15101A",
+        "clapper": "#241B2E",
+        "stroke": "#D7C5F9",
+        "play": "#D7C5F9"
+      }
+    },
+    {
+      "id": "dark-mint",
+      "name": "Dark Mint",
+      "category": "Dark Themes",
+      "files": {
+        "svg": "play-icon-dark-mint.svg",
+        "png512": "play-icon-dark-mint.png",
+        "png192": "play-icon-dark-mint-192.png"
+      },
+      "palette": {
+        "base": "#0A1110",
+        "clapper": "#142321",
+        "stroke": "#C4ECE6",
+        "play": "#C4ECE6"
+      }
+    },
+    {
+      "id": "oled-black",
+      "name": "OLED Pure Black",
+      "category": "OLED Themes",
+      "files": {
+        "svg": "play-icon-oled-black.svg",
+        "png512": "play-icon-oled-black.png",
+        "png192": "play-icon-oled-black-192.png"
+      },
+      "palette": {
+        "base": "#000000",
+        "clapper": "#161616",
+        "stroke": "#E4EAB8",
+        "play": "#E4EAB8"
+      }
+    },
+    {
+      "id": "olive-deep",
+      "name": "Deep Olive Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-olive-deep.svg",
+        "png512": "play-icon-olive-deep.png",
+        "png192": "play-icon-olive-deep-192.png"
+      },
+      "palette": {
+        "base": "#4E562F",
+        "clapper": "#E4EAB8",
+        "stroke": "#FAF8F2",
+        "play": "#282C1B"
+      }
+    },
+    {
+      "id": "orange-deep",
+      "name": "Deep Terracotta Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-orange-deep.svg",
+        "png512": "play-icon-orange-deep.png",
+        "png192": "play-icon-orange-deep-192.png"
+      },
+      "palette": {
+        "base": "#7C4022",
+        "clapper": "#FFCCA7",
+        "stroke": "#FAF4EC",
+        "play": "#3D200F"
+      }
+    },
+    {
+      "id": "blue-deep",
+      "name": "Deep Royal Blue Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-blue-deep.svg",
+        "png512": "play-icon-blue-deep.png",
+        "png192": "play-icon-blue-deep-192.png"
+      },
+      "palette": {
+        "base": "#2B447A",
+        "clapper": "#B6CFFC",
+        "stroke": "#F0F4FA",
+        "play": "#14254A"
+      }
+    },
+    {
+      "id": "pink-deep",
+      "name": "Deep Rose Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-pink-deep.svg",
+        "png512": "play-icon-pink-deep.png",
+        "png192": "play-icon-pink-deep-192.png"
+      },
+      "palette": {
+        "base": "#8B3D4C",
+        "clapper": "#FBA4BC",
+        "stroke": "#FAF0F2",
+        "play": "#421A25"
+      }
+    },
+    {
+      "id": "purple-deep",
+      "name": "Deep Lavender Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-purple-deep.svg",
+        "png512": "play-icon-purple-deep.png",
+        "png192": "play-icon-purple-deep-192.png"
+      },
+      "palette": {
+        "base": "#634982",
+        "clapper": "#D0B4F8",
+        "stroke": "#F5F0FA",
+        "play": "#2D1947"
+      }
+    },
+    {
+      "id": "mint-deep",
+      "name": "Deep Sage Accent",
+      "category": "Accent Themes",
+      "files": {
+        "svg": "play-icon-mint-deep.svg",
+        "png512": "play-icon-mint-deep.png",
+        "png192": "play-icon-mint-deep-192.png"
+      },
+      "palette": {
+        "base": "#13635B",
+        "clapper": "#B4F8D8",
+        "stroke": "#F0F6F4",
+        "play": "#0A2D2A"
+      }
+    }
+  ]
+}

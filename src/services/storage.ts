@@ -5,6 +5,7 @@ import {
   UserSettings,
   HomeSectionsConfig,
   DEFAULT_KEYBOARD_SHORTCUTS,
+  DEFAULT_APP_TWEAKS,
 } from '../types/movie';
 import {
   INITIAL_MEDIA_ITEMS,
@@ -23,6 +24,7 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_HOME_SECTIONS: HomeSectionsConfig = {
+  showHeroSlideshow: false,
   showTopMovies: true,
   showTopSeries: true,
   showContinueWatching: true,
@@ -33,12 +35,14 @@ export const DEFAULT_HOME_SECTIONS: HomeSectionsConfig = {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'cream',
+  colorScheme: 'olive',
   backdropOpacity: 0.35,
   viewMode: 'grid',
   posterQuality: 'high',
   homeSections: DEFAULT_HOME_SECTIONS,
   imageStorageMode: 'online',
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
+  tweaks: DEFAULT_APP_TWEAKS,
 };
 
 export interface LibraryBackupPackage {
@@ -168,6 +172,9 @@ export function loadUserSettings(): UserSettings {
 export function saveUserSettings(settings: UserSettings): boolean {
   try {
     localStorage.setItem(STORAGE_KEYS.USER_SETTINGS, JSON.stringify(settings));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ehsaan:settings-change', { detail: settings }));
+    }
     return true;
   } catch (err) {
     console.error('Error saving settings to storage:', err);
@@ -359,6 +366,7 @@ export function importLibraryBackup(jsonString: string): ImportResult {
 export function deleteAllLibraryData(): void {
   saveUserStates({});
   saveCustomLists([]);
+  saveMediaCache([]);
 }
 
 export function resetLibraryToDefault(): void {

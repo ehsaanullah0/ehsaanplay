@@ -1,19 +1,33 @@
 {
-  "name": "EHSAAN MOVIE — Personal Cinema Journal",
-  "short_name": "EHSAAN MOVIE",
+  "id": "/",
+  "name": "EHSAAN PLAY — Personal Cinema Journal",
+  "short_name": "EHSAAN PLAY",
   "description": "A modern, beautiful, local-first personal movie and TV-series journal & library.",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait-primary",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#FAF8F2",
   "theme_color": "#4E562F",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icons/icon-192-v2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-v2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable-v2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

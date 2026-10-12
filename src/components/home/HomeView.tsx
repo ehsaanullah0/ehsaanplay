@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { MediaItem, PersonalMediaState, ActiveTab, HomeSectionsConfig } from '../../types/movie';
+import { HeroSlideshow } from './HeroSlideshow';
 import { LibraryStats } from './LibraryStats';
 import { RankingRail } from './RankingRail';
 import { ContinueWatchingRail } from './ContinueWatchingRail';
@@ -28,8 +29,10 @@ interface HomeViewProps {
   onMarkWatching?: (id: string) => void;
   onMarkWatched?: (id: string) => void;
   onToggleWatchlist?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
   tmdbApiKey?: string;
   onAddMediaToLibrary?: (item: MediaItem) => void;
+  onOpenChangelog?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -46,8 +49,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onMarkWatching,
   onMarkWatched,
   onToggleWatchlist,
+  onToggleFavorite,
   tmdbApiKey,
   onAddMediaToLibrary,
+  onOpenChangelog,
 }) => {
   const sections = homeSections || {
     showTopMovies: true,
@@ -123,8 +128,26 @@ export const HomeView: React.FC<HomeViewProps> = ({
       .slice(0, 10);
   }, [mediaItems, userStates]);
 
+  // Featured 5 recently added or highlighted titles for top Hero Slideshow
+  const featuredSlideshowItems = useMemo(() => {
+    if (!mediaItems || mediaItems.length === 0) return [];
+    // Prioritize titles with backdrops and posters
+    const withArt = mediaItems.filter(m => m.backdropUrl || m.posterUrl);
+    return (withArt.length >= 5 ? withArt : mediaItems).slice(0, 5);
+  }, [mediaItems]);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-20 md:pb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-20 md:pb-8">
+      {/* Featured 5 Recently Added Hero Slideshow Banner */}
+      {sections.showHeroSlideshow === true && featuredSlideshowItems.length > 0 && (
+        <HeroSlideshow
+          items={featuredSlideshowItems}
+          userStates={userStates}
+          onSelectMedia={onSelectMedia}
+          onToggleWatchlist={onToggleWatchlist}
+        />
+      )}
+
       {/* Integrated Library Stats */}
       <LibraryStats
         stats={stats}
@@ -155,6 +178,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onRemoveFromWatchlist={onRemoveFromWatchlist}
           onMarkWatching={onMarkWatching}
           onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
+          onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
         />
       )}
 
@@ -170,6 +196,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onRemoveFromWatchlist={onRemoveFromWatchlist}
           onMarkWatching={onMarkWatching}
           onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
+          onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
         />
       )}
 
@@ -185,7 +214,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onRemoveFromWatchlist={onRemoveFromWatchlist}
           onMarkWatching={onMarkWatching}
           onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
         />
       )}
 
@@ -201,7 +232,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onRemoveFromWatchlist={onRemoveFromWatchlist}
           onMarkWatching={onMarkWatching}
           onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
         />
       )}
 
@@ -214,14 +247,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onRemoveFromWatchlist={onRemoveFromWatchlist}
           onMarkWatching={onMarkWatching}
           onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
           tmdbApiKey={tmdbApiKey}
           onAddMediaToLibrary={onAddMediaToLibrary}
         />
       )}
 
       {/* Minimal Themed Footer */}
-      <Footer />
+      <Footer onOpenChangelog={onOpenChangelog} />
     </div>
   );
 };

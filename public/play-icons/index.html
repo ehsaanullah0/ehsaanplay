@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EHSAAN PLAY — App Logo in All Theme Colors</title>
+  <style>
+    :root {
+      --bg: #FAF8F2;
+      --card-bg: #FFFFFF;
+      --text: #282C1B;
+      --text-sub: #6A7056;
+      --border: rgba(78, 86, 47, 0.15);
+      --accent: #4E562F;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141710;
+        --card-bg: #1E2317;
+        --text: #FAF8F2;
+        --text-sub: #A8B092;
+        --border: rgba(228, 234, 184, 0.15);
+        --accent: #E4EAB8;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 32px 20px 60px;
+      line-height: 1.5;
+    }
+    .header {
+      max-width: 1100px;
+      margin: 0 auto 36px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(78, 86, 47, 0.12);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    p {
+      color: var(--text-sub);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    .preview {
+      width: 140px;
+      height: 140px;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.08));
+    }
+    .preview img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .category {
+      font-size: 11px;
+      color: var(--text-sub);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .colors {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .links {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-decoration: none;
+      text-align: center;
+      background: rgba(78, 86, 47, 0.08);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+    .btn:hover {
+      background: rgba(78, 86, 47, 0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge">Theme Icon Pack</div>
+    <h1>EHSAAN PLAY App Logos</h1>
+    <p>All theme color variations available in SVG vector and high-resolution PNG (512x512 / 192x192).</p>
+  </div>
+  <div class="grid">
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-olive.svg" alt="Olive (Default) Logo">
+        </div>
+        <div class="title">Olive (Default)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#E4EAB8" title="Base: #E4EAB8"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#282C1B" title="Stroke: #282C1B"></div>
+          <div class="dot" style="background:#4E562F" title="Play: #4E562F"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-olive.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-olive.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-orange.svg" alt="Orange (Warm Peach) Logo">
+        </div>
+        <div class="title">Orange (Warm Peach)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#FFCCA7" title="Base: #FFCCA7"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#3D200F" title="Stroke: #3D200F"></div>
+          <div class="dot" style="background:#7C4022" title="Play: #7C4022"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-orange.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-orange.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-blue.svg" alt="Blue (Sky Blue) Logo">
+        </div>
+        <div class="title">Blue (Sky Blue)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#B6CFFC" title="Base: #B6CFFC"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#14254A" title="Stroke: #14254A"></div>
+          <div class="dot" style="background:#2B447A" title="Play: #2B447A"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-blue.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-blue.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-pink.svg" alt="Pink (Rose Blush) Logo">
+        </div>
+        <div class="title">Pink (Rose Blush)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#FBA4BC" title="Base: #FBA4BC"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#20102B" title="Stroke: #20102B"></div>
+          <div class="dot" style="background:#4F266F" title="Play: #4F266F"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-pink.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-pink.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-purple.svg" alt="Purple (Lavender) Logo">
+        </div>
+        <div class="title">Purple (Lavender)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#D0B4F8" title="Base: #D0B4F8"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#2D1947" title="Stroke: #2D1947"></div>
+          <div class="dot" style="background:#634982" title="Play: #634982"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-purple.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-purple.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-mint.svg" alt="Mint (Fresh Sage) Logo">
+        </div>
+        <div class="title">Mint (Fresh Sage)</div>
+        <div class="category">Light Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#B4F8D8" title="Base: #B4F8D8"></div>
+          <div class="dot" style="background:#FFFFFF" title="Clapper: #FFFFFF"></div>
+          <div class="dot" style="background:#0A2D2A" title="Stroke: #0A2D2A"></div>
+          <div class="dot" style="background:#13635B" title="Play: #13635B"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-mint.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-mint.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-olive.svg" alt="Dark Olive (Default) Logo">
+        </div>
+        <div class="title">Dark Olive (Default)</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#1C1F14" title="Base: #1C1F14"></div>
+          <div class="dot" style="background:#272D1E" title="Clapper: #272D1E"></div>
+          <div class="dot" style="background:#E4EAB8" title="Stroke: #E4EAB8"></div>
+          <div class="dot" style="background:#E4EAB8" title="Play: #E4EAB8"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-olive.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-olive.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-orange.svg" alt="Dark Orange Logo">
+        </div>
+        <div class="title">Dark Orange</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#1A110B" title="Base: #1A110B"></div>
+          <div class="dot" style="background:#2A1C14" title="Clapper: #2A1C14"></div>
+          <div class="dot" style="background:#FFB084" title="Stroke: #FFB084"></div>
+          <div class="dot" style="background:#FFB084" title="Play: #FFB084"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-orange.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-orange.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-blue.svg" alt="Dark Blue Logo">
+        </div>
+        <div class="title">Dark Blue</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#0D1524" title="Base: #0D1524"></div>
+          <div class="dot" style="background:#19253C" title="Clapper: #19253C"></div>
+          <div class="dot" style="background:#ADC8FA" title="Stroke: #ADC8FA"></div>
+          <div class="dot" style="background:#ADC8FA" title="Play: #ADC8FA"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-blue.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-blue.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-pink.svg" alt="Dark Pink Logo">
+        </div>
+        <div class="title">Dark Pink</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#1C1014" title="Base: #1C1014"></div>
+          <div class="dot" style="background:#2E1A20" title="Clapper: #2E1A20"></div>
+          <div class="dot" style="background:#EE91A0" title="Stroke: #EE91A0"></div>
+          <div class="dot" style="background:#EE91A0" title="Play: #EE91A0"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-pink.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-pink.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-purple.svg" alt="Dark Purple Logo">
+        </div>
+        <div class="title">Dark Purple</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#15101A" title="Base: #15101A"></div>
+          <div class="dot" style="background:#241B2E" title="Clapper: #241B2E"></div>
+          <div class="dot" style="background:#D7C5F9" title="Stroke: #D7C5F9"></div>
+          <div class="dot" style="background:#D7C5F9" title="Play: #D7C5F9"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-purple.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-purple.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-dark-mint.svg" alt="Dark Mint Logo">
+        </div>
+        <div class="title">Dark Mint</div>
+        <div class="category">Dark Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#0A1110" title="Base: #0A1110"></div>
+          <div class="dot" style="background:#142321" title="Clapper: #142321"></div>
+          <div class="dot" style="background:#C4ECE6" title="Stroke: #C4ECE6"></div>
+          <div class="dot" style="background:#C4ECE6" title="Play: #C4ECE6"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-dark-mint.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-dark-mint.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-oled-black.svg" alt="OLED Pure Black Logo">
+        </div>
+        <div class="title">OLED Pure Black</div>
+        <div class="category">OLED Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#000000" title="Base: #000000"></div>
+          <div class="dot" style="background:#161616" title="Clapper: #161616"></div>
+          <div class="dot" style="background:#E4EAB8" title="Stroke: #E4EAB8"></div>
+          <div class="dot" style="background:#E4EAB8" title="Play: #E4EAB8"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-oled-black.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-oled-black.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-olive-deep.svg" alt="Deep Olive Accent Logo">
+        </div>
+        <div class="title">Deep Olive Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#4E562F" title="Base: #4E562F"></div>
+          <div class="dot" style="background:#E4EAB8" title="Clapper: #E4EAB8"></div>
+          <div class="dot" style="background:#FAF8F2" title="Stroke: #FAF8F2"></div>
+          <div class="dot" style="background:#282C1B" title="Play: #282C1B"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-olive-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-olive-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-orange-deep.svg" alt="Deep Terracotta Accent Logo">
+        </div>
+        <div class="title">Deep Terracotta Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#7C4022" title="Base: #7C4022"></div>
+          <div class="dot" style="background:#FFCCA7" title="Clapper: #FFCCA7"></div>
+          <div class="dot" style="background:#FAF4EC" title="Stroke: #FAF4EC"></div>
+          <div class="dot" style="background:#3D200F" title="Play: #3D200F"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-orange-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-orange-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-blue-deep.svg" alt="Deep Royal Blue Accent Logo">
+        </div>
+        <div class="title">Deep Royal Blue Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#2B447A" title="Base: #2B447A"></div>
+          <div class="dot" style="background:#B6CFFC" title="Clapper: #B6CFFC"></div>
+          <div class="dot" style="background:#F0F4FA" title="Stroke: #F0F4FA"></div>
+          <div class="dot" style="background:#14254A" title="Play: #14254A"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-blue-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-blue-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-pink-deep.svg" alt="Deep Rose Accent Logo">
+        </div>
+        <div class="title">Deep Rose Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#8B3D4C" title="Base: #8B3D4C"></div>
+          <div class="dot" style="background:#FBA4BC" title="Clapper: #FBA4BC"></div>
+          <div class="dot" style="background:#FAF0F2" title="Stroke: #FAF0F2"></div>
+          <div class="dot" style="background:#421A25" title="Play: #421A25"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-pink-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-pink-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-purple-deep.svg" alt="Deep Lavender Accent Logo">
+        </div>
+        <div class="title">Deep Lavender Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#634982" title="Base: #634982"></div>
+          <div class="dot" style="background:#D0B4F8" title="Clapper: #D0B4F8"></div>
+          <div class="dot" style="background:#F5F0FA" title="Stroke: #F5F0FA"></div>
+          <div class="dot" style="background:#2D1947" title="Play: #2D1947"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-purple-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-purple-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+      <div class="card">
+        <div class="preview">
+          <img src="./play-icon-mint-deep.svg" alt="Deep Sage Accent Logo">
+        </div>
+        <div class="title">Deep Sage Accent</div>
+        <div class="category">Accent Themes</div>
+        <div class="colors">
+          <div class="dot" style="background:#13635B" title="Base: #13635B"></div>
+          <div class="dot" style="background:#B4F8D8" title="Clapper: #B4F8D8"></div>
+          <div class="dot" style="background:#F0F6F4" title="Stroke: #F0F6F4"></div>
+          <div class="dot" style="background:#0A2D2A" title="Play: #0A2D2A"></div>
+        </div>
+        <div class="links">
+          <a class="btn" href="./play-icon-mint-deep.svg" download>SVG</a>
+          <a class="btn" href="./play-icon-mint-deep.png" download>512 PNG</a>
+        </div>
+      </div>
+    
+  </div>
+</body>
+</html>

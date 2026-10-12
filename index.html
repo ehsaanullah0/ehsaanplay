@@ -4,24 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>EHSAAN PLAY — Personal Movie & TV Library</title>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('ehsaan_user_settings_v1');
+          if (saved) {
+            var settings = JSON.parse(saved);
+            if (settings.theme) {
+              document.documentElement.setAttribute('data-theme', settings.theme);
+            }
+            if (settings.colorScheme) {
+              document.documentElement.setAttribute('data-color-scheme', settings.colorScheme);
+            } else {
+              document.documentElement.setAttribute('data-color-scheme', 'olive');
+            }
+            if (settings.tweaks && settings.tweaks.fontFamily) {
+              document.documentElement.setAttribute('data-font', settings.tweaks.fontFamily);
+            }
+          } else {
+            document.documentElement.setAttribute('data-theme', 'cream');
+            document.documentElement.setAttribute('data-color-scheme', 'orange');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    </script>
     <meta name="description" content="A modern, beautiful, local-first personal movie and TV-series journal & library." />
     <meta name="theme-color" content="#F6F4E5" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="EhsaanPlay" />
     <meta property="og:title" content="EHSAAN PLAY" />
     <meta property="og:description" content="A modern, beautiful, local-first personal movie and TV-series journal & library." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg?v=3.2.0" />
+    <link rel="manifest" href="/manifest.json?v=3.2.0" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-v2.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..72,100..1000&family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#F6F4E5] text-[#282C1B] antialiased selection:bg-[#4E562F] selection:text-[#FAF8F2] min-h-screen">
+  <body class="antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

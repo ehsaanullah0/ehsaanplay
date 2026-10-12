@@ -50,21 +50,21 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Sheet Container */}
-      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[#FAF8F2] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-[#4E562F]/15 text-[#282C1B] z-10 animate-slide-up">
+      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[var(--modal-bg)] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 animate-slide-up">
         {/* Drag Handle Indicator (mobile) */}
-        <div className="sm:hidden w-12 h-1 bg-[#4E562F]/20 rounded-full mx-auto mb-4" />
+        <div className="sm:hidden w-12 h-1 bg-[var(--accent-primary)]/20 rounded-full mx-auto mb-4" />
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#4E562F]/10">
+        <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-[#282C1B]">
+            <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Filter & Sort
             </h3>
-            <p className="text-xs text-[#6A7056]">Customise your shelf view</p>
+            <p className="text-xs text-[var(--text-secondary)]">Customise your shelf view</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-[#EFECE1] hover:bg-[#E5E1D3] text-[#4E562F] transition focus:outline-none"
+            className="p-2 rounded-full bg-[var(--chip-bg)] hover:opacity-85 text-[var(--text-primary)] transition focus:outline-none"
           >
             <X className="w-4 h-4" />
           </button>
@@ -73,7 +73,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
         <div className="py-5 space-y-6">
           {/* Status Filter */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#6A7056] mb-2.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
               Status
             </label>
             <div className="flex flex-wrap gap-2">
@@ -85,8 +85,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     onClick={() => onUpdateFilters({ status: st.id })}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
                       isSelected
-                        ? 'bg-[#4E562F] text-[#FAF8F2]'
-                        : 'bg-[#EFECE1] text-[#282C1B] hover:bg-[#E5E1D3]'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                        : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
                     }`}
                   >
                     {st.label}
@@ -98,7 +98,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 
           {/* Media Type */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#6A7056] mb-2.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
               Format
             </label>
             <div className="flex flex-wrap gap-2">
@@ -110,8 +110,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     onClick={() => onUpdateFilters({ type: t.id })}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
                       isSelected
-                        ? 'bg-[#4E562F] text-[#FAF8F2]'
-                        : 'bg-[#EFECE1] text-[#282C1B] hover:bg-[#E5E1D3]'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                        : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
                     }`}
                   >
                     {t.label}
@@ -123,7 +123,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 
           {/* Sort By */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#6A7056] mb-2.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
               Sort By
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -135,8 +135,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     onClick={() => onUpdateFilters({ sortBy: sort.id })}
                     className={`px-3 py-2 rounded-xl text-xs font-medium text-left transition ${
                       isSelected
-                        ? 'bg-[#4E562F] text-[#FAF8F2] font-semibold'
-                        : 'bg-[#EFECE1] text-[#282C1B] hover:bg-[#E5E1D3]'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                        : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
                     }`}
                   >
                     {sort.label}
@@ -149,7 +149,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           {/* Genre Filter */}
           {availableGenres.length > 0 && (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#6A7056] mb-2.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
                 Genre
               </label>
               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
@@ -157,8 +157,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                   onClick={() => onUpdateFilters({ genre: 'all' })}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                     filters.genre === 'all'
-                      ? 'bg-[#4E562F] text-[#FAF8F2] font-semibold'
-                      : 'bg-[#EFECE1] text-[#282C1B] hover:bg-[#E5E1D3]'
+                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                      : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
                   }`}
                 >
                   All Genres
@@ -171,8 +171,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                       onClick={() => onUpdateFilters({ genre })}
                       className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                         isSelected
-                          ? 'bg-[#4E562F] text-[#FAF8F2] font-semibold'
-                          : 'bg-[#EFECE1] text-[#282C1B] hover:bg-[#E5E1D3]'
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
                       }`}
                     >
                       {genre}
@@ -185,17 +185,17 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#4E562F]/10">
+        <div className="flex items-center justify-between pt-4 border-t border-[var(--border-subtle)]">
           <button
             onClick={onResetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-[#6A7056] hover:text-[#282C1B] transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Filters</span>
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-full bg-[#4E562F] text-[#FAF8F2] text-xs font-bold hover:bg-[#3E4524] transition shadow-xs"
+            className="px-6 py-2.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95"
           >
             Apply Filters
           </button>

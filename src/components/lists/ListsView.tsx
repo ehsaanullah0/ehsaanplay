@@ -19,6 +19,7 @@ interface ListsViewProps {
   onRemoveFromWatchlist?: (id: string) => void;
   onMarkWatching?: (id: string) => void;
   onMarkWatched?: (id: string) => void;
+  onDismissFromWatching?: (id: string) => void;
 }
 
 export const ListsView: React.FC<ListsViewProps> = ({
@@ -35,6 +36,7 @@ export const ListsView: React.FC<ListsViewProps> = ({
   onRemoveFromWatchlist,
   onMarkWatching,
   onMarkWatched,
+  onDismissFromWatching,
 }) => {
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -60,6 +62,7 @@ export const ListsView: React.FC<ListsViewProps> = ({
         onRemoveFromWatchlist={onRemoveFromWatchlist}
         onMarkWatching={onMarkWatching}
         onMarkWatched={onMarkWatched}
+        onDismissFromWatching={onDismissFromWatching}
       />
     );
   }
@@ -137,8 +140,8 @@ export const ListsView: React.FC<ListsViewProps> = ({
       ) : (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-sm mx-auto">
-          <div className="w-16 h-16 rounded-full bg-[var(--chip-bg)] flex items-center justify-center text-[var(--accent-primary)] mb-4">
-            <Layers className="w-7 h-7 stroke-[1.5]" />
+          <div className="w-16 h-16 rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] flex items-center justify-center mb-4 border border-[var(--border-subtle)] shadow-xs">
+            <Layers className="w-7 h-7 stroke-[2]" />
           </div>
           <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Make your own little shelf.
