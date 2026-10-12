@@ -9,13 +9,6 @@ main
 ### **Ehsaan play is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 =======
 
-# EHSAAN main
-
-## **Your watchlist. Your taste. Your space.**
-
-# [EHSAANPLAY.AI.STUDIO](https://ehsaanplay.ai.studio)
-</a>
-
 <p>
   <strong>Still taking screenshots of movies?</strong><br>
   Try EHSAAN PLAY and track what you watch in a simple,<br>
