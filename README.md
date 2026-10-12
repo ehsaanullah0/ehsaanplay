@@ -8,10 +8,6 @@ main
 # [ehsaanplay.ai.studio](https://ehsaanplay.ai.studio/)
 ### **Ehsaan play is a personal, local-first movie and series management app designed to make tracking what you watch feel simple, calm, and enjoyable.**
 =======
-<p align="center">
-<img width="1796" height="876" alt="Ehsaan ULLAH (1)" src="https://github.com/user-attachments/assets/44e8dbff-9318-44aa-b51d-90b8854ab44b" />
-</p>
-<br>
 
 # EHSAAN main
 
