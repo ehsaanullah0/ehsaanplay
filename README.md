@@ -1,4 +1,3 @@
-main
 <div align="center">
 <img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
 
@@ -22,8 +21,8 @@ main
   If you do not trust the hosted version, simply fork this repository
   and host EHSAAN PLAY yourself at your machine.
   
-<div/>
-  
+</div>
+
 ---
 
 ## ‼️ DISCLAIMER
