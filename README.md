@@ -35,7 +35,9 @@
 - beautiful analytics page
 - automatic backup in choosen folder
 - a good looking first visit guide ✔
-- personal favourite section with full controll ✔
+- new personal favourite by thmeo07 ✔
+- new popup long press menu inside the movie image card (aleon-ty) ✔
+
 ---
 
 # DEVELOPER NOTE
