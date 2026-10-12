@@ -21,7 +21,9 @@ main
   It is not certified, endorsed, or affiliated with AI Studio.
   If you do not trust the hosted version, simply fork this repository
   and host EHSAAN PLAY yourself at your machine.
+  
 <div/>
+  
 ---
 
 ## ‼️ DISCLAIMER
