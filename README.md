@@ -1,5 +1,5 @@
 <div align="center">
-<img width="180" height="180" alt="icon" src="https://github.com/user-attachments/assets/f9948882-08cb-4527-b673-7decae6b6068" />
+<img width="170" height="170" alt="icon-orange" src="https://github.com/user-attachments/assets/b00a3eb8-8e1a-4501-a9d4-0ff818c69088" />
 
 # EHSAAN PLAY
 
