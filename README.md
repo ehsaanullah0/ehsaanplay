@@ -18,11 +18,6 @@
 
 <br>
 
-  🌐 The domain above is used only to publish the web app.
-  It is not certified, endorsed, or affiliated with AI Studio.
-  If you do not trust the hosted version, simply fork this repository
-  and host EHSAAN PLAY yourself at your machine.
-
 ---
 
 ## ‼️ DISCLAIMER
@@ -46,25 +41,6 @@
 -  ✔ **add imdb link metadata crowl as fallback of every service.**
 
 ### legend- ✔COMPLETE | ❌PENDING
-
----
-
-# DEVELOPER NOTE
-<img width="764" height="147" alt="image" src="https://github.com/user-attachments/assets/78c2c195-9c6a-4aa6-8405-039bbe803a36" />
-
----
-
-# ⁉ WHY WEB APP NOT AN APK?
-
-- take complex procss
-- high rate of bugs
-- difficult to update
-- compatibility issue
-- not available to desktop
-- difficult to maintain security
-- very time consuming
-- hard to make buttery smooth
-- and so many dificulties
 
 ---
 
