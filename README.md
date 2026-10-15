@@ -7,7 +7,7 @@
 
 ## **Your watchlist. Your taste. Your space.**
 
-# [EHSAANPLAY](https://ehsaanplay.ai.studio)
+# [EHSAAN PLAY](https://ehsaanplay.ai.studio)
 </a>
 
 <p>
