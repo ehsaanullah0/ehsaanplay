@@ -1,67 +1,258 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>EHSAAN PLAY — Personal Movie & TV Library</title>
-    <script>
-      (function() {
-        try {
-          var saved = localStorage.getItem('ehsaan_user_settings_v1');
-          if (saved) {
-            var settings = JSON.parse(saved);
-            if (settings.theme) {
-              document.documentElement.setAttribute('data-theme', settings.theme);
-            }
-            if (settings.colorScheme) {
-              document.documentElement.setAttribute('data-color-scheme', settings.colorScheme);
-            } else {
-              document.documentElement.setAttribute('data-color-scheme', 'olive');
-            }
-            if (settings.tweaks && settings.tweaks.fontFamily) {
-              document.documentElement.setAttribute('data-font', settings.tweaks.fontFamily);
-            }
-          } else {
-            document.documentElement.setAttribute('data-theme', 'cream');
-            document.documentElement.setAttribute('data-color-scheme', 'orange');
-          }
-        } catch (e) {
-          console.error(e);
-        }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0e">
+  <meta name="description" content="EHSAAN PLAY — EHSAAN PLAY — discover something good, press play, and enjoy the moment.">
+  <title>EHSAAN PLAY — A little more joy in every play</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0b0b0e; --panel:#121216; --panel2:#18181e; --text:#f7f7f8;
+      --muted:#a3a3ad; --line:rgba(255,255,255,.10); --accent:#ff9b54;
+      --accent2:#ffc18f; --max:1180px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:90px}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;line-height:1.6}
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+    .wrap{width:min(var(--max),calc(100% - 48px));margin:auto}
+    .nav{position:sticky;top:0;z-index:20;background:rgba(11,11,14,.78);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+    .nav-inner{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .brand{display:flex;align-items:center;gap:11px;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.35rem;letter-spacing:-.06em}
+    .brand-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--accent);color:#21150f;font-weight:900;font-size:19px;box-shadow:0 0 28px #ff9b5425}
+    .brand em{font-style:normal;color:var(--accent)}
+    .links{display:flex;align-items:center;gap:28px}
+    .links a{font-size:.83rem;color:var(--muted);font-weight:700;transition:color .2s}
+    .links a:hover,.links a.active{color:var(--accent)}
+    .nav-actions{display:flex;align-items:center;gap:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px 17px;font-weight:700;font-size:.9rem;transition:transform .2s,border-color .2s,background .2s;cursor:pointer}
+    .btn:hover{transform:translateY(-2px);border-color:#ff9b5480}
+    .btn-primary{background:var(--accent);color:#21150f;border-color:var(--accent)}
+    .btn-primary:hover{background:var(--accent2);box-shadow:0 10px 30px #ff9b5420}
+    .btn-quiet{background:#ffffff08}
+    .menu-toggle{display:none;background:none;color:white;border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+    .hero{position:relative;overflow:hidden;padding:100px 0 90px}
+    .hero:before{content:"";position:absolute;width:650px;height:650px;right:-180px;top:-180px;background:radial-gradient(circle,#ff9b541c 0,transparent 68%);pointer-events:none}
+    .hero-grid{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:54px;align-items:center}
+    .eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid #ff9b5445;background:#ff9b540c;border-radius:100px;padding:7px 12px;color:var(--accent);font-size:.73rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px var(--accent)}
+    h1,h2,h3,p{margin-top:0}
+    h1,h2,h3{font-family:"Space Grotesk",sans-serif;line-height:1.05;letter-spacing:-.055em}
+    h1{font-size:clamp(3.3rem,7.1vw,6.4rem);margin:23px 0 22px;max-width:720px}
+    h1 span{color:var(--accent)}
+    .hero-copy{max-width:510px;color:var(--muted);font-size:1.1rem;line-height:1.8}
+    .hero-buttons{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+    .microcopy{display:flex;align-items:center;gap:10px;margin-top:24px;color:#85858f;font-size:.8rem}
+    .microcopy b{color:#d9d9df;font-weight:600}
+    .visual{min-height:440px;position:relative;display:grid;place-items:center}
+    .halo{position:absolute;width:360px;height:360px;border:1px solid #ff9b5420;border-radius:50%;box-shadow:0 0 100px #ff9b540c,inset 0 0 80px #ff9b5408}
+    .halo:before,.halo:after{content:"";position:absolute;border:1px solid #ffffff0c;border-radius:50%;inset:35px}
+    .halo:after{inset:75px}
+    .screen{position:relative;width:min(100%,450px);padding:16px;border:1px solid #ffffff20;border-radius:24px;background:linear-gradient(145deg,#202027,#101014 70%);box-shadow:0 35px 90px #0009;transform:rotate(-3deg)}
+    .screen-top{display:flex;justify-content:space-between;align-items:center;padding:3px 3px 15px;color:#a8a8b1;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .screen-top strong{color:var(--accent);font-family:"Space Grotesk",sans-serif;font-size:.85rem}
+    .feature-art{height:220px;border-radius:15px;position:relative;overflow:hidden;background:linear-gradient(145deg,#69382b,#34202a 48%,#8b4b2d)}
+    .feature-art:before{content:"";position:absolute;width:230px;height:230px;right:-15px;top:-30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd0a6,#ff9b54 35%,#7d3d2b 68%,transparent 70%);filter:blur(.2px)}
+    .feature-art:after{content:"";position:absolute;left:-10%;right:-10%;bottom:-58px;height:160px;background:linear-gradient(160deg,transparent 5%,#171012 6%,#241714 42%,#100d0e 43%);transform:rotate(-7deg)}
+    .art-label{position:absolute;z-index:2;left:20px;bottom:18px}
+    .art-label small{display:block;color:#ffe2cb;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase}
+    .art-label b{font-family:"Space Grotesk",sans-serif;font-size:1.8rem;letter-spacing:-.06em}
+    .screen-info{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 3px 3px}
+    .screen-info strong{display:block;font-family:"Space Grotesk",sans-serif;font-size:1rem}
+    .screen-info small{color:var(--muted);font-size:.75rem}
+    .play-circle{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#21150f;font-size:17px}
+    .float-card{position:absolute;z-index:3;padding:14px 17px;border:1px solid #ffffff1b;border-radius:14px;background:#17171ddf;backdrop-filter:blur(14px);box-shadow:0 15px 40px #0005}
+    .float-card small{display:block;color:var(--muted);font-size:.7rem}
+    .float-card strong{font-family:"Space Grotesk",sans-serif;font-size:.92rem}
+    .float-one{left:-5px;bottom:50px}.float-two{right:-7px;top:45px}
+    .float-icon{display:inline-grid;place-items:center;width:25px;height:25px;margin-right:7px;border-radius:8px;background:#ff9b5419;color:var(--accent)}
+    section{padding:94px 0}
+    .section-soft{background:#101014;border-top:1px solid #ffffff06;border-bottom:1px solid #ffffff06}
+    .section-head{max-width:680px;margin-bottom:38px}
+    .kicker{color:var(--accent);font-size:.75rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase}
+    h2{font-size:clamp(2.4rem,5vw,4rem);margin:12px 0 15px}
+    .section-head p{color:var(--muted);max-width:580px;font-size:1.02rem}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+    .card{padding:28px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,#17171c,#111115);transition:transform .2s,border-color .2s}
+    .card:hover{transform:translateY(-4px);border-color:#ff9b5455}
+    .icon-box{width:45px;height:45px;display:grid;place-items:center;border:1px solid #ff9b5435;background:#ff9b540d;color:var(--accent);border-radius:13px;font-size:1.2rem;margin-bottom:25px}
+    .card h3{font-size:1.35rem;letter-spacing:-.035em;margin-bottom:10px}
+    .card p{color:var(--muted);font-size:.92rem;margin:0}
+    .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .project-card{position:relative;overflow:hidden;min-height:250px;padding:30px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+    .project-card:after{content:"↗";position:absolute;right:27px;top:22px;color:var(--accent);font-size:1.35rem}
+    .project-card .tag{display:inline-block;padding:5px 9px;border-radius:6px;background:#ffffff0a;color:#b8b8c2;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .project-card h3{font-size:1.8rem;margin:28px 0 9px}
+    .project-card p{max-width:400px;color:var(--muted);font-size:.92rem}
+    .project-card .link-text{color:var(--accent);font-size:.85rem;font-weight:800}
+    .cta{padding:70px 25px;text-align:center;border:1px solid #ff9b5435;border-radius:24px;background:radial-gradient(ellipse at top,#ff9b5418,transparent 65%),#151316}
+    .cta h2{max-width:700px;margin:13px auto 16px}
+    .cta p{max-width:570px;margin:0 auto;color:var(--muted)}
+    .cta .hero-buttons{justify-content:center}
+    .faq-list{max-width:850px;border-top:1px solid var(--line)}
+    details{border-bottom:1px solid var(--line);padding:21px 0}
+    summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:1.05rem}
+    summary::-webkit-details-marker{display:none}
+    summary:after{content:"+";color:var(--accent);font-size:1.5rem;font-weight:400}
+    details[open] summary:after{content:"−"}
+    details p{color:var(--muted);margin:14px 40px 0 0;font-size:.93rem}
+    footer{padding:32px 0;border-top:1px solid var(--line)}
+    .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:25px;color:var(--muted);font-size:.8rem}
+    .footer-links{display:flex;gap:20px;flex-wrap:wrap}.footer-links a:hover{color:var(--accent)}
+    /* A more ownable visual language: warm cinema tones, editorial cards, and less template-like geometry. */
+    :root{--bg:#0e0c0c;--panel:#171312;--panel2:#211916;--accent:#ff8748;--accent2:#ffc09a;--line:rgba(255,226,207,.13)}
+    body{background:radial-gradient(ellipse at 80% 4%,#2b170f55,transparent 34%),var(--bg)}
+    .brand-mark{border-radius:12px 12px 12px 4px;box-shadow:0 7px 24px #ff874825}
+    .hero{padding-top:112px;padding-bottom:105px}
+    .hero:before{width:760px;height:760px;right:-240px;top:-220px;background:radial-gradient(circle,#ff87481f 0, #ff874808 38%,transparent 70%)}
+    .eyebrow{background:#ff874811;border-color:#ff87484d;color:#ffad7d}
+    .visual{isolation:isolate}
+    .halo{border-color:#ff874833;box-shadow:0 0 120px #ff874817,inset 0 0 80px #ff87480c}
+    .screen{border-radius:28px;background:linear-gradient(150deg,#2b211e,#121011 72%);transform:rotate(-2deg);box-shadow:0 38px 100px #000b,0 0 0 8px #ffdfc006}
+    .feature-art{height:235px;background:linear-gradient(135deg,#5e2c1d,#a64e2b 42%,#e78b4b 72%,#2b1715);}
+    .feature-art:before{width:265px;height:265px;right:-22px;top:-58px;background:radial-gradient(circle at 35% 30%,#ffe2bd 0,#ffb36e 22%,#f4773e 43%,#7a3324 67%,transparent 69%);}
+    .feature-art:after{bottom:-68px;height:170px;background:linear-gradient(160deg,transparent 5%,#2b1716 6%,#211412 42%,#100c0c 43%);}
+    .art-label b{font-size:2rem}
+    .float-card{border-color:#ffdfc021;background:#1b1514eF}
+    .float-icon{background:#ff87481d;color:#ffad7d}
+    .section-soft{background:linear-gradient(110deg,#14100f,#111012 60%,#17100d);border-color:#ffdfc009}
+    .features{gap:18px}
+    .card{position:relative;overflow:hidden;min-height:220px;padding:27px 27px 30px;border-radius:18px;background:linear-gradient(145deg,#1b1716,#121112 78%);border-color:#ffdfc018}
+    .card:after{content:"";position:absolute;width:130px;height:130px;right:-64px;bottom:-74px;border:1px solid #ff874827;border-radius:50%;box-shadow:0 0 0 15px #ff874806,0 0 0 31px #ff874805;pointer-events:none}
+    .card:nth-child(2){background:linear-gradient(145deg,#1b1716,#151014 78%)}
+    .card:nth-child(3){background:linear-gradient(145deg,#211713,#131112 78%)}
+    .card:nth-child(4){background:linear-gradient(145deg,#171515,#19110e 78%)}
+    .card:nth-child(5){background:linear-gradient(145deg,#1b1716,#121316 78%)}
+    .card:nth-child(6){background:linear-gradient(145deg,#211713,#151112 78%)}
+    .icon-box{width:46px;height:46px;border-radius:15px 15px 15px 5px;margin-bottom:28px;background:linear-gradient(145deg,#ff874821,#ff874808);border-color:#ff874847;color:#ff9a65}
+    .card h3{font-size:1.42rem}
+    .project-grid{gap:18px}
+    .project-card{min-height:270px;padding:31px;border-radius:20px;background:linear-gradient(145deg,#1b1716,#121112 80%);border-color:#ffdfc018;transition:transform .25s,border-color .25s,background .25s}
+    .project-card:hover{transform:translateY(-5px);border-color:#ff87486b;background:linear-gradient(145deg,#251812,#141112 80%)}
+    .project-card:before{content:"";position:absolute;width:190px;height:190px;right:-55px;bottom:-95px;border-radius:50%;background:radial-gradient(circle,#ff87482a,transparent 68%);pointer-events:none}
+    .project-card:after{right:27px;top:20px;color:#ff9a65}
+    .project-card .tag{background:#ff874813;color:#ffb083;border:1px solid #ff874822}
+    .project-card h3{max-width:85%;font-size:1.85rem}
+    .project-card p{max-width:340px}
+    .project-card .link-text{color:#ff9b68}
+    .project-card:nth-child(1){background:linear-gradient(120deg,#2b1913,#171211 72%)}
+    .project-card:nth-child(2){background:linear-gradient(120deg,#1a1515,#151115 72%)}
+    .project-card:nth-child(3){background:linear-gradient(120deg,#251611,#171111 72%)}
+    .project-card:nth-child(4){background:linear-gradient(120deg,#191414,#141114 72%)}
+    .cta{background:radial-gradient(ellipse at 50% 0%,#ff874825,transparent 65%),linear-gradient(135deg,#1b1513,#131112);border-color:#ff87483d}
+    .btn-primary{box-shadow:0 6px 20px #ff87481a}
+    .btn-primary:hover{box-shadow:0 12px 32px #ff87482b}
+    @media(max-width:680px){.hero{padding-top:70px;padding-bottom:65px}.card{min-height:0}.project-card{min-height:230px}.feature-art{height:180px}}
 
-        // Early capture for PWA install prompt
-        window.addEventListener('beforeinstallprompt', function(e) {
-          e.preventDefault();
-          window.__pwaInstallPrompt = e;
-          window.deferredPrompt = e;
-        });
+    @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:30px}.hero{padding-top:75px}.hero-copy{max-width:620px}.visual{min-height:400px}.screen{max-width:440px}.features{grid-template-columns:repeat(2,1fr)}.links{gap:16px}}
+    @media(max-width:680px){.wrap{width:min(100% - 32px,var(--max))}.nav-inner{min-height:68px}.menu-toggle{display:block}.nav-actions .btn-quiet{display:none}.links{display:none;position:absolute;left:0;right:0;top:68px;padding:16px 24px 22px;background:#101014;border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:18px}.links.open{display:flex}.links a{font-size:.95rem}.nav-actions .btn{padding:10px 12px;font-size:.8rem}.hero{padding:65px 0 55px}h1{font-size:clamp(3.2rem,16vw,5.4rem)}.hero-copy{font-size:1rem}.hero-buttons{flex-direction:column;align-items:stretch}.hero-buttons .btn{width:100%}.visual{min-height:340px}.halo{width:290px;height:290px}.screen{padding:11px;border-radius:19px}.feature-art{height:175px}.float-one{left:-2px;bottom:13px}.float-two{right:-2px;top:15px}.float-card{padding:10px 12px}.float-card strong{font-size:.8rem}.features,.project-grid{grid-template-columns:1fr}.card{padding:24px}.project-card{min-height:220px}section{padding:68px 0}.cta{padding:50px 20px}.footer-inner{align-items:flex-start;flex-direction:column}.microcopy{align-items:flex-start}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#home" aria-label="EHSAAN PLAY home"><span class="brand-mark">▶</span><span>EHSAAN <em>PLAY</em></span></a>
+      <div class="links" id="navLinks">
+        <a class="active" href="#home">Home</a><a href="#features">Features</a><a href="#projects">Projects</a><a href="#faq">FAQ</a>
+      </div>
+      <div class="nav-actions">
+        <a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">⌘ GitHub</a>
+        <a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Explore project ↗</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </nav>
 
-        // Early service worker registration for Chromium PWA installability heuristic
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/sw.js').catch(function() {});
-        }
-      })();
-    </script>
-    <meta name="description" content="A modern, beautiful, local-first personal movie and TV-series journal & library." />
-    <meta name="theme-color" content="#F6F4E5" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="EhsaanPlay" />
-    <meta property="og:title" content="EHSAAN PLAY" />
-    <meta property="og:description" content="A modern, beautiful, local-first personal movie and TV-series journal & library." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-v2.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..72,100..1000&family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
-  </head>
-  <body class="antialiased min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <main>
+    <header class="hero" id="home">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> The EHSAAN PLAY project</div>
+          <h1>Your world.<br>Your watch.<br><span>Your PLAY.</span></h1>
+          <p class="hero-copy">A home for the EHSAAN PLAY project. Explore the work, follow development, and find the official project links — all in one place.</p>
+          <div class="hero-buttons">
+            <a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Explore EHSAAN PLAY <span>↗</span></a>
+            <a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">View source on GitHub <span>→</span></a>
+          </div>
+          <div class="microcopy"><span class="dot"></span><span><b>Built around the project.</b> Follow along as it evolves.</span></div>
+        </div>
+        <div class="visual" aria-label="Decorative media player concept">
+          <div class="halo"></div>
+          <div class="float-card float-two"><span class="float-icon">✦</span><strong>Made to explore</strong><small style="margin-left:33px">One project, one home</small></div>
+          <div class="screen">
+            <div class="screen-top"><strong>▶ EHSAAN PLAY</strong><span>PROJECT / 001</span></div>
+            <div class="feature-art"><div class="art-label"><small>Press play on possibility</small><b>PLAY YOUR WAY.</b></div></div>
+            <div class="screen-info"><div><strong>Welcome to EHSAAN PLAY</strong><small>Discover · Explore · Enjoy</small></div><div class="play-circle">▶</div></div>
+          </div>
+          <div class="float-card float-one"><span class="float-icon">⌘</span><strong>Open source home</strong><small style="margin-left:33px">Code on GitHub</small></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-soft" id="features">
+      <div class="wrap">
+        <div class="section-head"><div class="kicker">The experience</div><h2>Simple by design.<br><span style="color:var(--accent)">Ready to explore.</span></h2><p>A clean, cinematic landing page that puts the project first and makes the next step easy.</p></div>
+        <div class="features">
+          <article class="card"><div class="icon-box">▶</div><h3>Play-first identity</h3><p>A little movie-night energy, with a bold wordmark and a warm, unmistakable orange glow.</p></article>
+          <article class="card"><div class="icon-box">⌘</div><h3>Open project access</h3><p>Explore the actual repository, browse the files, and see how the project is taking shape.</p></article>
+          <article class="card"><div class="icon-box">✦</div><h3>Focused interface</h3><p>Warm orange details, confident typography, and a little cinematic character without the visual noise.</p></article>
+          <article class="card"><div class="icon-box">↗</div><h3>Quick navigation</h3><p>The important destinations are easy to find, without turning the page into a wall of buttons.</p></article>
+          <article class="card"><div class="icon-box">▣</div><h3>Responsive layout</h3><p>The layout reshapes for phones, tablets, and desktops while keeping the same personality.</p></article>
+          <article class="card"><div class="icon-box">◎</div><h3>Project hub</h3><p>One tidy launchpad for the project site, source code, and wider EHSAAN web presence.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="wrap">
+        <div class="section-head"><div class="kicker">Official links</div><h2>Find EHSAAN PLAY.</h2><p>Use these project links to explore the current web presence and development source.</p></div>
+        <div class="project-grid">
+          <a class="project-card" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer"><span class="tag">Source code</span><h3>GitHub repository</h3><p>Visit the EHSAAN PLAY repository to view the project files and development activity.</p><span class="link-text">Open GitHub →</span></a>
+          <a class="project-card" href="https://ehsaan.odoo.com" target="_blank" rel="noopener noreferrer"><span class="tag">Web presence</span><h3>EHSAAN on Odoo</h3><p>Visit the EHSAAN website hosted on Odoo.</p><span class="link-text">Visit ehsaan.odoo.com →</span></a>
+          <a class="project-card" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer"><span class="tag">Project site</span><h3>EHSAAN PLAY Studio</h3><p>Open the EHSAAN PLAY project experience.</p><span class="link-text">Explore the project →</span></a>
+          <div class="project-card"><span class="tag">Stay connected</span><h3>One project. More to come.</h3><p>Bookmark this page and check the official links for updates as the project develops.</p><span class="link-text">Keep exploring ✦</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-soft" id="faq">
+      <div class="wrap">
+        <div class="section-head"><div class="kicker">Good to know</div><h2>Quick answers.</h2></div>
+        <div class="faq-list">
+          <details><summary>What is EHSAAN PLAY?</summary><p>EHSAAN PLAY is the project named in the links on this page. This landing page serves as a visual project hub; it does not claim features that have not been confirmed.</p></details>
+          <details><summary>Where can I view the source code?</summary><p>Use the GitHub repository link to visit github.com/ehsaanllah0/ehsaanplay.</p></details>
+          <details><summary>Does this page stream movies or videos?</summary><p>This is a front-end landing page, not a streaming backend. Actual playback, catalog, authentication, or media APIs would need to be connected separately if your project supports them.</p></details>
+          <details><summary>Can I customize the design?</summary><p>Yes. Edit the CSS variables near the top of this file to change the background, text, and accent colors. Update the copy and links in the HTML to match the real features of your project.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap"><div class="cta"><div class="kicker">Start here</div><h2>Ready to explore EHSAAN PLAY?</h2><p>Visit the project site or take a look at the source code. Your next step is one click away.</p><div class="hero-buttons"><a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Open EHSAAN PLAY ↗</a><a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">Browse GitHub</a></div></div></div>
+    </section>
+  </main>
+
+  <footer><div class="wrap footer-inner"><a class="brand" href="#home"><span class="brand-mark">▶</span><span>EHSAAN <em>PLAY</em></span></a><span>© <span id="year"></span> EHSAAN PLAY. Project links for discovery.</span><div class="footer-links"><a href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://ehsaan.odoo.com" target="_blank" rel="noopener noreferrer">EHSAAN</a><a href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Project site</a></div></div></footer>
+  <script>
+    const toggle = document.getElementById('menuToggle');
+    const links = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? '✕' : '☰';
+    });
+    links.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = '☰';
+    }));
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
 </html>
-
