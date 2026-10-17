@@ -87,24 +87,59 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 .filters{display:flex; gap:8px; flex-wrap:wrap}
 .filters .pill.on{background:var(--accent); color:var(--accent-ink)}
 
-.grid{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:18px}
+.grid{display:flex;flex-direction:column;gap:34px}
 .card{
   --card:#d9d9d9; --bg2:#ececec; --line:#bdbdbd; --text:#0a0a0a; --muted:#505050; --accent:#0a0a0a; --accent-ink:#ffffff; color:var(--text);
-  grid-column:span 2; background:var(--card); border:1px solid var(--line);
-  border-radius:var(--radius); padding:30px; position:relative; overflow:hidden;
-  display:flex; flex-direction:column; min-height:400px; min-width:0; container-type:inline-size;
-  transition:transform .45s cubic-bezier(.2,.9,.3,1.2), border-color .3s, background .3s;
+  width:100%; min-height:min(790px,calc(100svh - 110px)); padding:clamp(28px,5vw,76px);
+  position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr); align-items:stretch; gap:clamp(28px,5vw,76px);
+  background:linear-gradient(135deg,var(--card),#cfcfcf); border:1px solid var(--line); border-radius:34px;
+  min-width:0; container-type:inline-size; box-shadow:0 12px 40px rgba(0,0,0,.045);
+  transition:transform .45s cubic-bezier(.2,.9,.3,1.2),border-color .3s,background .3s,box-shadow .3s;
   opacity:0; transform:translateY(40px);
 }
 .card.in{opacity:1; transform:none}
-.card.in:hover{transform:translateY(-10px) scale(1.01); border-color:var(--muted)}
+.card.in:hover{transform:translateY(-4px);border-color:var(--muted);box-shadow:0 28px 70px rgba(0,0,0,.12)}
 .card:nth-child(1),.card:nth-child(2){grid-column:span 3}
-.card::before{
-  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.5),transparent 60%);
-  opacity:0; transition:.3s;
-}
-:root[data-theme="light"] .card::before{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.5),transparent 60%)}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:radial-gradient(560px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.45),transparent 60%);opacity:0;transition:.3s}
+.card>*{position:relative;z-index:1}
+.product-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0;justify-content:center;padding:8px 0}
+.product-copy .top{width:100%;padding-bottom:22px}
+.product-copy .icon{width:64px;height:64px;margin:30px 0 24px}
+.product-copy h3{font-size:clamp(2.7rem,6.5vw,6.2rem);line-height:.94;letter-spacing:-.075em;overflow-wrap:anywhere}
+.product-copy p{font-size:clamp(1rem,1.35vw,1.14rem);max-width:440px;margin:22px 0 18px;line-height:1.7}
+.product-copy .product-detail{flex-wrap:wrap;margin-bottom:20px}
+.product-copy .feats{padding-bottom:28px;margin-bottom:0}
+.product-copy .links{width:100%;margin-top:auto;padding-top:22px}
+.product-visual{position:relative;min-height:420px;border:1px solid rgba(0,0,0,.12);border-radius:28px;overflow:hidden;display:grid;place-items:center;isolation:isolate;background:#e8e8e8;box-shadow:inset 0 1px rgba(255,255,255,.65)}
+.product-visual:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.045) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(135deg,#000,transparent 85%);z-index:-1}
+.product-visual svg{width:100%;height:100%;max-height:650px;display:block;overflow:visible;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.card:hover .product-visual svg{transform:scale(1.025)}
+.product-visual .visual-label{position:absolute;left:24px;right:24px;bottom:22px;display:flex;justify-content:space-between;gap:12px;font-size:.67rem;text-transform:uppercase;letter-spacing:.16em;color:#555;font-weight:700}
+.product-visual.play,.product-visual.flow,.product-visual.qr,.product-visual.color,.product-visual.compress{background:#e2e2e2}
+.product-visual.color svg{filter:grayscale(1)}
+.card .top{padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,.13)}
+.card .num{font-size:.7rem;letter-spacing:.13em;text-transform:uppercase}
+.card .badge{font-size:.72rem;padding:6px 11px;background:rgba(255,255,255,.28);color:var(--text);border-color:rgba(0,0,0,.16)}
+.card .icon{width:68px;height:68px;border-radius:21px;margin:24px 0 20px;box-shadow:0 7px 16px rgba(0,0,0,.1)}
+.card .product-kicker{font-size:.69rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.card .product-detail{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem;margin:0 0 20px}
+.card .product-detail .dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+.card .feats{gap:7px;padding-bottom:24px}
+.card .feats span{font-size:.75rem;padding:7px 10px;background:rgba(255,255,255,.3);border-color:rgba(0,0,0,.12)}
+.card .links{gap:8px;margin-top:auto;padding-top:18px;border-top:1px solid rgba(0,0,0,.13)}
+.card .link{border-radius:15px;padding:12px 14px;background:rgba(255,255,255,.3);border-color:rgba(0,0,0,.14)}
+.card .link:hover{background:var(--accent);border-color:var(--accent)}
+.card .link>div{font-size:.87rem}
+.card .link small{font-size:.72rem}
+.card .link .arr{width:30px;height:30px}
+:root[data-theme="dark"] .card{background:linear-gradient(145deg,#202020,#151515);--card:#1d1d1d;--bg2:#262626;--line:#383838;--text:#f5f5f5;--muted:#a5a5a5;--accent:#f5f5f5;--accent-ink:#111}
+:root[data-theme="dark"] .product-visual{border-color:#343434;box-shadow:inset 0 1px rgba(255,255,255,.04)}
+:root[data-theme="dark"] .product-visual:before{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px)}
+:root[data-theme="dark"] .product-visual .visual-label{color:#aaa}
+:root[data-theme="dark"] .product-visual.play,:root[data-theme="dark"] .product-visual.flow,:root[data-theme="dark"] .product-visual.qr,:root[data-theme="dark"] .product-visual.color,:root[data-theme="dark"] .product-visual.compress{background:#242424}
+:root[data-theme="dark"] .card .top,:root[data-theme="dark"] .card .links{border-color:rgba(255,255,255,.13)}
+:root[data-theme="dark"] .card .badge,:root[data-theme="dark"] .card .feats span,:root[data-theme="dark"] .card .link{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.13)}
+:root[data-theme="light"] .card::before{background:radial-gradient(560px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.5),transparent 60%)}
 .card:hover::before{opacity:1}
 .card.hide{display:none}
 .top{display:flex; justify-content:space-between; align-items:center}
@@ -117,9 +152,9 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 }
 .card:hover .icon{transform:rotate(-10deg) scale(1.1); border-radius:50%}
 .icon svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.card h3{font-size:clamp(1.6rem,10.5cqw,3.4rem); letter-spacing:-.055em; line-height:1; font-weight:800; white-space:nowrap}
+.card h3{font-size:clamp(1.8rem,8.8cqw,3.05rem); letter-spacing:-.06em; line-height:1; font-weight:800; white-space:normal;overflow-wrap:anywhere}
 .card h3 em{font-style:normal; color:var(--muted)}
-.card p{color:var(--muted); margin:14px 0 22px; line-height:1.5; max-width:420px}
+.card p{color:var(--muted); margin:12px 0 14px; line-height:1.65; max-width:420px;font-size:.94rem}
 .feats{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:auto; padding-bottom:26px}
 .feats span{background:var(--bg2); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:.8rem; font-weight:500}
 .links{display:grid; gap:10px}
@@ -221,11 +256,39 @@ footer a:hover{color:var(--text)}
 .toast.show{transform:translate(-50%,0)}
 
 @media(max-width:960px){
-  .card,.card:nth-child(1),.card:nth-child(2){grid-column:span 6; min-height:auto}
-  .hero{padding-top:50px}
-  .stats{width:100%}.stat{flex:1}
-  .cta{padding:60px 24px; border-radius:40px}
+  .card{min-height:0;grid-template-columns:minmax(0,1fr);gap:30px;padding:clamp(24px,5vw,48px)}
+  .product-copy{order:1}.product-visual{order:2;min-height:420px;aspect-ratio:1.2/1}
+  .hero{padding-top:50px}.stats{width:100%}.stat{flex:1}.cta{padding:60px 24px;border-radius:40px}
 }
+@media(max-width:560px){.grid{gap:22px}.card{padding:22px;border-radius:26px}.product-copy h3{font-size:clamp(2.8rem,15vw,4.4rem)}.product-visual{min-height:320px;border-radius:20px}.product-copy .top{align-items:flex-start;gap:12px}.product-copy .badge{white-space:nowrap}.product-copy .links{grid-template-columns:1fr}.product-copy .product-detail{font-size:.72rem}}
+
+/* WALLPAPER SHOWCASE — matches the monochrome Ehsan Studio design */
+.wallpaper-section{margin:100px 0 20px}
+.wallpaper-intro{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:30px}
+.wallpaper-intro p{max-width:430px;color:var(--muted);line-height:1.6}
+.wallpaper-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
+.wallpaper-tabs .pill.active{background:var(--accent);color:var(--accent-ink)}
+.wallpaper-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
+.wallpaper-card{grid-column:span 1;min-width:0;height:100%;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--bg2);opacity:0;transform:translateY(32px);transition:opacity .7s,transform .7s cubic-bezier(.2,.9,.3,1.1),border-color .3s}
+.wallpaper-card.in{opacity:1;transform:none}
+.wallpaper-card:hover{border-color:var(--muted)}
+.wallpaper-art{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:16/10;height:auto;background:#111;flex:none}
+.wallpaper-art.mobile-art{aspect-ratio:16/10;max-height:none}
+.wallpaper-art svg{width:100%;height:100%;display:block;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.wallpaper-card:hover .wallpaper-art svg{transform:scale(1.035)}
+.wallpaper-art:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.02),transparent 45%,rgba(0,0,0,.28))}
+.wallpaper-meta{padding:22px 24px 24px;display:flex;flex:1;flex-direction:column}.wallpaper-meta .wallpaper-actions{margin-top:auto}
+.wallpaper-meta .top{margin-bottom:18px}
+.wallpaper-meta h3{font-size:clamp(1.35rem,2.4vw,2rem);letter-spacing:-.055em;line-height:1.05;overflow-wrap:anywhere}
+.wallpaper-meta p{color:var(--muted);font-size:.92rem;line-height:1.5;margin:9px 0 20px}
+.wallpaper-actions{display:flex;gap:10px;flex-wrap:wrap}
+.wallpaper-actions .pill{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.wallpaper-actions .pill.primary{background:var(--accent);color:var(--accent-ink)}
+.wallpaper-card[hidden]{display:none!important}.wallpaper-empty{grid-column:1/-1;border:1px dashed var(--line);border-radius:28px;padding:28px;color:var(--muted);line-height:1.6}
+.wallpaper-note{font-size:.8rem;color:var(--muted);margin-top:18px}
+@media(max-width:700px){.wallpaper-section{margin-top:76px}.wallpaper-grid{grid-template-columns:1fr}.wallpaper-card{grid-column:span 1}.wallpaper-intro{align-items:flex-start}.wallpaper-meta{padding:20px}.wallpaper-art,.wallpaper-art.mobile-art{aspect-ratio:16/10}}
+@media(prefers-reduced-motion:reduce){.wallpaper-card,.wallpaper-art svg{transition:none!important}.wallpaper-card{opacity:1;transform:none}}
+
 </style>
 </head>
 <body>
@@ -288,6 +351,49 @@ footer a:hover{color:var(--text)}
     </div>
   </section>
 
+
+  <section class="wallpaper-section reveal" id="wallpapers">
+    <div class="wallpaper-intro">
+      <div>
+        <span class="eyebrow">✦ Digital collection</span>
+        <div class="sec-head" style="margin:12px 0 0"><h2>Wallpapers<span class="muted-word">.</span></h2></div>
+      </div>
+      <p>Minimal wallpapers for your phone and desktop. Pick a format, preview the artwork, and save it for your screen.</p>
+    </div>
+    <div class="wallpaper-tabs" id="wallpaper-tabs" aria-label="Filter wallpapers">
+      <button class="pill active" type="button" data-wallpaper-filter="all">All wallpapers</button>
+      <button class="pill" type="button" data-wallpaper-filter="mobile">Mobile</button>
+      <button class="pill" type="button" data-wallpaper-filter="desktop">Desktop</button>
+    </div>
+    <div class="wallpaper-grid" id="wallpaper-grid">
+      <article class="wallpaper-card" data-wallpaper-type="mobile">
+        <div class="wallpaper-art mobile-art" aria-label="Mobile wallpaper preview: Quiet Orbit" role="img">
+          <svg viewBox="0 0 450 650" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="wm1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080808"/><stop offset=".55" stop-color="#303030"/><stop offset="1" stop-color="#090909"/></linearGradient><radialGradient id="wm2"><stop stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+            <rect width="450" height="650" fill="url(#wm1)"/><circle cx="330" cy="170" r="240" fill="url(#wm2)"/>
+            <circle cx="225" cy="325" r="152" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.2"/><circle cx="225" cy="325" r="120" fill="none" stroke="#fff" stroke-opacity=".36"/><circle cx="225" cy="325" r="86" fill="none" stroke="#fff" stroke-opacity=".18"/>
+            <path d="M-40 450 Q120 240 260 390 T500 230" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="2"/><path d="M-30 475 Q120 265 260 415 T500 255" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1"/>
+            <text x="28" y="56" fill="#fff" font-size="12" letter-spacing="5" font-family="Arial">E H S A N  /  0 1</text><text x="28" y="590" fill="#fff" font-size="47" font-weight="700" letter-spacing="-3" font-family="Arial">STAY</text><text x="28" y="630" fill="#aaa" font-size="47" font-weight="700" letter-spacing="-3" font-family="Arial">CURIOUS.</text>
+          </svg>
+        </div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">01 / MOBILE WALLPAPER</span><span class="badge">Phone · SVG</span></div><h3>Mobile Wallpaper — Quiet Orbit</h3><p>A monochrome phone wallpaper with orbital linework and subtle light, designed for a clean home or lock screen.</p><div class="wallpaper-actions"><button class="pill primary wallpaper-download" type="button" data-wallpaper="mobile-orbit" data-filename="ehsan-quiet-orbit-mobile.svg">↓ Download wallpaper</button><button class="pill wallpaper-preview" type="button" data-wallpaper-preview="mobile-orbit">Preview artwork ↗</button></div></div>
+      </article>
+      <article class="wallpaper-card" data-wallpaper-type="desktop">
+        <div class="wallpaper-art" aria-label="Desktop wallpaper preview: Focus Field" role="img">
+          <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="wd1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050505"/><stop offset=".52" stop-color="#222"/><stop offset="1" stop-color="#090909"/></linearGradient><radialGradient id="wd2"><stop stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+            <rect width="900" height="560" fill="url(#wd1)"/><circle cx="620" cy="250" r="350" fill="url(#wd2)"/>
+            <g fill="none" stroke="#fff"><circle cx="625" cy="280" r="190" stroke-opacity=".72"/><circle cx="625" cy="280" r="155" stroke-opacity=".3"/><circle cx="625" cy="280" r="112" stroke-opacity=".18"/><path d="M360 520 Q500 80 650 300 T980 100" stroke-opacity=".8" stroke-width="2"/><path d="M320 520 Q460 80 610 300 T940 100" stroke-opacity=".2"/></g>
+            <text x="54" y="72" fill="#aaa" font-size="13" letter-spacing="6" font-family="Arial">EHSAN STUDIO  /  WALLPAPER 001</text><text x="54" y="310" fill="#fff" font-size="76" font-weight="700" letter-spacing="-5" font-family="Arial">FOCUS</text><text x="58" y="354" fill="#aaa" font-size="17" letter-spacing="7" font-family="Arial">LESS NOISE. MORE SIGNAL.</text><path d="M56 390H210" stroke="#fff" stroke-opacity=".6"/><text x="56" y="510" fill="#777" font-size="12" letter-spacing="4" font-family="Arial">MADE TO KEEP YOU IN FLOW</text>
+          </svg>
+        </div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">02 / DESKTOP WALLPAPER</span><span class="badge">Computer · SVG</span></div><h3>Desktop Wallpaper — Focus Field</h3><p>A wide monochrome computer wallpaper with bold typography and abstract rings, leaving visual space for desktop icons.</p><div class="wallpaper-actions"><button class="pill primary wallpaper-download" type="button" data-wallpaper="desktop-focus" data-filename="ehsan-focus-field-desktop.svg">↓ Download wallpaper</button><button class="pill wallpaper-preview" type="button" data-wallpaper-preview="desktop-focus">Preview artwork ↗</button></div></div>
+      </article>
+    </div>
+    <p class="wallpaper-note">Original vector artwork · SVG format · Scales cleanly to different screen sizes.</p>
+  </section>
+
+
   <section class="cta">
     <h2>Build. Ship.<br>Repeat.</h2>
     <p>Every project is open on GitHub. Explore, star, fork or contribute.</p>
@@ -345,19 +451,30 @@ products.forEach(p=>{
   const gh = "github.com/ehsaanullah0/" + p.gh;
   const el = document.createElement('article');
   el.className = 'card'; el.dataset.cat = p.cat;
+  const visuals = {
+    Play: `<svg viewBox="0 0 600 620" role="img" aria-label="Sculptural sound waves for Play"><defs><linearGradient id="playMetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#292725"/><stop offset=".5" stop-color="#77716a"/><stop offset="1" stop-color="#262321"/></linearGradient><radialGradient id="playGlow"><stop stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="315" cy="280" r="210" fill="url(#playGlow)" opacity=".7"/><g fill="none" stroke="url(#playMetal)" stroke-width="3" stroke-linecap="round">${Array.from({length:15},(_,i)=>`<path d="M ${100+i*14} ${290-Math.sin(i*.42)*28} C ${140+i*13} ${120+i*7}, ${400-i*5} ${150+i*8}, ${490-i*12} ${300+Math.sin(i*.42)*24}" opacity="${.25+i*.045}"/>`).join('')}</g><circle cx="300" cy="300" r="92" fill="#282624"/><circle cx="300" cy="300" r="77" fill="none" stroke="#b9b2a8" stroke-width="1.5"/><path d="M280 260 L280 340 L348 300 Z" fill="#f2eee8"/><circle cx="300" cy="300" r="4" fill="#282624"/></svg>`,
+    Flow: `<svg viewBox="0 0 600 620" role="img" aria-label="Connected flow nodes for Flow"><defs><linearGradient id="flowStroke" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183c2b"/><stop offset="1" stop-color="#73917d"/></linearGradient></defs><g fill="none" stroke="url(#flowStroke)" stroke-width="3"><path d="M160 160 H300 Q340 160 340 200 V250 Q340 290 380 290 H450"/><path d="M160 310 H225 Q265 310 265 350 V420 Q265 460 305 460 H420"/><path d="M450 290 V390 Q450 420 420 420" stroke-dasharray="7 9"/></g><g fill="#f5f7f3" stroke="#2e5940" stroke-width="3"><rect x="92" y="120" width="136" height="80" rx="20"/><rect x="92" y="270" width="136" height="80" rx="20"/><rect x="370" y="250" width="120" height="80" rx="20"/><rect x="350" y="380" width="120" height="80" rx="20"/></g><g fill="#315c43"><circle cx="160" cy="160" r="12"/><circle cx="160" cy="310" r="12"/><circle cx="430" cy="290" r="12"/><circle cx="410" cy="420" r="12"/></g><g fill="#8ba996"><circle cx="160" cy="160" r="4"/><circle cx="160" cy="310" r="4"/><circle cx="430" cy="290" r="4"/><circle cx="410" cy="420" r="4"/></g></svg>`,
+    QR: `<svg viewBox="0 0 600 620" role="img" aria-label="Geometric QR pattern for QR"><g transform="translate(118 112)" fill="#22231f"><rect width="126" height="126" rx="8"/><rect x="22" y="22" width="82" height="82" fill="#e8e5dc"/><rect x="43" y="43" width="40" height="40" rx="3"/><rect x="238" width="126" height="126" rx="8"/><rect x="260" y="22" width="82" height="82" fill="#e8e5dc"/><rect x="281" y="43" width="40" height="40" rx="3"/><rect y="238" width="126" height="126" rx="8"/><rect x="22" y="260" width="82" height="82" fill="#e8e5dc"/><rect x="43" y="281" width="40" height="40" rx="3"/><path d="M155 0h44v44h-44zM155 66h22v22h-22zM155 110h44v44h-44zM220 132h44v44h-44zM286 154h44v44h-44zM154 176h22v22h-22zM198 198h44v44h-44zM154 242h44v44h-44zM220 264h22v22h-22zM154 308h44v44h-44zM220 330h22v22h-22zM264 220h22v22h-22zM308 242h22v22h-22zM264 286h66v22h-66zM286 330h44v44h-44z"/></g><circle cx="300" cy="300" r="220" fill="none" stroke="#9e998a" stroke-width="1.5" stroke-dasharray="3 12"/></svg>`,
+    Color: `<svg viewBox="0 0 600 620" role="img" aria-label="Layered color palette sculpture for Color"><defs><linearGradient id="colorA" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5a56d"/><stop offset=".5" stop-color="#ca7fbe"/><stop offset="1" stop-color="#7777c7"/></linearGradient><linearGradient id="colorB" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#7e9dce"/><stop offset=".5" stop-color="#a7c8b1"/><stop offset="1" stop-color="#f1d69b"/></linearGradient><filter id="colorShadow"><feDropShadow dx="0" dy="22" stdDeviation="18" flood-opacity=".18"/></filter></defs><g filter="url(#colorShadow)" transform="rotate(-14 300 300)"><rect x="150" y="128" width="300" height="350" rx="36" fill="#f7f4ee"/><rect x="174" y="152" width="252" height="302" rx="24" fill="url(#colorA)"/><circle cx="300" cy="250" r="88" fill="url(#colorB)"/><path d="M174 355 Q250 270 315 360 T426 330 V430 Q426 454 402 454 H198 Q174 454 174 430Z" fill="#2c3242" opacity=".9"/><circle cx="355" cy="200" r="24" fill="#f9e9d4"/></g><g fill="#55516a" font-family="Arial" font-size="13" letter-spacing="4"><text x="170" y="530">PALETTE / 01</text><text x="170" y="552" opacity=".6">HUE · TONE · BALANCE</text></g></svg>`,
+    Compress: `<svg viewBox="0 0 600 620" role="img" aria-label="Precision compression geometry for Compress"><defs><linearGradient id="compressMetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#35434a"/><stop offset="1" stop-color="#82949b"/></linearGradient></defs><g fill="none" stroke="url(#compressMetal)" stroke-linecap="round" stroke-linejoin="round"><rect x="150" y="150" width="300" height="320" rx="26" stroke-width="2"/><rect x="188" y="188" width="224" height="244" rx="18" stroke-width="1.5" stroke-dasharray="5 9"/><path d="M215 245 H282 V212 M282 212 L260 234 M282 212 L304 234" stroke-width="8"/><path d="M385 375 H318 V408 M318 408 L296 386 M318 408 L340 386" stroke-width="8"/><path d="M385 245 H318 V212 M318 212 L296 234 M318 212 L340 234" stroke-width="3" opacity=".55"/><path d="M215 375 H282 V408 M282 408 L260 386 M282 408 L304 386" stroke-width="3" opacity=".55"/></g><circle cx="300" cy="310" r="48" fill="#eaf0f2" stroke="#4e626a" stroke-width="2"/><path d="M281 310h38M300 291v38" stroke="#4e626a" stroke-width="3" stroke-linecap="round"/><text x="300" y="510" text-anchor="middle" fill="#4e626a" font-family="Arial" font-size="13" letter-spacing="5">LESS WEIGHT. SAME QUALITY.</text></svg>`
+  };
+  const visualClass = p.name.toLowerCase();
   el.innerHTML = `
-    <div class="top"><span class="num">${p.n} / 05</span><span class="badge">${p.sub}</span></div>
-    <div class="icon"><svg viewBox="0 0 24 24">${p.icon}</svg></div>
-    <h3><em>ehsaan</em>${p.name}</h3>
-    <p>${p.desc}</p>
-    <div class="feats">${p.feats.map(f=>`<span>${f}</span>`).join('')}</div>
-    <div class="links">
-      <a class="link" href="https://${p.site}" target="_blank" rel="noopener">
-        <div>Open website<small>${p.site}</small></div><span class="arr">${arrow}</span></a>
-      <a class="link" href="https://${gh}" target="_blank" rel="noopener">
-        <div>View on GitHub<small>${gh}</small></div><span class="arr">${arrow}</span></a>
+    <div class="product-copy">
+      <div class="top"><span class="num">PRODUCT ${p.n} <span aria-hidden="true">/</span> 05</span><span class="badge">${p.sub}</span></div>
+      <div class="icon"><svg viewBox="0 0 24 24">${p.icon}</svg></div>
+      <div class="product-kicker">Ehsaan Studio · ${p.sub} tool</div>
+      <h3><em>ehsaan</em>${p.name}</h3>
+      <p>${p.desc}</p>
+      <div class="product-detail"><span class="dot"></span><span>Web app</span><span class="dot"></span><span>Quick access</span><span class="dot"></span><span>Open source</span></div>
+      <div class="feats">${p.feats.map(f=>`<span>${f}</span>`).join('')}</div>
+      <div class="links">
+        <a class="link" href="https://${p.site}" target="_blank" rel="noopener"><div>Open website<small>${p.site}</small></div><span class="arr">${arrow}</span></a>
+        <a class="link" href="https://${gh}" target="_blank" rel="noopener"><div>View on GitHub<small>${gh}</small></div><span class="arr">${arrow}</span></a>
+      </div>
+      <button class="copy" data-copy="https://${p.site}">⧉ Copy website link</button>
     </div>
-    <button class="copy" data-copy="https://${p.site}">⧉ Copy website link</button>`;
+    <div class="product-visual ${visualClass}">${visuals[p.name]}<div class="visual-label"><span>Ehsaan Studio</span><span>${p.n} / 05 · ${p.name}</span></div></div>`;
   grid.appendChild(el);
 });
 
@@ -465,6 +582,56 @@ if(matchMedia('(pointer:fine)').matches){
   document.documentElement.addEventListener('pointerleave',()=>{ring.style.opacity=0; on=false});
   (function loop(){cx+=(tx-cx)*.18; cy+=(ty-cy)*.18; ring.style.transform=`translate(${cx}px,${cy}px)`; requestAnimationFrame(loop)})();
 }
+
+
+/* wallpaper showcase: filter, scroll reveal, preview and self-contained SVG downloads */
+(function(){
+  const cards=[...document.querySelectorAll('.wallpaper-card')];
+  const tabs=document.getElementById('wallpaper-tabs');
+  const artwork={
+    'mobile-orbit': document.querySelector('[data-wallpaper="mobile-orbit"]')?.closest('.wallpaper-card')?.querySelector('svg'),
+    'desktop-focus': document.querySelector('[data-wallpaper="desktop-focus"]')?.closest('.wallpaper-card')?.querySelector('svg')
+  };
+  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    if(entry.isIntersecting){entry.target.classList.add('in');observer.unobserve(entry.target);}
+  }),{threshold:.12});
+  cards.forEach((card,i)=>{card.style.transitionDelay=(i*100)+'ms';observer.observe(card);});
+  tabs.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-wallpaper-filter]'); if(!btn)return;
+    tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));
+    const filter=btn.dataset.wallpaperFilter;
+    cards.forEach(card=>{
+      const show=filter==='all'||card.dataset.wallpaperType===filter;
+      card.hidden=!show;
+      if(show){card.classList.remove('in');requestAnimationFrame(()=>observer.observe(card));}
+    });
+  });
+  function svgString(svg){
+    const clone=svg.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    return '<?xml version="1.0" encoding="UTF-8"?>\\n'+new XMLSerializer().serializeToString(clone);
+  }
+  document.addEventListener('click',e=>{
+    const download=e.target.closest('.wallpaper-download');
+    if(download){
+      const svg=artwork[download.dataset.wallpaper]; if(!svg)return;
+      const blob=new Blob([svgString(svg)],{type:'image/svg+xml;charset=utf-8'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=download.dataset.filename;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      return;
+    }
+    const preview=e.target.closest('.wallpaper-preview');
+    if(preview&&artwork[preview.dataset.wallpaper]){
+      const svg=svgString(artwork[preview.dataset.wallpaper]);
+      const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+      const win=window.open(url,'_blank','noopener');
+      if(!win){const a=document.createElement('a');a.href=url;a.download='ehsan-wallpaper-preview.svg';a.click();}
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
+  });
+})();
+
 
 document.getElementById('yr').textContent=new Date().getFullYear();
 </script>
