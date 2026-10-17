@@ -75,9 +75,9 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 
 /* MARQUEE */
 .marquee{overflow:hidden; border-block:1px solid var(--line); padding:22px 0; margin:30px 0 90px}
-.track{display:flex; gap:50px; width:max-content; animation:scroll 28s linear infinite}
+.track{display:flex; width:max-content; will-change:transform; animation:scroll 28s linear infinite}
 .marquee:hover .track{animation-play-state:paused}
-.track span{font-size:2.4rem; font-weight:800; letter-spacing:-.04em; color:var(--muted); white-space:nowrap}
+.track span{padding-right:50px; font-size:2.4rem; font-weight:800; letter-spacing:-.04em; color:var(--muted); white-space:nowrap}
 .track span:nth-child(even){color:var(--text)}
 @keyframes scroll{to{transform:translateX(-50%)}}
 
@@ -196,7 +196,6 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
   transition:color .5s, -webkit-text-stroke-color .5s;
 }
 .wordmark:hover{color:var(--bg2); -webkit-text-stroke-color:var(--muted)}
-@media(prefers-reduced-motion:reduce){.track{animation:none}}
 
 /* CTA */
 .cta{
