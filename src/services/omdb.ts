@@ -1,6 +1,6 @@
 import { MediaItem, MediaType, CastMember, CrewMember } from '../types/movie';
-import { omdbCircuitBreaker } from './circuitBreaker';
-import { findTMDBByImdbId, fetchTMDBDetails } from './tmdb';
+import { omdbCircuitBreaker, tmdbCircuitBreaker } from './circuitBreaker';
+import { findTMDBByImdbId, fetchTMDBDetails, searchTMDB } from './tmdb';
 export interface DiagnosticResult {
   success: boolean;
   status: number;
@@ -12,7 +12,7 @@ export interface DiagnosticResult {
 
 const OMDB_BASE_URL = 'https://www.omdbapi.com/';
 const REQUEST_TIMEOUT_MS = 6000;
-export const DEFAULT_OMDB_API_KEY = 'default omdb api key';
+export const DEFAULT_OMDB_API_KEY = default';
 
 export function getEffectiveOMDBKey(customKey?: string): string {
   if (customKey && customKey.trim()) {
@@ -550,13 +550,29 @@ export async function fetchImdbPreview(
 
   // Attempt TMDB enrichment for crew, episodes, streaming providers, backdrops & trailers
   try {
-    const tmdbRef = await findTMDBByImdbId(cleanId, customApiKey);
+    let tmdbRef = await findTMDBByImdbId(cleanId, customApiKey);
+    if (!tmdbRef && title && tmdbCircuitBreaker.isAvailable()) {
+      try {
+        const tmdbSearch = await searchTMDB(title, mediaType, 1, customApiKey);
+        if (tmdbSearch && tmdbSearch.length > 0) {
+          const match = tmdbSearch.find((r: MediaItem) => Math.abs((r.year || 0) - yearNum) <= 1) || tmdbSearch[0];
+          if (match && match.tmdbId) {
+            tmdbRef = { id: match.tmdbId, type: match.type || mediaType };
+          }
+        }
+      } catch (err) {
+        console.warn('TMDB title search fallback during OMDb enrichment failed:', err);
+      }
+    }
+
     if (tmdbRef) {
       const tmdbDetails = await fetchTMDBDetails(tmdbRef.id, tmdbRef.type, customApiKey);
       if (tmdbDetails) {
         mediaItem.tmdbId = tmdbDetails.tmdbId;
         mediaItem.tmdbRating = tmdbDetails.tmdbRating;
-        if (tmdbDetails.backdropUrl) mediaItem.backdropUrl = tmdbDetails.backdropUrl;
+        if (tmdbDetails.backdropUrl && tmdbDetails.backdropUrl.length > 5 && !tmdbDetails.backdropUrl.includes('N/A')) {
+          mediaItem.backdropUrl = tmdbDetails.backdropUrl;
+        }
         if (tmdbDetails.trailerUrl) mediaItem.trailerUrl = tmdbDetails.trailerUrl;
         if (tmdbDetails.genres && tmdbDetails.genres.length > 0) mediaItem.genres = tmdbDetails.genres;
         

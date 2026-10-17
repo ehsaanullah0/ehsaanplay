@@ -240,16 +240,37 @@ export async function fetchDetailsWithFallback(
       }
     }
 
+    // Always attempt TMDB title/year lookup if no tmdbId yet, so TMDB backdrop is fetched even for OMDb items
+    if (!targetTmdbId && item.title && tmdbCircuitBreaker.isAvailable()) {
+      try {
+        const tmdbSearch = await searchTMDB(item.title, item.type || 'multi', 1, tmdbApiKey);
+        if (tmdbSearch && tmdbSearch.length > 0) {
+          const match = tmdbSearch.find(r =>
+            (item.year && r.year) ? Math.abs(r.year - item.year) <= 1 : true
+          ) || tmdbSearch[0];
+          if (match && match.tmdbId) {
+            targetTmdbId = match.tmdbId;
+            targetType = match.type || targetType;
+          }
+        }
+      } catch (err) {
+        console.warn('TMDB title search lookup for backdrop failed:', err);
+      }
+    }
+
+    let tmdbDetails: Partial<MediaItem> | null = null;
     if (targetTmdbId || item.id.startsWith('tmdb-') || item.metadataSource === 'tmdb') {
       try {
-        const tmdbDetails = await fetchTMDBDetails(
+        tmdbDetails = await fetchTMDBDetails(
           targetTmdbId || item.id,
           targetType,
           tmdbApiKey
         );
         if (tmdbDetails) {
-          primaryDetails = tmdbDetails;
-          activeSource = 'tmdb';
+          if (item.metadataSource === 'tmdb' || !primaryDetails) {
+            primaryDetails = tmdbDetails;
+            activeSource = 'tmdb';
+          }
         }
       } catch (err) {
         console.warn('TMDB details fetch failed, falling back:', err);
@@ -286,6 +307,21 @@ export async function fetchDetailsWithFallback(
     const merged: Partial<MediaItem> = {
       ...primaryDetails,
     };
+
+    // ALWAYS PREFER TMDB FOR BACKDROP IMAGE FOR HIGH QUALITY (even when added from OMDb)
+    if (tmdbDetails?.backdropUrl && tmdbDetails.backdropUrl.length > 5 && !tmdbDetails.backdropUrl.includes('N/A')) {
+      merged.backdropUrl = tmdbDetails.backdropUrl;
+    } else if (omdbDetails?.backdropUrl && omdbDetails.backdropUrl.includes('image.tmdb.org')) {
+      merged.backdropUrl = omdbDetails.backdropUrl;
+    }
+
+    if (tmdbDetails?.tmdbId && !merged.tmdbId) {
+      merged.tmdbId = tmdbDetails.tmdbId;
+    }
+
+    if (tmdbDetails?.posterUrl && (!merged.posterUrl || merged.posterUrl.includes('N/A') || merged.posterUrl.length < 5)) {
+      merged.posterUrl = tmdbDetails.posterUrl;
+    }
 
     // Cross-merge crew from both TMDB and OMDb if available
     const combinedCrew = [...(primaryDetails?.crew || [])];
