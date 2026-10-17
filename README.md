@@ -33,12 +33,18 @@
 -  ✔ **Local Wi-Fi Peer-to-Peer Sync** *(Beta)*
 - ✔ **Built-in Trailer Player** (v2.1.9)
 - ❌ **Beautiful Analytics Page**
-- ❌ **Automatic Backup to a Chosen Folder**
--  ✔ **Beautiful First-Visit Guide** (v2.2.9)
 -  ✔ **Personal Favourites Category** — by [@thmeo07](https://github.com/ehsaanullah0/ehsaanplay/pull/3)
 -  ✔ **Long-Press Popup Menu** inside movie image cards** (v2.2.8) — by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/4)
+</table>
+<details>
+<summary>View More Notes</summary>
+ 
+ - ❌ **Automatic Backup to a Chosen Folder**
+-  ✔ **Beautiful First-Visit Guide** (v2.2.9)
 -  ❌**introduce direct web search result into app**
 -  ✔ **add imdb link metadata crowl as fallback of every service.**
+ 
+</details>
 
 ### legend- ✔COMPLETE | ❌PENDING
 
