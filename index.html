@@ -89,6 +89,7 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 
 .grid{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:18px}
 .card{
+  --card:#d9d9d9; --bg2:#ececec; --line:#bdbdbd; --text:#0a0a0a; --muted:#505050; --accent:#0a0a0a; --accent-ink:#ffffff; color:var(--text);
   grid-column:span 2; background:var(--card); border:1px solid var(--line);
   border-radius:var(--radius); padding:30px; position:relative; overflow:hidden;
   display:flex; flex-direction:column; min-height:400px; min-width:0; container-type:inline-size;
@@ -100,10 +101,10 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 .card:nth-child(1),.card:nth-child(2){grid-column:span 3}
 .card::before{
   content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.08),transparent 60%);
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.5),transparent 60%);
   opacity:0; transition:.3s;
 }
-:root[data-theme="light"] .card::before{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(0,0,0,.06),transparent 60%)}
+:root[data-theme="light"] .card::before{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.5),transparent 60%)}
 .card:hover::before{opacity:1}
 .card.hide{display:none}
 .top{display:flex; justify-content:space-between; align-items:center}
@@ -142,6 +143,61 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 .link>div{min-width:0}
 .link small{overflow-wrap:anywhere}
 
+/* PROGRESS + CURSOR + TOP */
+.progress{position:fixed; top:0; left:0; height:3px; width:0; background:var(--accent); z-index:50}
+.ring{
+  position:fixed; left:0; top:0; width:38px; height:38px; margin:-19px 0 0 -19px;
+  border:1.5px solid #fff; border-radius:50%; pointer-events:none; z-index:100; mix-blend-mode:difference;
+  opacity:0; transition:width .3s, height .3s, margin .3s, background .3s, opacity .3s;
+}
+.ring.big{width:70px; height:70px; margin:-35px 0 0 -35px; background:#fff}
+@media(pointer:coarse){.ring{display:none}}
+.totop{
+  position:fixed; right:24px; bottom:24px; width:52px; height:52px; border-radius:50%;
+  background:var(--accent); color:var(--accent-ink); border:none; font:inherit; font-size:1.2rem; font-weight:700;
+  cursor:pointer; z-index:40; opacity:0; transform:translateY(20px) scale(.8); pointer-events:none;
+  transition:opacity .3s, transform .4s cubic-bezier(.3,1.7,.5,1);
+}
+.totop.show{opacity:1; transform:none; pointer-events:auto}
+.totop:hover{transform:translateY(-4px) scale(1.08)}
+
+/* SECOND MARQUEE */
+.marquee.alt{width:100vw; margin:90px 0 0 calc(50% - 50vw)}
+.marquee.alt .track{animation-direction:reverse; animation-duration:36s}
+.marquee.alt .track span{color:transparent; -webkit-text-stroke:1.5px var(--muted)}
+.marquee.alt .track span:nth-child(even){color:var(--text); -webkit-text-stroke:0}
+
+/* WHY SECTION */
+.eyebrow{color:var(--muted); font-weight:600; font-size:.95rem; letter-spacing:.02em}
+.why{margin-top:110px}
+.reveal{opacity:0; transform:translateY(30px); transition:opacity .7s, transform .7s cubic-bezier(.2,.9,.3,1.1)}
+.reveal.in{opacity:1; transform:none}
+.why-grid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+.why-item{
+  border:1px solid var(--line); border-radius:32px; padding:28px; min-height:260px;
+  display:flex; flex-direction:column; justify-content:space-between; cursor:default;
+  transition:opacity .7s, transform .45s cubic-bezier(.2,.9,.3,1.2), background .3s, color .3s, border-color .3s;
+}
+.why-item .n{font-size:.9rem; font-weight:600; color:var(--muted); transition:.3s}
+.why-item i{font-style:normal; font-size:2.6rem; line-height:1; display:block; margin:30px 0; transition:transform .6s cubic-bezier(.3,1.6,.5,1)}
+.why-item h4{font-size:1.6rem; letter-spacing:-.04em; line-height:1.05; font-weight:800}
+.why-item p{color:var(--muted); font-size:.95rem; line-height:1.5; margin-top:10px; transition:.3s}
+.why-item.in:hover{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); transform:translateY(-8px)}
+.why-item.in:hover .n,.why-item.in:hover p{color:inherit; opacity:.65}
+.why-item:hover i{transform:rotate(180deg) scale(1.15)}
+@media(max-width:960px){.why-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.why-grid{grid-template-columns:1fr}.why-item{min-height:200px}}
+
+/* WORDMARK */
+.wordmark{
+  font-size:clamp(4rem,19vw,17rem); font-weight:800; letter-spacing:-.07em; line-height:.85;
+  text-align:center; color:transparent; -webkit-text-stroke:1.5px var(--line);
+  margin:20px 0 30px; user-select:none; white-space:nowrap; overflow:hidden;
+  transition:color .5s, -webkit-text-stroke-color .5s;
+}
+.wordmark:hover{color:var(--bg2); -webkit-text-stroke-color:var(--muted)}
+@media(prefers-reduced-motion:reduce){.track{animation:none}}
+
 /* CTA */
 .cta{
   margin:110px 0 50px; background:var(--accent); color:var(--accent-ink);
@@ -175,6 +231,7 @@ footer a:hover{color:var(--text)}
 </head>
 <body>
 <div class="glow" id="glow"></div>
+<div class="progress" id="progress"></div>
 
 <div class="wrap">
   <nav>
@@ -217,6 +274,21 @@ footer a:hover{color:var(--text)}
 
   <section class="grid" id="grid"></section>
 
+  <div class="marquee alt" aria-hidden="true"><div class="track" id="track2"></div></div>
+
+  <section class="why">
+    <div class="sec-head">
+      <h2>Why it works</h2>
+      <span class="eyebrow">✦ Principles</span>
+    </div>
+    <div class="why-grid">
+      <article class="why-item reveal"><div><span class="n">01</span><i>✦</i></div><div><h4>Minimal by design</h4><p>No clutter. Just the tool you came for.</p></div></article>
+      <article class="why-item reveal"><div><span class="n">02</span><i>✦</i></div><div><h4>Built to be fast</h4><p>Light pages that open instantly.</p></div></article>
+      <article class="why-item reveal"><div><span class="n">03</span><i>✦</i></div><div><h4>Open source</h4><p>Read the code, fork it, make it yours.</p></div></article>
+      <article class="why-item reveal"><div><span class="n">04</span><i>✦</i></div><div><h4>Always improving</h4><p>Small updates, shipped regularly.</p></div></article>
+    </div>
+  </section>
+
   <section class="cta">
     <h2>Build. Ship.<br>Repeat.</h2>
     <p>Every project is open on GitHub. Explore, star, fork or contribute.</p>
@@ -226,6 +298,8 @@ footer a:hover{color:var(--text)}
     </a>
   </section>
 
+  <div class="wordmark" aria-hidden="true">ehsaan</div>
+
   <footer>
     <span>© <span id="yr"></span> Ehsan Studio. All rights reserved.</span>
     <span><a href="#">Back to top ↑</a></span>
@@ -233,6 +307,8 @@ footer a:hover{color:var(--text)}
 </main>
 
 <div class="toast" id="toast">Link copied</div>
+<div class="ring" id="ring"></div>
+<button class="totop" id="totop" aria-label="Back to top">↑</button>
 
 <script>
 const products = [
@@ -362,6 +438,34 @@ document.getElementById('theme').addEventListener('click',()=>{
   root.dataset.theme=next;
   try{localStorage.setItem('theme',next)}catch(e){}
 });
+
+/* second marquee */
+const words=["Fast","Open source","Minimal","Built with care","Always improving","Free to explore"];
+document.getElementById('track2').innerHTML=[...words,...words,...words,...words].map(w=>`<span>${w} ✦</span>`).join('');
+
+/* reveal blocks */
+const io2=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('in'),(e.target.dataset.d||0)); io2.unobserve(e.target); }
+}),{threshold:.15});
+document.querySelectorAll('.reveal').forEach((el,i)=>{el.dataset.d=(i%4)*100; io2.observe(el)});
+
+/* scroll progress + back to top */
+const bar=document.getElementById('progress'), topBtn=document.getElementById('totop');
+addEventListener('scroll',()=>{
+  const h=document.documentElement, max=h.scrollHeight-h.clientHeight;
+  bar.style.width=(max>0?h.scrollTop/max*100:0)+'%';
+  topBtn.classList.toggle('show',h.scrollTop>700);
+},{passive:true});
+topBtn.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+/* cursor ring */
+if(matchMedia('(pointer:fine)').matches){
+  const ring=document.getElementById('ring'); let tx=0,ty=0,cx=0,cy=0,on=false;
+  addEventListener('pointermove',e=>{tx=e.clientX; ty=e.clientY; if(!on){on=true; cx=tx; cy=ty; ring.style.opacity=1;}});
+  document.addEventListener('pointerover',e=>{ring.classList.toggle('big',!!e.target.closest('a,button,.card,.why-item'))});
+  document.documentElement.addEventListener('pointerleave',()=>{ring.style.opacity=0; on=false});
+  (function loop(){cx+=(tx-cx)*.18; cy+=(ty-cy)*.18; ring.style.transform=`translate(${cx}px,${cy}px)`; requestAnimationFrame(loop)})();
+}
 
 document.getElementById('yr').textContent=new Date().getFullYear();
 </script>
