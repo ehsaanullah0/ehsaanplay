@@ -1,258 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0b0e">
-  <meta name="description" content="EHSAAN PLAY — EHSAAN PLAY — discover something good, press play, and enjoy the moment.">
-  <title>EHSAAN PLAY — A little more joy in every play</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:#0b0b0e; --panel:#121216; --panel2:#18181e; --text:#f7f7f8;
-      --muted:#a3a3ad; --line:rgba(255,255,255,.10); --accent:#ff9b54;
-      --accent2:#ffc18f; --max:1180px;
-    }
-    *{box-sizing:border-box}
-    html{scroll-behavior:smooth;scroll-padding-top:90px}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;line-height:1.6}
-    a{color:inherit;text-decoration:none}
-    button{font:inherit}
-    .wrap{width:min(var(--max),calc(100% - 48px));margin:auto}
-    .nav{position:sticky;top:0;z-index:20;background:rgba(11,11,14,.78);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-    .nav-inner{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
-    .brand{display:flex;align-items:center;gap:11px;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.35rem;letter-spacing:-.06em}
-    .brand-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--accent);color:#21150f;font-weight:900;font-size:19px;box-shadow:0 0 28px #ff9b5425}
-    .brand em{font-style:normal;color:var(--accent)}
-    .links{display:flex;align-items:center;gap:28px}
-    .links a{font-size:.83rem;color:var(--muted);font-weight:700;transition:color .2s}
-    .links a:hover,.links a.active{color:var(--accent)}
-    .nav-actions{display:flex;align-items:center;gap:10px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px 17px;font-weight:700;font-size:.9rem;transition:transform .2s,border-color .2s,background .2s;cursor:pointer}
-    .btn:hover{transform:translateY(-2px);border-color:#ff9b5480}
-    .btn-primary{background:var(--accent);color:#21150f;border-color:var(--accent)}
-    .btn-primary:hover{background:var(--accent2);box-shadow:0 10px 30px #ff9b5420}
-    .btn-quiet{background:#ffffff08}
-    .menu-toggle{display:none;background:none;color:white;border:1px solid var(--line);border-radius:9px;padding:8px 11px}
-    .hero{position:relative;overflow:hidden;padding:100px 0 90px}
-    .hero:before{content:"";position:absolute;width:650px;height:650px;right:-180px;top:-180px;background:radial-gradient(circle,#ff9b541c 0,transparent 68%);pointer-events:none}
-    .hero-grid{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:54px;align-items:center}
-    .eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid #ff9b5445;background:#ff9b540c;border-radius:100px;padding:7px 12px;color:var(--accent);font-size:.73rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    .dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px var(--accent)}
-    h1,h2,h3,p{margin-top:0}
-    h1,h2,h3{font-family:"Space Grotesk",sans-serif;line-height:1.05;letter-spacing:-.055em}
-    h1{font-size:clamp(3.3rem,7.1vw,6.4rem);margin:23px 0 22px;max-width:720px}
-    h1 span{color:var(--accent)}
-    .hero-copy{max-width:510px;color:var(--muted);font-size:1.1rem;line-height:1.8}
-    .hero-buttons{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-    .microcopy{display:flex;align-items:center;gap:10px;margin-top:24px;color:#85858f;font-size:.8rem}
-    .microcopy b{color:#d9d9df;font-weight:600}
-    .visual{min-height:440px;position:relative;display:grid;place-items:center}
-    .halo{position:absolute;width:360px;height:360px;border:1px solid #ff9b5420;border-radius:50%;box-shadow:0 0 100px #ff9b540c,inset 0 0 80px #ff9b5408}
-    .halo:before,.halo:after{content:"";position:absolute;border:1px solid #ffffff0c;border-radius:50%;inset:35px}
-    .halo:after{inset:75px}
-    .screen{position:relative;width:min(100%,450px);padding:16px;border:1px solid #ffffff20;border-radius:24px;background:linear-gradient(145deg,#202027,#101014 70%);box-shadow:0 35px 90px #0009;transform:rotate(-3deg)}
-    .screen-top{display:flex;justify-content:space-between;align-items:center;padding:3px 3px 15px;color:#a8a8b1;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-    .screen-top strong{color:var(--accent);font-family:"Space Grotesk",sans-serif;font-size:.85rem}
-    .feature-art{height:220px;border-radius:15px;position:relative;overflow:hidden;background:linear-gradient(145deg,#69382b,#34202a 48%,#8b4b2d)}
-    .feature-art:before{content:"";position:absolute;width:230px;height:230px;right:-15px;top:-30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd0a6,#ff9b54 35%,#7d3d2b 68%,transparent 70%);filter:blur(.2px)}
-    .feature-art:after{content:"";position:absolute;left:-10%;right:-10%;bottom:-58px;height:160px;background:linear-gradient(160deg,transparent 5%,#171012 6%,#241714 42%,#100d0e 43%);transform:rotate(-7deg)}
-    .art-label{position:absolute;z-index:2;left:20px;bottom:18px}
-    .art-label small{display:block;color:#ffe2cb;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase}
-    .art-label b{font-family:"Space Grotesk",sans-serif;font-size:1.8rem;letter-spacing:-.06em}
-    .screen-info{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 3px 3px}
-    .screen-info strong{display:block;font-family:"Space Grotesk",sans-serif;font-size:1rem}
-    .screen-info small{color:var(--muted);font-size:.75rem}
-    .play-circle{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#21150f;font-size:17px}
-    .float-card{position:absolute;z-index:3;padding:14px 17px;border:1px solid #ffffff1b;border-radius:14px;background:#17171ddf;backdrop-filter:blur(14px);box-shadow:0 15px 40px #0005}
-    .float-card small{display:block;color:var(--muted);font-size:.7rem}
-    .float-card strong{font-family:"Space Grotesk",sans-serif;font-size:.92rem}
-    .float-one{left:-5px;bottom:50px}.float-two{right:-7px;top:45px}
-    .float-icon{display:inline-grid;place-items:center;width:25px;height:25px;margin-right:7px;border-radius:8px;background:#ff9b5419;color:var(--accent)}
-    section{padding:94px 0}
-    .section-soft{background:#101014;border-top:1px solid #ffffff06;border-bottom:1px solid #ffffff06}
-    .section-head{max-width:680px;margin-bottom:38px}
-    .kicker{color:var(--accent);font-size:.75rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase}
-    h2{font-size:clamp(2.4rem,5vw,4rem);margin:12px 0 15px}
-    .section-head p{color:var(--muted);max-width:580px;font-size:1.02rem}
-    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-    .card{padding:28px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,#17171c,#111115);transition:transform .2s,border-color .2s}
-    .card:hover{transform:translateY(-4px);border-color:#ff9b5455}
-    .icon-box{width:45px;height:45px;display:grid;place-items:center;border:1px solid #ff9b5435;background:#ff9b540d;color:var(--accent);border-radius:13px;font-size:1.2rem;margin-bottom:25px}
-    .card h3{font-size:1.35rem;letter-spacing:-.035em;margin-bottom:10px}
-    .card p{color:var(--muted);font-size:.92rem;margin:0}
-    .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .project-card{position:relative;overflow:hidden;min-height:250px;padding:30px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
-    .project-card:after{content:"↗";position:absolute;right:27px;top:22px;color:var(--accent);font-size:1.35rem}
-    .project-card .tag{display:inline-block;padding:5px 9px;border-radius:6px;background:#ffffff0a;color:#b8b8c2;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-    .project-card h3{font-size:1.8rem;margin:28px 0 9px}
-    .project-card p{max-width:400px;color:var(--muted);font-size:.92rem}
-    .project-card .link-text{color:var(--accent);font-size:.85rem;font-weight:800}
-    .cta{padding:70px 25px;text-align:center;border:1px solid #ff9b5435;border-radius:24px;background:radial-gradient(ellipse at top,#ff9b5418,transparent 65%),#151316}
-    .cta h2{max-width:700px;margin:13px auto 16px}
-    .cta p{max-width:570px;margin:0 auto;color:var(--muted)}
-    .cta .hero-buttons{justify-content:center}
-    .faq-list{max-width:850px;border-top:1px solid var(--line)}
-    details{border-bottom:1px solid var(--line);padding:21px 0}
-    summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:1.05rem}
-    summary::-webkit-details-marker{display:none}
-    summary:after{content:"+";color:var(--accent);font-size:1.5rem;font-weight:400}
-    details[open] summary:after{content:"−"}
-    details p{color:var(--muted);margin:14px 40px 0 0;font-size:.93rem}
-    footer{padding:32px 0;border-top:1px solid var(--line)}
-    .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:25px;color:var(--muted);font-size:.8rem}
-    .footer-links{display:flex;gap:20px;flex-wrap:wrap}.footer-links a:hover{color:var(--accent)}
-    /* A more ownable visual language: warm cinema tones, editorial cards, and less template-like geometry. */
-    :root{--bg:#0e0c0c;--panel:#171312;--panel2:#211916;--accent:#ff8748;--accent2:#ffc09a;--line:rgba(255,226,207,.13)}
-    body{background:radial-gradient(ellipse at 80% 4%,#2b170f55,transparent 34%),var(--bg)}
-    .brand-mark{border-radius:12px 12px 12px 4px;box-shadow:0 7px 24px #ff874825}
-    .hero{padding-top:112px;padding-bottom:105px}
-    .hero:before{width:760px;height:760px;right:-240px;top:-220px;background:radial-gradient(circle,#ff87481f 0, #ff874808 38%,transparent 70%)}
-    .eyebrow{background:#ff874811;border-color:#ff87484d;color:#ffad7d}
-    .visual{isolation:isolate}
-    .halo{border-color:#ff874833;box-shadow:0 0 120px #ff874817,inset 0 0 80px #ff87480c}
-    .screen{border-radius:28px;background:linear-gradient(150deg,#2b211e,#121011 72%);transform:rotate(-2deg);box-shadow:0 38px 100px #000b,0 0 0 8px #ffdfc006}
-    .feature-art{height:235px;background:linear-gradient(135deg,#5e2c1d,#a64e2b 42%,#e78b4b 72%,#2b1715);}
-    .feature-art:before{width:265px;height:265px;right:-22px;top:-58px;background:radial-gradient(circle at 35% 30%,#ffe2bd 0,#ffb36e 22%,#f4773e 43%,#7a3324 67%,transparent 69%);}
-    .feature-art:after{bottom:-68px;height:170px;background:linear-gradient(160deg,transparent 5%,#2b1716 6%,#211412 42%,#100c0c 43%);}
-    .art-label b{font-size:2rem}
-    .float-card{border-color:#ffdfc021;background:#1b1514eF}
-    .float-icon{background:#ff87481d;color:#ffad7d}
-    .section-soft{background:linear-gradient(110deg,#14100f,#111012 60%,#17100d);border-color:#ffdfc009}
-    .features{gap:18px}
-    .card{position:relative;overflow:hidden;min-height:220px;padding:27px 27px 30px;border-radius:18px;background:linear-gradient(145deg,#1b1716,#121112 78%);border-color:#ffdfc018}
-    .card:after{content:"";position:absolute;width:130px;height:130px;right:-64px;bottom:-74px;border:1px solid #ff874827;border-radius:50%;box-shadow:0 0 0 15px #ff874806,0 0 0 31px #ff874805;pointer-events:none}
-    .card:nth-child(2){background:linear-gradient(145deg,#1b1716,#151014 78%)}
-    .card:nth-child(3){background:linear-gradient(145deg,#211713,#131112 78%)}
-    .card:nth-child(4){background:linear-gradient(145deg,#171515,#19110e 78%)}
-    .card:nth-child(5){background:linear-gradient(145deg,#1b1716,#121316 78%)}
-    .card:nth-child(6){background:linear-gradient(145deg,#211713,#151112 78%)}
-    .icon-box{width:46px;height:46px;border-radius:15px 15px 15px 5px;margin-bottom:28px;background:linear-gradient(145deg,#ff874821,#ff874808);border-color:#ff874847;color:#ff9a65}
-    .card h3{font-size:1.42rem}
-    .project-grid{gap:18px}
-    .project-card{min-height:270px;padding:31px;border-radius:20px;background:linear-gradient(145deg,#1b1716,#121112 80%);border-color:#ffdfc018;transition:transform .25s,border-color .25s,background .25s}
-    .project-card:hover{transform:translateY(-5px);border-color:#ff87486b;background:linear-gradient(145deg,#251812,#141112 80%)}
-    .project-card:before{content:"";position:absolute;width:190px;height:190px;right:-55px;bottom:-95px;border-radius:50%;background:radial-gradient(circle,#ff87482a,transparent 68%);pointer-events:none}
-    .project-card:after{right:27px;top:20px;color:#ff9a65}
-    .project-card .tag{background:#ff874813;color:#ffb083;border:1px solid #ff874822}
-    .project-card h3{max-width:85%;font-size:1.85rem}
-    .project-card p{max-width:340px}
-    .project-card .link-text{color:#ff9b68}
-    .project-card:nth-child(1){background:linear-gradient(120deg,#2b1913,#171211 72%)}
-    .project-card:nth-child(2){background:linear-gradient(120deg,#1a1515,#151115 72%)}
-    .project-card:nth-child(3){background:linear-gradient(120deg,#251611,#171111 72%)}
-    .project-card:nth-child(4){background:linear-gradient(120deg,#191414,#141114 72%)}
-    .cta{background:radial-gradient(ellipse at 50% 0%,#ff874825,transparent 65%),linear-gradient(135deg,#1b1513,#131112);border-color:#ff87483d}
-    .btn-primary{box-shadow:0 6px 20px #ff87481a}
-    .btn-primary:hover{box-shadow:0 12px 32px #ff87482b}
-    @media(max-width:680px){.hero{padding-top:70px;padding-bottom:65px}.card{min-height:0}.project-card{min-height:230px}.feature-art{height:180px}}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ehsan Studio — All Products</title>
+<meta name="description" content="Home of every Ehsan product: Play, Flow, QR, Color and Compress.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3Erect%7Bfill:%230a0a0a%7Dcircle%7Bfill:%23fff%7D@media(prefers-color-scheme:dark)%7Brect%7Bfill:%23fff%7Dcircle%7Bfill:%230a0a0a%7D%7D%3C/style%3E%3Crect width='32' height='32' rx='10'/%3E%3Ccircle cx='16' cy='16' r='6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,100..1000&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0a; --bg2:#141414; --card:#171717; --line:#2a2a2a;
+  --text:#f5f5f5; --muted:#8a8a8a; --accent:#ffffff; --accent-ink:#0a0a0a;
+  --radius:36px;
+}
+:root[data-theme="light"]{
+  --bg:#f4f4f4; --bg2:#ebebeb; --card:#ffffff; --line:#dcdcdc;
+  --text:#0a0a0a; --muted:#6b6b6b; --accent:#0a0a0a; --accent-ink:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Google Sans Flex","Google Sans","Product Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  transition:background .4s,color .4s;
+}
+a{color:inherit;text-decoration:none}
+.glow{
+  position:fixed; width:520px; height:520px; border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.10),transparent 65%);
+  pointer-events:none; transform:translate(-50%,-50%); left:50%; top:30%; z-index:0;
+  transition:opacity .4s;
+}
+:root[data-theme="light"] .glow{background:radial-gradient(circle,rgba(0,0,0,.07),transparent 65%)}
+.wrap{position:relative; z-index:1; max-width:1240px; margin:0 auto; padding:0 28px}
 
-    @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:30px}.hero{padding-top:75px}.hero-copy{max-width:620px}.visual{min-height:400px}.screen{max-width:440px}.features{grid-template-columns:repeat(2,1fr)}.links{gap:16px}}
-    @media(max-width:680px){.wrap{width:min(100% - 32px,var(--max))}.nav-inner{min-height:68px}.menu-toggle{display:block}.nav-actions .btn-quiet{display:none}.links{display:none;position:absolute;left:0;right:0;top:68px;padding:16px 24px 22px;background:#101014;border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:18px}.links.open{display:flex}.links a{font-size:.95rem}.nav-actions .btn{padding:10px 12px;font-size:.8rem}.hero{padding:65px 0 55px}h1{font-size:clamp(3.2rem,16vw,5.4rem)}.hero-copy{font-size:1rem}.hero-buttons{flex-direction:column;align-items:stretch}.hero-buttons .btn{width:100%}.visual{min-height:340px}.halo{width:290px;height:290px}.screen{padding:11px;border-radius:19px}.feature-art{height:175px}.float-one{left:-2px;bottom:13px}.float-two{right:-2px;top:15px}.float-card{padding:10px 12px}.float-card strong{font-size:.8rem}.features,.project-grid{grid-template-columns:1fr}.card{padding:24px}.project-card{min-height:220px}section{padding:68px 0}.cta{padding:50px 20px}.footer-inner{align-items:flex-start;flex-direction:column}.microcopy{align-items:flex-start}}
-    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
-  </style>
+/* NAV */
+nav{display:flex; justify-content:space-between; align-items:center; padding:28px 0}
+.logo{font-weight:800; font-size:1.25rem; letter-spacing:-.03em; display:flex; align-items:center; gap:10px}
+.logo i{width:28px;height:28px;border-radius:10px;background:var(--accent);display:inline-block;position:relative}
+.logo i::after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--accent-ink)}
+.nav-r{display:flex; gap:10px; align-items:center}
+.pill{
+  border:1px solid var(--line); background:var(--bg2); color:var(--text);
+  padding:11px 20px; border-radius:999px; font:inherit; font-weight:600; font-size:.9rem;
+  cursor:pointer; transition:.25s;
+}
+.pill:hover{background:var(--accent); color:var(--accent-ink); transform:translateY(-2px)}
+
+/* HERO */
+.hero{padding:90px 0 70px; position:relative}
+.tag{
+  display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line);
+  padding:9px 18px; border-radius:999px; font-size:.85rem; color:var(--muted); font-weight:500;
+}
+.tag b{width:8px;height:8px;border-radius:50%;background:var(--text);animation:pulse 1.8s infinite}
+@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}
+h1{
+  font-size:clamp(3.4rem,11.5vw,10.5rem); line-height:.92; letter-spacing:-.065em;
+  font-weight:800; margin:34px 0 30px;
+  font-variation-settings:"ROND" 100;
+}
+h1 span{display:inline-block; transition:transform .35s cubic-bezier(.3,1.6,.5,1), color .3s}
+h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
+.muted-word{color:var(--muted)}
+.lead{max-width:560px; color:var(--muted); font-size:1.2rem; line-height:1.55}
+.hero-row{display:flex; justify-content:space-between; align-items:flex-end; gap:30px; flex-wrap:wrap}
+.stats{display:flex; gap:12px}
+.stat{border:1px solid var(--line); background:var(--bg2); border-radius:28px; padding:20px 28px; min-width:130px}
+.stat strong{display:block; font-size:2.4rem; letter-spacing:-.05em; font-weight:800}
+.stat small{color:var(--muted); font-size:.82rem}
+
+/* MARQUEE */
+.marquee{overflow:hidden; border-block:1px solid var(--line); padding:22px 0; margin:30px 0 90px}
+.track{display:flex; gap:50px; width:max-content; animation:scroll 28s linear infinite}
+.marquee:hover .track{animation-play-state:paused}
+.track span{font-size:2.4rem; font-weight:800; letter-spacing:-.04em; color:var(--muted); white-space:nowrap}
+.track span:nth-child(even){color:var(--text)}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* PRODUCTS */
+.sec-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:34px; gap:20px; flex-wrap:wrap}
+.sec-head h2{font-size:clamp(2.4rem,6vw,4.8rem); letter-spacing:-.055em; line-height:1; font-weight:800}
+.filters{display:flex; gap:8px; flex-wrap:wrap}
+.filters .pill.on{background:var(--accent); color:var(--accent-ink)}
+
+.grid{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:18px}
+.card{
+  grid-column:span 2; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); padding:30px; position:relative; overflow:hidden;
+  display:flex; flex-direction:column; min-height:400px; min-width:0; container-type:inline-size;
+  transition:transform .45s cubic-bezier(.2,.9,.3,1.2), border-color .3s, background .3s;
+  opacity:0; transform:translateY(40px);
+}
+.card.in{opacity:1; transform:none}
+.card.in:hover{transform:translateY(-10px) scale(1.01); border-color:var(--muted)}
+.card:nth-child(1),.card:nth-child(2){grid-column:span 3}
+.card::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.08),transparent 60%);
+  opacity:0; transition:.3s;
+}
+:root[data-theme="light"] .card::before{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(0,0,0,.06),transparent 60%)}
+.card:hover::before{opacity:1}
+.card.hide{display:none}
+.top{display:flex; justify-content:space-between; align-items:center}
+.num{font-size:.9rem; color:var(--muted); font-weight:600}
+.badge{border:1px solid var(--line); padding:6px 14px; border-radius:999px; font-size:.75rem; color:var(--muted)}
+.icon{
+  width:74px; height:74px; border-radius:26px; margin:34px 0 24px;
+  background:var(--accent); color:var(--accent-ink); display:grid; place-items:center;
+  transition:transform .5s cubic-bezier(.3,1.8,.5,1), border-radius .5s;
+}
+.card:hover .icon{transform:rotate(-10deg) scale(1.1); border-radius:50%}
+.icon svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-size:clamp(1.6rem,10.5cqw,3.4rem); letter-spacing:-.055em; line-height:1; font-weight:800; white-space:nowrap}
+.card h3 em{font-style:normal; color:var(--muted)}
+.card p{color:var(--muted); margin:14px 0 22px; line-height:1.5; max-width:420px}
+.feats{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:auto; padding-bottom:26px}
+.feats span{background:var(--bg2); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:.8rem; font-weight:500}
+.links{display:grid; gap:10px}
+.link{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  border:1px solid var(--line); background:var(--bg2); border-radius:22px; padding:14px 20px;
+  font-size:.92rem; font-weight:600; transition:.25s;
+}
+.link small{color:var(--muted); font-weight:400; font-size:.78rem; display:block; margin-top:2px; transition:.25s}
+.link .arr{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none;transition:transform .3s}
+.link:hover{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.link:hover small{color:inherit; opacity:.6}
+.link:hover .arr{background:var(--accent-ink); color:var(--accent); transform:rotate(45deg)}
+.link .arr svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.copy{
+  margin-top:12px; background:none; border:none; color:var(--muted); font:inherit;
+  font-size:.8rem; cursor:pointer; text-align:left; padding:4px 0; transition:.2s;
+}
+.copy:hover{color:var(--text)}
+
+.link>div{min-width:0}
+.link small{overflow-wrap:anywhere}
+
+/* CTA */
+.cta{
+  margin:110px 0 50px; background:var(--accent); color:var(--accent-ink);
+  border-radius:56px; padding:80px 40px; text-align:center; position:relative; overflow:hidden;
+}
+.cta h2{font-size:clamp(2.6rem,8vw,7rem); letter-spacing:-.06em; line-height:.95; font-weight:800}
+.cta p{margin:22px auto 34px; max-width:480px; opacity:.6; font-size:1.1rem}
+.cta .btn{
+  display:inline-flex; gap:12px; align-items:center; background:var(--accent-ink); color:var(--accent);
+  padding:18px 34px; border-radius:999px; font-weight:700; font-size:1rem; transition:transform .35s cubic-bezier(.3,1.8,.5,1);
+}
+.cta .btn:hover{transform:scale(1.08) rotate(-2deg)}
+
+footer{display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; padding:30px 0 50px; color:var(--muted); font-size:.9rem; border-top:1px solid var(--line)}
+footer a:hover{color:var(--text)}
+
+.toast{
+  position:fixed; bottom:28px; left:50%; transform:translate(-50%,120px);
+  background:var(--accent); color:var(--accent-ink); padding:14px 26px; border-radius:999px;
+  font-weight:600; z-index:10; transition:transform .45s cubic-bezier(.3,1.5,.5,1);
+}
+.toast.show{transform:translate(-50%,0)}
+
+@media(max-width:960px){
+  .card,.card:nth-child(1),.card:nth-child(2){grid-column:span 6; min-height:auto}
+  .hero{padding-top:50px}
+  .stats{width:100%}.stat{flex:1}
+  .cta{padding:60px 24px; border-radius:40px}
+}
+</style>
 </head>
 <body>
-  <nav class="nav" aria-label="Main navigation">
-    <div class="wrap nav-inner">
-      <a class="brand" href="#home" aria-label="EHSAAN PLAY home"><span class="brand-mark">▶</span><span>EHSAAN <em>PLAY</em></span></a>
-      <div class="links" id="navLinks">
-        <a class="active" href="#home">Home</a><a href="#features">Features</a><a href="#projects">Projects</a><a href="#faq">FAQ</a>
-      </div>
-      <div class="nav-actions">
-        <a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">⌘ GitHub</a>
-        <a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Explore project ↗</a>
-        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
-      </div>
+<div class="glow" id="glow"></div>
+
+<div class="wrap">
+  <nav>
+    <a href="#" class="logo"><i></i>Ehsan Studio</a>
+    <div class="nav-r">
+      <a class="pill" href="https://github.com/ehsaanullah0" target="_blank" rel="noopener">GitHub</a>
+      <button class="pill" id="theme" aria-label="Toggle theme">◐ Theme</button>
     </div>
   </nav>
 
-  <main>
-    <header class="hero" id="home">
-      <div class="wrap hero-grid">
-        <div>
-          <div class="eyebrow"><span class="dot"></span> The EHSAAN PLAY project</div>
-          <h1>Your world.<br>Your watch.<br><span>Your PLAY.</span></h1>
-          <p class="hero-copy">A home for the EHSAAN PLAY project. Explore the work, follow development, and find the official project links — all in one place.</p>
-          <div class="hero-buttons">
-            <a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Explore EHSAAN PLAY <span>↗</span></a>
-            <a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">View source on GitHub <span>→</span></a>
-          </div>
-          <div class="microcopy"><span class="dot"></span><span><b>Built around the project.</b> Follow along as it evolves.</span></div>
-        </div>
-        <div class="visual" aria-label="Decorative media player concept">
-          <div class="halo"></div>
-          <div class="float-card float-two"><span class="float-icon">✦</span><strong>Made to explore</strong><small style="margin-left:33px">One project, one home</small></div>
-          <div class="screen">
-            <div class="screen-top"><strong>▶ EHSAAN PLAY</strong><span>PROJECT / 001</span></div>
-            <div class="feature-art"><div class="art-label"><small>Press play on possibility</small><b>PLAY YOUR WAY.</b></div></div>
-            <div class="screen-info"><div><strong>Welcome to EHSAAN PLAY</strong><small>Discover · Explore · Enjoy</small></div><div class="play-circle">▶</div></div>
-          </div>
-          <div class="float-card float-one"><span class="float-icon">⌘</span><strong>Open source home</strong><small style="margin-left:33px">Code on GitHub</small></div>
-        </div>
+  <header class="hero">
+    <span class="tag"><b></b> Five products. One home.</span>
+    <h1 id="title">Tools<br><span class="muted-word">made</span> simple.</h1>
+    <div class="hero-row">
+      <p class="lead">Everything I build, in one place. Open any product directly, or jump straight to its source code on GitHub.</p>
+      <div class="stats">
+        <div class="stat"><strong data-count="5">0</strong><small>Products</small></div>
+        <div class="stat"><strong data-count="10">0</strong><small>Direct links</small></div>
+        <div class="stat"><strong>100%</strong><small>Open source</small></div>
       </div>
-    </header>
+    </div>
+  </header>
+</div>
 
-    <section class="section-soft" id="features">
-      <div class="wrap">
-        <div class="section-head"><div class="kicker">The experience</div><h2>Simple by design.<br><span style="color:var(--accent)">Ready to explore.</span></h2><p>A clean, cinematic landing page that puts the project first and makes the next step easy.</p></div>
-        <div class="features">
-          <article class="card"><div class="icon-box">▶</div><h3>Play-first identity</h3><p>A little movie-night energy, with a bold wordmark and a warm, unmistakable orange glow.</p></article>
-          <article class="card"><div class="icon-box">⌘</div><h3>Open project access</h3><p>Explore the actual repository, browse the files, and see how the project is taking shape.</p></article>
-          <article class="card"><div class="icon-box">✦</div><h3>Focused interface</h3><p>Warm orange details, confident typography, and a little cinematic character without the visual noise.</p></article>
-          <article class="card"><div class="icon-box">↗</div><h3>Quick navigation</h3><p>The important destinations are easy to find, without turning the page into a wall of buttons.</p></article>
-          <article class="card"><div class="icon-box">▣</div><h3>Responsive layout</h3><p>The layout reshapes for phones, tablets, and desktops while keeping the same personality.</p></article>
-          <article class="card"><div class="icon-box">◎</div><h3>Project hub</h3><p>One tidy launchpad for the project site, source code, and wider EHSAAN web presence.</p></article>
-        </div>
-      </div>
-    </section>
+<div class="marquee" aria-hidden="true">
+  <div class="track" id="track"></div>
+</div>
 
-    <section id="projects">
-      <div class="wrap">
-        <div class="section-head"><div class="kicker">Official links</div><h2>Find EHSAAN PLAY.</h2><p>Use these project links to explore the current web presence and development source.</p></div>
-        <div class="project-grid">
-          <a class="project-card" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer"><span class="tag">Source code</span><h3>GitHub repository</h3><p>Visit the EHSAAN PLAY repository to view the project files and development activity.</p><span class="link-text">Open GitHub →</span></a>
-          <a class="project-card" href="https://ehsaan.odoo.com" target="_blank" rel="noopener noreferrer"><span class="tag">Web presence</span><h3>EHSAAN on Odoo</h3><p>Visit the EHSAAN website hosted on Odoo.</p><span class="link-text">Visit ehsaan.odoo.com →</span></a>
-          <a class="project-card" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer"><span class="tag">Project site</span><h3>EHSAAN PLAY Studio</h3><p>Open the EHSAAN PLAY project experience.</p><span class="link-text">Explore the project →</span></a>
-          <div class="project-card"><span class="tag">Stay connected</span><h3>One project. More to come.</h3><p>Bookmark this page and check the official links for updates as the project develops.</p><span class="link-text">Keep exploring ✦</span></div>
-        </div>
-      </div>
-    </section>
+<main class="wrap" id="products">
+  <div class="sec-head">
+    <h2>All products</h2>
+    <div class="filters" id="filters">
+      <button class="pill on" data-f="all">All</button>
+      <button class="pill" data-f="media">Media</button>
+      <button class="pill" data-f="productivity">Productivity</button>
+      <button class="pill" data-f="design">Design</button>
+      <button class="pill" data-f="utility">Utility</button>
+    </div>
+  </div>
 
-    <section class="section-soft" id="faq">
-      <div class="wrap">
-        <div class="section-head"><div class="kicker">Good to know</div><h2>Quick answers.</h2></div>
-        <div class="faq-list">
-          <details><summary>What is EHSAAN PLAY?</summary><p>EHSAAN PLAY is the project named in the links on this page. This landing page serves as a visual project hub; it does not claim features that have not been confirmed.</p></details>
-          <details><summary>Where can I view the source code?</summary><p>Use the GitHub repository link to visit github.com/ehsaanllah0/ehsaanplay.</p></details>
-          <details><summary>Does this page stream movies or videos?</summary><p>This is a front-end landing page, not a streaming backend. Actual playback, catalog, authentication, or media APIs would need to be connected separately if your project supports them.</p></details>
-          <details><summary>Can I customize the design?</summary><p>Yes. Edit the CSS variables near the top of this file to change the background, text, and accent colors. Update the copy and links in the HTML to match the real features of your project.</p></details>
-        </div>
-      </div>
-    </section>
+  <section class="grid" id="grid"></section>
 
-    <section>
-      <div class="wrap"><div class="cta"><div class="kicker">Start here</div><h2>Ready to explore EHSAAN PLAY?</h2><p>Visit the project site or take a look at the source code. Your next step is one click away.</p><div class="hero-buttons"><a class="btn btn-primary" href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Open EHSAAN PLAY ↗</a><a class="btn btn-quiet" href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">Browse GitHub</a></div></div></div>
-    </section>
-  </main>
+  <section class="cta">
+    <h2>Build. Ship.<br>Repeat.</h2>
+    <p>Every project is open on GitHub. Explore, star, fork or contribute.</p>
+    <a class="btn" href="https://github.com/ehsaanullah0" target="_blank" rel="noopener">
+      Visit my GitHub
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+    </a>
+  </section>
 
-  <footer><div class="wrap footer-inner"><a class="brand" href="#home"><span class="brand-mark">▶</span><span>EHSAAN <em>PLAY</em></span></a><span>© <span id="year"></span> EHSAAN PLAY. Project links for discovery.</span><div class="footer-links"><a href="https://github.com/ehsaanllah0/ehsaanplay" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://ehsaan.odoo.com" target="_blank" rel="noopener noreferrer">EHSAAN</a><a href="https://ehsaanplay.ai.studio" target="_blank" rel="noopener noreferrer">Project site</a></div></div></footer>
-  <script>
-    const toggle = document.getElementById('menuToggle');
-    const links = document.getElementById('navLinks');
-    toggle.addEventListener('click', () => {
-      const open = links.classList.toggle('open');
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.textContent = open ? '✕' : '☰';
+  <footer>
+    <span>© <span id="yr"></span> Ehsan Studio. All rights reserved.</span>
+    <span><a href="#">Back to top ↑</a></span>
+  </footer>
+</main>
+
+<div class="toast" id="toast">Link copied</div>
+
+<script>
+const products = [
+  {n:"01", name:"Play", sub:"Media", cat:"media",
+   desc:"A clean, fast player for your music and video, built to stay out of your way.",
+   feats:["Playlists","Fast playback","Minimal UI"],
+   site:"ehsaanplay.ai.studio", gh:"ehsaanplay",
+   icon:'<path d="M7 4.5v15l13-7.5z"/>'},
+  {n:"02", name:"Flow", sub:"Productivity", cat:"productivity",
+   desc:"Map ideas, tasks and processes into clear, connected flows you can actually follow.",
+   feats:["Visual flows","Drag & drop","Share easily"],
+   site:"ehsaanflow.ai.studio", gh:"ehsaanflow",
+   icon:'<circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M7.5 6H14a3 3 0 0 1 3 3v6.5"/>'},
+  {n:"03", name:"QR", sub:"Utility", cat:"utility",
+   desc:"Generate sharp, scannable QR codes in a second. Download and use anywhere.",
+   feats:["Instant create","High quality","Free download"],
+   site:"ehsaanqr.ai.studio", gh:"ehsaanqr",
+   icon:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h3M20 17v4"/>'},
+  {n:"04", name:"Color", sub:"Design", cat:"design",
+   desc:"Pick, preview and copy beautiful colors and palettes for your next design.",
+   feats:["Palettes","Copy HEX/RGB","Live preview"],
+   site:"ehsaancolor.ai.studio", gh:"ehsaancolour",
+   icon:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.2-1-1.6-1-2.8 0-1 .8-1.7 1.9-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r=".8"/><circle cx="10" cy="7" r=".8"/><circle cx="15" cy="7.5" r=".8"/>'},
+  {n:"05", name:"Compress", sub:"Utility", cat:"utility",
+   desc:"Shrink file sizes without losing the quality that matters. Quick and private.",
+   feats:["Smaller files","Keeps quality","Fast"],
+   site:"ehsaancompress.ai.studio", gh:"ehsaancompress",
+   icon:'<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>'}
+];
+
+const arrow = '<svg viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg>';
+const grid = document.getElementById('grid');
+
+products.forEach(p=>{
+  const gh = "github.com/ehsaanullah0/" + p.gh;
+  const el = document.createElement('article');
+  el.className = 'card'; el.dataset.cat = p.cat;
+  el.innerHTML = `
+    <div class="top"><span class="num">${p.n} / 05</span><span class="badge">${p.sub}</span></div>
+    <div class="icon"><svg viewBox="0 0 24 24">${p.icon}</svg></div>
+    <h3><em>ehsaan</em>${p.name}</h3>
+    <p>${p.desc}</p>
+    <div class="feats">${p.feats.map(f=>`<span>${f}</span>`).join('')}</div>
+    <div class="links">
+      <a class="link" href="https://${p.site}" target="_blank" rel="noopener">
+        <div>Open website<small>${p.site}</small></div><span class="arr">${arrow}</span></a>
+      <a class="link" href="https://${gh}" target="_blank" rel="noopener">
+        <div>View on GitHub<small>${gh}</small></div><span class="arr">${arrow}</span></a>
+    </div>
+    <button class="copy" data-copy="https://${p.site}">⧉ Copy website link</button>`;
+  grid.appendChild(el);
+});
+
+/* hover light follows cursor on cards */
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    c.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* reveal on scroll */
+const io = new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('in'), (e.target.dataset.d||0)); io.unobserve(e.target); }
+}),{threshold:.12});
+document.querySelectorAll('.card').forEach((c,i)=>{c.dataset.d=(i%3)*90; io.observe(c)});
+
+/* filters */
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#filters .pill').forEach(x=>x.classList.toggle('on',x===b));
+  const f=b.dataset.f; let shown=0;
+  document.querySelectorAll('.card').forEach(c=>{
+    const ok=f==='all'||c.dataset.cat===f;
+    c.classList.toggle('hide',!ok);
+    if(ok){shown++; c.style.gridColumn = (f==='all') ? '' : 'span '+(shown>0?3:6);}
+  });
+});
+
+/* copy link */
+const toast=document.getElementById('toast');
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.copy'); if(!b) return;
+  navigator.clipboard?.writeText(b.dataset.copy);
+  toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1600);
+});
+
+/* marquee */
+const names=products.map(p=>"ehsaan"+p.name.toLowerCase());
+const row=[...names,...names,...names,...names].map(n=>`<span>${n} ✦</span>`).join('');
+document.getElementById('track').innerHTML=row;
+
+/* split h1 into hoverable letters */
+(function(){
+  const h=document.getElementById('title');
+  const walk=n=>{
+    [...n.childNodes].forEach(c=>{
+      if(c.nodeType===3){
+        const f=document.createDocumentFragment();
+        [...c.textContent].forEach(ch=>{
+          if(ch===' '){f.append(' ');return}
+          const s=document.createElement('span'); s.textContent=ch; f.append(s);
+        });
+        c.replaceWith(f);
+      } else if(c.nodeType===1 && c.tagName!=='BR') walk(c);
     });
-    links.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
-      links.classList.remove('open');
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.textContent = '☰';
-    }));
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+  };
+  walk(h);
+})();
+
+/* count-up stats */
+document.querySelectorAll('[data-count]').forEach(el=>{
+  const t=+el.dataset.count; let v=0;
+  const id=setInterval(()=>{v++; el.textContent=v; if(v>=t) clearInterval(id)},90);
+});
+
+/* cursor glow */
+const glow=document.getElementById('glow');
+addEventListener('pointermove',e=>{glow.style.left=e.clientX+'px'; glow.style.top=e.clientY+'px'});
+
+/* theme toggle */
+const root=document.documentElement;
+try{ const s=localStorage.getItem('theme'); if(s) root.dataset.theme=s; }catch(e){}
+document.getElementById('theme').addEventListener('click',()=>{
+  const next=root.dataset.theme==='light'?'dark':'light';
+  root.dataset.theme=next;
+  try{localStorage.setItem('theme',next)}catch(e){}
+});
+
+document.getElementById('yr').textContent=new Date().getFullYear();
+</script>
 </body>
 </html>
