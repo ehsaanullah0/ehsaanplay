@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -285,11 +285,11 @@ footer a:hover{color:var(--text)}
 .wallpaper-card{grid-column:span 1;min-width:0;height:100%;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--bg2);opacity:0;transform:translateY(32px);transition:opacity .7s,transform .7s cubic-bezier(.2,.9,.3,1.1),border-color .3s}
 .wallpaper-card.in{opacity:1;transform:none}
 .wallpaper-card:hover{border-color:var(--muted)}
-.wallpaper-art{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:16/10;height:auto;background:#111;flex:none}
+.wallpaper-art{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:16/10;height:auto;background:#0b0b0b;flex:none;border-bottom:1px solid var(--line)}
 .wallpaper-art.mobile-art{aspect-ratio:16/10;max-height:none}
 .wallpaper-art svg{width:100%;height:100%;display:block;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
 .wallpaper-card:hover .wallpaper-art svg{transform:scale(1.035)}
-.wallpaper-art:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.02),transparent 45%,rgba(0,0,0,.28))}
+
 .wallpaper-meta{padding:22px 24px 24px;display:flex;flex:1;flex-direction:column}.wallpaper-meta .wallpaper-actions{margin-top:auto}
 .wallpaper-meta .top{margin-bottom:18px}
 .wallpaper-meta h3{font-size:clamp(1.35rem,2.4vw,2rem);letter-spacing:-.055em;line-height:1.05;overflow-wrap:anywhere}
@@ -375,6 +375,13 @@ footer a:hover{color:var(--text)}
 .qr-scan{animation:qrScan 3.2s ease-in-out infinite alternate}
 @keyframes qrScan{from{transform:translateY(0)}to{transform:translateY(300px)}}
 @media(prefers-reduced-motion:reduce){.flow-fab-pulse,.qr-scan{animation:none}}
+/* grey shades: wallpaper cards + GitHub showcase */
+:root{--wp1:#1d1d1d;--wp2:#282828;--cta-bg:#363636;--cta-ink:#f5f5f5}
+:root[data-theme="light"]{--wp1:#e5e5e5;--wp2:#d7d7d7;--cta-bg:#c4c4c4;--cta-ink:#0a0a0a}
+.wallpaper-card:nth-child(1){background:var(--wp1)}
+.wallpaper-card:nth-child(2){background:var(--wp2)}
+.cta{background:var(--cta-bg);color:var(--cta-ink)}
+.cta .btn{background:var(--cta-ink);color:var(--cta-bg)}
 </style>
 </head>
 <body>
@@ -451,7 +458,7 @@ footer a:hover{color:var(--text)}
         <span class="eyebrow">✦ Digital collection</span>
         <div class="sec-head" style="margin:12px 0 0"><h2>Wallpapers<span class="muted-word">.</span></h2></div>
       </div>
-      <p>Minimal wallpapers for your phone and desktop. Pick a format, preview the artwork, and save it for your screen.</p>
+      <p>Minimal wallpapers for your phone and desktop. Pick a format and save it for your screen.</p>
     </div>
     <div class="wallpaper-tabs" id="wallpaper-tabs" aria-label="Filter wallpapers">
       <button class="pill active" type="button" data-wallpaper-filter="all">All wallpapers</button>
@@ -461,26 +468,30 @@ footer a:hover{color:var(--text)}
     <div class="wallpaper-grid" id="wallpaper-grid">
       <article class="wallpaper-card" data-wallpaper-type="mobile">
         <div class="wallpaper-art mobile-art" aria-label="Mobile wallpaper preview: Quiet Orbit" role="img">
-          <svg viewBox="0 0 450 650" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="wm1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080808"/><stop offset=".55" stop-color="#303030"/><stop offset="1" stop-color="#090909"/></linearGradient><radialGradient id="wm2"><stop stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
-            <rect width="450" height="650" fill="url(#wm1)"/><circle cx="330" cy="170" r="240" fill="url(#wm2)"/>
-            <circle cx="225" cy="325" r="152" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.2"/><circle cx="225" cy="325" r="120" fill="none" stroke="#fff" stroke-opacity=".36"/><circle cx="225" cy="325" r="86" fill="none" stroke="#fff" stroke-opacity=".18"/>
-            <path d="M-40 450 Q120 240 260 390 T500 230" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="2"/><path d="M-30 475 Q120 265 260 415 T500 255" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1"/>
-            <text x="28" y="56" fill="#fff" font-size="12" letter-spacing="5" font-family="Arial">E H S A N  /  0 1</text><text x="28" y="590" fill="#fff" font-size="47" font-weight="700" letter-spacing="-3" font-family="Arial">STAY</text><text x="28" y="630" fill="#aaa" font-size="47" font-weight="700" letter-spacing="-3" font-family="Arial">CURIOUS.</text>
+          <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <rect width="900" height="560" fill="#0b0b0b"/>
+            <rect x="335" y="44" width="230" height="472" rx="34" fill="#111" stroke="#fff" stroke-opacity=".14"/>
+            <circle cx="450" cy="236" r="62" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1"/>
+            <circle cx="450" cy="236" r="4" fill="#fff"/>
+            <text x="367" y="92" fill="#777" font-size="8" letter-spacing="3" font-family="Google Sans Flex,Arial,sans-serif">EHSAN / 01</text>
+            <text x="367" y="440" fill="#fff" font-size="26" font-weight="700" letter-spacing="-1.2" font-family="Google Sans Flex,Arial,sans-serif">Stay</text>
+            <text x="367" y="468" fill="#777" font-size="26" font-weight="700" letter-spacing="-1.2" font-family="Google Sans Flex,Arial,sans-serif">curious.</text>
           </svg>
         </div>
-        <div class="wallpaper-meta"><div class="top"><span class="num">01 / MOBILE WALLPAPER</span><span class="badge">Phone · SVG</span></div><h3>Mobile Wallpaper — Quiet Orbit</h3><p>A monochrome phone wallpaper with orbital linework and subtle light, designed for a clean home or lock screen.</p><div class="wallpaper-actions"><button class="pill primary wallpaper-download" type="button" data-wallpaper="mobile-orbit" data-filename="ehsan-quiet-orbit-mobile.svg">↓ Download wallpaper</button><button class="pill wallpaper-preview" type="button" data-wallpaper-preview="mobile-orbit">Preview artwork ↗</button></div></div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">01 / MOBILE WALLPAPER</span><span class="badge">Phone · SVG</span></div><h3>Mobile Wallpaper — Quiet Orbit</h3><p>A monochrome phone wallpaper with orbital linework and subtle light, designed for a clean home or lock screen.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/PvsbXurHCYzEbbqdA" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
       </article>
       <article class="wallpaper-card" data-wallpaper-type="desktop">
         <div class="wallpaper-art" aria-label="Desktop wallpaper preview: Focus Field" role="img">
           <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="wd1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050505"/><stop offset=".52" stop-color="#222"/><stop offset="1" stop-color="#090909"/></linearGradient><radialGradient id="wd2"><stop stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
-            <rect width="900" height="560" fill="url(#wd1)"/><circle cx="620" cy="250" r="350" fill="url(#wd2)"/>
-            <g fill="none" stroke="#fff"><circle cx="625" cy="280" r="190" stroke-opacity=".72"/><circle cx="625" cy="280" r="155" stroke-opacity=".3"/><circle cx="625" cy="280" r="112" stroke-opacity=".18"/><path d="M360 520 Q500 80 650 300 T980 100" stroke-opacity=".8" stroke-width="2"/><path d="M320 520 Q460 80 610 300 T940 100" stroke-opacity=".2"/></g>
-            <text x="54" y="72" fill="#aaa" font-size="13" letter-spacing="6" font-family="Arial">EHSAN STUDIO  /  WALLPAPER 001</text><text x="54" y="310" fill="#fff" font-size="76" font-weight="700" letter-spacing="-5" font-family="Arial">FOCUS</text><text x="58" y="354" fill="#aaa" font-size="17" letter-spacing="7" font-family="Arial">LESS NOISE. MORE SIGNAL.</text><path d="M56 390H210" stroke="#fff" stroke-opacity=".6"/><text x="56" y="510" fill="#777" font-size="12" letter-spacing="4" font-family="Arial">MADE TO KEEP YOU IN FLOW</text>
+            <rect width="900" height="560" fill="#0b0b0b"/>
+            <circle cx="650" cy="280" r="150" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>
+            <circle cx="650" cy="280" r="5" fill="#fff"/>
+            <text x="60" y="76" fill="#777" font-size="11" letter-spacing="5" font-family="Google Sans Flex,Arial,sans-serif">EHSAN STUDIO</text>
+            <text x="60" y="458" fill="#fff" font-size="64" font-weight="700" letter-spacing="-3" font-family="Google Sans Flex,Arial,sans-serif">Focus</text>
+            <text x="62" y="494" fill="#777" font-size="14" letter-spacing="1" font-family="Google Sans Flex,Arial,sans-serif">Less noise. More signal.</text>
           </svg>
         </div>
-        <div class="wallpaper-meta"><div class="top"><span class="num">02 / DESKTOP WALLPAPER</span><span class="badge">Computer · SVG</span></div><h3>Desktop Wallpaper — Focus Field</h3><p>A wide monochrome computer wallpaper with bold typography and abstract rings, leaving visual space for desktop icons.</p><div class="wallpaper-actions"><button class="pill primary wallpaper-download" type="button" data-wallpaper="desktop-focus" data-filename="ehsan-focus-field-desktop.svg">↓ Download wallpaper</button><button class="pill wallpaper-preview" type="button" data-wallpaper-preview="desktop-focus">Preview artwork ↗</button></div></div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">02 / DESKTOP WALLPAPER</span><span class="badge">Computer · SVG</span></div><h3>Desktop Wallpaper — Focus Field</h3><p>A wide monochrome computer wallpaper with bold typography and abstract rings, leaving visual space for desktop icons.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/Kn1Zcc8C6ofhcV1z8" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
       </article>
     </div>
     <p class="wallpaper-note">Original vector artwork · SVG format · Scales cleanly to different screen sizes.</p>
@@ -714,10 +725,6 @@ if(matchMedia('(pointer:fine)').matches){
 (function(){
   const cards=[...document.querySelectorAll('.wallpaper-card')];
   const tabs=document.getElementById('wallpaper-tabs');
-  const artwork={
-    'mobile-orbit': document.querySelector('[data-wallpaper="mobile-orbit"]')?.closest('.wallpaper-card')?.querySelector('svg'),
-    'desktop-focus': document.querySelector('[data-wallpaper="desktop-focus"]')?.closest('.wallpaper-card')?.querySelector('svg')
-  };
   const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
     if(entry.isIntersecting){entry.target.classList.add('in');observer.unobserve(entry.target);}
   }),{threshold:.12});
@@ -731,30 +738,6 @@ if(matchMedia('(pointer:fine)').matches){
       card.hidden=!show;
       if(show){card.classList.remove('in');requestAnimationFrame(()=>observer.observe(card));}
     });
-  });
-  function svgString(svg){
-    const clone=svg.cloneNode(true);
-    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    return '<?xml version="1.0" encoding="UTF-8"?>\\n'+new XMLSerializer().serializeToString(clone);
-  }
-  document.addEventListener('click',e=>{
-    const download=e.target.closest('.wallpaper-download');
-    if(download){
-      const svg=artwork[download.dataset.wallpaper]; if(!svg)return;
-      const blob=new Blob([svgString(svg)],{type:'image/svg+xml;charset=utf-8'});
-      const url=URL.createObjectURL(blob),a=document.createElement('a');
-      a.href=url;a.download=download.dataset.filename;document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
-      return;
-    }
-    const preview=e.target.closest('.wallpaper-preview');
-    if(preview&&artwork[preview.dataset.wallpaper]){
-      const svg=svgString(artwork[preview.dataset.wallpaper]);
-      const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
-      const win=window.open(url,'_blank','noopener');
-      if(!win){const a=document.createElement('a');a.href=url;a.download='ehsan-wallpaper-preview.svg';a.click();}
-      setTimeout(()=>URL.revokeObjectURL(url),60000);
-    }
   });
 })();
 
