@@ -227,17 +227,17 @@ h1 span:hover{transform:translateY(-14px) rotate(-4deg); color:var(--muted)}
 /* WORDMARK */
 .wordmark{
   font-size:clamp(4rem,19vw,17rem); font-weight:800; letter-spacing:-.07em; line-height:.85;
-  --wm-stroke:#4a0d14; --wm-fill:rgba(110,12,24,.10); --wm-hover:rgba(150,16,32,.38); --wm-hover-stroke:#a01e29;
+  --wm-stroke:#5a5a5a; --wm-fill:rgba(255,255,255,.035); --wm-hover:#7a0612; --wm-hover-stroke:#a8101d;
   text-align:center; color:var(--wm-fill); -webkit-text-stroke:1.5px var(--wm-stroke);
   margin:20px 0 30px; padding:.14em 0 .04em; user-select:none; white-space:nowrap; overflow:hidden;
 }
-:root[data-theme="light"] .wordmark{--wm-stroke:#7a1a22; --wm-fill:rgba(120,14,26,.07); --wm-hover:rgba(150,16,32,.3); --wm-hover-stroke:#a01e29}
+:root[data-theme="light"] .wordmark{--wm-stroke:#8c8c8c; --wm-fill:rgba(0,0,0,.04); --wm-hover:#7a0612; --wm-hover-stroke:#5c040d}
 .wordmark span{
   display:inline-block; opacity:0; will-change:transform;
   transition:transform .45s cubic-bezier(.3,1.8,.5,1), color .35s, -webkit-text-stroke-color .35s, text-shadow .35s;
 }
 .wordmark.in span{opacity:1; animation:letterPop .95s cubic-bezier(.3,1.5,.5,1) backwards; animation-delay:calc(var(--i)*90ms)}
-.wordmark.in span:hover{transform:translateY(-10%) scale(1.06) rotate(-2deg); color:var(--wm-hover); -webkit-text-stroke-color:var(--wm-hover-stroke); text-shadow:0 0 40px rgba(120,10,22,.35)}
+.wordmark.in span:hover{transform:translateY(-10%) scale(1.06) rotate(-2deg); color:var(--wm-hover); -webkit-text-stroke-color:var(--wm-hover-stroke); text-shadow:0 0 46px rgba(122,6,18,.55)}
 @keyframes letterPop{
   0%{opacity:0; transform:translateY(75%) scale(.55) rotate(-8deg)}
   60%{opacity:1; transform:translateY(-9%) scale(1.08) rotate(1deg)}
@@ -382,6 +382,47 @@ footer a:hover{color:var(--text)}
 .wallpaper-card:nth-child(2){background:var(--wp2)}
 .cta{background:var(--cta-bg);color:var(--cta-ink)}
 .cta .btn{background:var(--cta-ink);color:var(--cta-bg)}
+
+/* wallpaper cards: type-only, big rounded dual-shade headings */
+.wallpaper-art{display:none}
+.wallpaper-card{min-height:min(520px,70svh)}
+.wallpaper-meta{padding:clamp(26px,3.6vw,46px)}
+.wallpaper-meta .top{margin-bottom:clamp(26px,5vw,60px)}
+.wallpaper-meta h3{font-size:clamp(3.6rem,9.4vw,8.4rem);line-height:.9;letter-spacing:-.075em;font-weight:800;font-variation-settings:"ROND" 100;color:var(--text);overflow-wrap:normal;margin:0}
+.wallpaper-meta h3 em{font-style:normal;color:var(--muted)}
+.wallpaper-meta p{max-width:340px;font-size:1rem;margin:26px 0 30px}
+.wallpaper-meta .wallpaper-actions{margin-top:auto}
+
+/* wallpaper card hover: letters wave, the two shades swap and drift */
+.wallpaper-meta h3 .w{display:inline-block;transition:color .45s ease, transform .6s cubic-bezier(.3,1.5,.5,1)}
+.wallpaper-meta h3 .ch{display:inline-block}
+.wallpaper-card:hover h3 .w1{color:var(--muted);transform:translateX(.06em)}
+.wallpaper-card:hover h3 .w2{color:var(--text);transform:translateX(.16em)}
+.wallpaper-card:hover h3 .ch{animation:chWave .6s cubic-bezier(.3,1.6,.5,1) calc(var(--i) * 40ms)}
+@keyframes chWave{40%{transform:translateY(-.09em) rotate(-3deg)}}
+@media(prefers-reduced-motion:reduce){.wallpaper-card:hover h3 .ch{animation:none}}
+
+/* flip card: GitHub <-> Website */
+:root{--cta2-bg:#4a4a4a}
+:root[data-theme="light"]{--cta2-bg:#b0b0b0}
+.cta{background:none;padding:0;overflow:visible;perspective:1800px;color:inherit}
+.cta-inner{display:grid;position:relative;transform-style:preserve-3d}
+.cta.flipped .cta-inner{transform:rotateY(180deg)}
+.cta-face{grid-area:1/1;position:relative;padding:80px 40px;border-radius:56px;text-align:center;overflow:hidden;
+  background:var(--cta-bg);color:var(--cta-ink);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.cta-face.face-b{transform:rotateY(180deg);background:var(--cta2-bg)}
+.face-tag{display:inline-block;border:1px solid currentColor;opacity:.55;border-radius:999px;padding:7px 16px;font-size:.8rem;font-weight:600;letter-spacing:.04em;margin-bottom:26px}
+.cta-face .btn{background:var(--cta-ink);color:var(--cta-bg)}
+.cta-face.face-b .btn{color:var(--cta2-bg)}
+.swap{position:absolute;top:24px;right:24px;display:inline-flex;align-items:center;gap:9px;border:1px solid currentColor;background:transparent;color:inherit;
+  font:inherit;font-weight:600;font-size:.88rem;padding:11px 18px;border-radius:999px;cursor:pointer;transition:background .25s,color .25s,transform .3s cubic-bezier(.3,1.7,.5,1)}
+.swap svg{transition:transform .6s cubic-bezier(.3,1.5,.5,1)}
+.swap:hover{background:var(--cta-ink);color:var(--cta-bg);transform:translateY(-2px)}
+.swap:hover svg{transform:rotate(180deg)}
+.face-b .swap:hover{color:var(--cta2-bg)}
+.swap:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+@media(max-width:700px){.cta-face{padding:76px 22px 56px;border-radius:40px}.swap{top:18px;right:18px;padding:9px 14px;font-size:.8rem}}
+.cta{position:relative}.cta h2 .cw{display:inline-block;white-space:nowrap}.cta h2 .cl{display:inline-block}.confetti{position:absolute;pointer-events:none;z-index:6;left:50%;top:48%}
 </style>
 </head>
 <body>
@@ -467,44 +508,33 @@ footer a:hover{color:var(--text)}
     </div>
     <div class="wallpaper-grid" id="wallpaper-grid">
       <article class="wallpaper-card" data-wallpaper-type="mobile">
-        <div class="wallpaper-art mobile-art" aria-label="Mobile wallpaper preview: Quiet Orbit" role="img">
-          <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <rect width="900" height="560" fill="#0b0b0b"/>
-            <rect x="335" y="44" width="230" height="472" rx="34" fill="#111" stroke="#fff" stroke-opacity=".14"/>
-            <circle cx="450" cy="236" r="62" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1"/>
-            <circle cx="450" cy="236" r="4" fill="#fff"/>
-            <text x="367" y="92" fill="#777" font-size="8" letter-spacing="3" font-family="Google Sans Flex,Arial,sans-serif">EHSAN / 01</text>
-            <text x="367" y="440" fill="#fff" font-size="26" font-weight="700" letter-spacing="-1.2" font-family="Google Sans Flex,Arial,sans-serif">Stay</text>
-            <text x="367" y="468" fill="#777" font-size="26" font-weight="700" letter-spacing="-1.2" font-family="Google Sans Flex,Arial,sans-serif">curious.</text>
-          </svg>
-        </div>
-        <div class="wallpaper-meta"><div class="top"><span class="num">01 / MOBILE WALLPAPER</span><span class="badge">Phone · SVG</span></div><h3>Mobile Wallpaper — Quiet Orbit</h3><p>A monochrome phone wallpaper with orbital linework and subtle light, designed for a clean home or lock screen.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/PvsbXurHCYzEbbqdA" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">01 / MOBILE WALLPAPER</span><span class="badge">Phone</span></div><h3>Quiet<br><em>orbit.</em></h3><p>A calm monochrome wallpaper for your phone, made for a clean home or lock screen.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/PvsbXurHCYzEbbqdA" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
       </article>
       <article class="wallpaper-card" data-wallpaper-type="desktop">
-        <div class="wallpaper-art" aria-label="Desktop wallpaper preview: Focus Field" role="img">
-          <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <rect width="900" height="560" fill="#0b0b0b"/>
-            <circle cx="650" cy="280" r="150" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>
-            <circle cx="650" cy="280" r="5" fill="#fff"/>
-            <text x="60" y="76" fill="#777" font-size="11" letter-spacing="5" font-family="Google Sans Flex,Arial,sans-serif">EHSAN STUDIO</text>
-            <text x="60" y="458" fill="#fff" font-size="64" font-weight="700" letter-spacing="-3" font-family="Google Sans Flex,Arial,sans-serif">Focus</text>
-            <text x="62" y="494" fill="#777" font-size="14" letter-spacing="1" font-family="Google Sans Flex,Arial,sans-serif">Less noise. More signal.</text>
-          </svg>
-        </div>
-        <div class="wallpaper-meta"><div class="top"><span class="num">02 / DESKTOP WALLPAPER</span><span class="badge">Computer · SVG</span></div><h3>Desktop Wallpaper — Focus Field</h3><p>A wide monochrome computer wallpaper with bold typography and abstract rings, leaving visual space for desktop icons.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/Kn1Zcc8C6ofhcV1z8" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
+        <div class="wallpaper-meta"><div class="top"><span class="num">02 / DESKTOP WALLPAPER</span><span class="badge">Computer</span></div><h3>Focus<br><em>field.</em></h3><p>A wide monochrome wallpaper with room to breathe, leaving space for your desktop icons.</p><div class="wallpaper-actions"><a class="pill primary" href="https://photos.app.goo.gl/Kn1Zcc8C6ofhcV1z8" target="_blank" rel="noopener">↓ Download wallpaper</a></div></div>
       </article>
     </div>
-    <p class="wallpaper-note">Original vector artwork · SVG format · Scales cleanly to different screen sizes.</p>
+    <p class="wallpaper-note">Free to download · Opens in Google Photos.</p>
   </section>
 
 
-  <section class="cta">
-    <h2>Build. Ship.<br>Repeat.</h2>
-    <p>Every project is open on GitHub. Explore, star, fork or contribute.</p>
-    <a class="btn" href="https://github.com/ehsaanullah0" target="_blank" rel="noopener">
-      Visit my GitHub
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
-    </a>
+  <section class="cta" id="cta">
+    <div class="cta-inner">
+      <div class="cta-face face-a">
+        <button class="swap" type="button" aria-label="Flip to Ehsaan website"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg><span>Swap to Website</span></button>
+        <span class="face-tag">GitHub</span>
+        <h2>Build. Ship.<br>Repeat.</h2>
+        <p>Every project is open on GitHub. Explore, star, fork or contribute.</p>
+        <a class="btn" href="https://github.com/ehsaanullah0" target="_blank" rel="noopener">Visit my GitHub <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+      </div>
+      <div class="cta-face face-b" inert aria-hidden="true">
+        <button class="swap" type="button" aria-label="Flip to GitHub"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg><span>Swap to GitHub</span></button>
+        <span class="face-tag">Website</span>
+        <h2>Ehsaan<br>Website.</h2>
+        <p>My home on the web. Come take a look around.</p>
+        <a class="btn" href="https://ehsaan.odoo.com" target="_blank" rel="noopener">Visit ehsaan.odoo.com <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+      </div>
+    </div>
   </section>
 
   <div class="wordmark" aria-hidden="true">ehsaan</div>
@@ -788,6 +818,96 @@ if(matchMedia('(pointer:fine)').matches){
     if(e.isIntersecting){wm.classList.add('in'); wio.unobserve(wm);}
   }),{threshold:.25});
   wio.observe(wm);
+})();
+
+/* wallpaper card titles: split into letters for the hover wave */
+document.querySelectorAll('.wallpaper-meta h3').forEach(h=>{
+  const label=h.textContent; let i=0;
+  const letters=(el)=>{const t=el.textContent; el.textContent=''; [...t].forEach(c=>{const x=document.createElement('span'); x.className='ch'; x.style.setProperty('--i',i++); x.textContent=c; el.append(x)})};
+  [...h.childNodes].forEach(n=>{
+    if(n.nodeType===3&&n.textContent.trim()){const w=document.createElement('span'); w.className='w w1'; w.textContent=n.textContent.trim(); letters(w); n.replaceWith(w)}
+    else if(n.nodeName==='EM'){n.classList.add('w','w2'); letters(n)}
+  });
+  h.setAttribute('aria-label',label.replace(/\s+/g,' ').trim());
+});
+
+/* flip card: a bouncy, tilting flip with confetti and popping letters */
+(function(){
+  const cta=document.getElementById('cta'); if(!cta) return;
+  const inner=cta.querySelector('.cta-inner'), a=cta.querySelector('.face-a'), b=cta.querySelector('.face-b');
+  const canAnimate=typeof inner.animate==='function';
+  let busy=false;
+  /* split headings into letters (words kept unbreakable) */
+  cta.querySelectorAll('h2').forEach(h=>{
+    [...h.childNodes].forEach(n=>{
+      if(n.nodeType!==3) return;
+      const f=document.createDocumentFragment(); let i=0;
+      n.textContent.split(/(\s+)/).forEach(tok=>{
+        if(!tok) return;
+        if(/^\s+$/.test(tok)){f.append(' ');return}
+        const w=document.createElement('span'); w.className='cw';
+        [...tok].forEach(ch=>{const l=document.createElement('span'); l.className='cl'; l.textContent=ch; w.append(l)});
+        f.append(w);
+      });
+      n.replaceWith(f);
+    });
+  });
+  const T=(deg,y,sx,sy,z)=>`translateY(${y}px) rotateZ(${z}deg) rotateY(${deg}deg) scale(${sx},${sy})`;
+  function flipAnim(from,to,dir){
+    return inner.animate([
+      {transform:T(from,0,1,1,0)},
+      {transform:T(from-dir*14,10,1.02,.95,dir*1.5),offset:.17},
+      {transform:T(from+dir*95,-80,1.08,1.08,-dir*5),offset:.5},
+      {transform:T(to+dir*17,-14,1.04,1.04,dir*3),offset:.78},
+      {transform:T(to-dir*6,7,.99,1.02,-dir),offset:.9},
+      {transform:T(to,0,1,1,0)}
+    ],{duration:1300,easing:'ease-in-out'});
+  }
+  const COLORS=['#0a0a0a','#f5f5f5','#a01e29','#7a7a7a','#d9d9d9','#6e0c18'];
+  function confetti(){
+    for(let i=0;i<34;i++){
+      const el=document.createElement('span'); el.className='confetti';
+      const size=7+Math.random()*9, shape=Math.random();
+      el.style.cssText=`width:${size}px;height:${shape>.66?size*.4:size}px;background:${COLORS[i%COLORS.length]};border-radius:${shape<.4?'50%':shape>.66?'3px':'2px'}`;
+      cta.append(el);
+      const ang=Math.random()*Math.PI*2, d=170+Math.random()*330;
+      const dx=Math.cos(ang)*d*1.5, dy=Math.sin(ang)*d*.8-120, rot=(Math.random()-.5)*900;
+      const an=el.animate([
+        {transform:'translate(-50%,-50%) scale(.2) rotate(0deg)',opacity:1},
+        {transform:`translate(calc(-50% + ${dx*.7}px),calc(-50% + ${dy}px)) scale(1) rotate(${rot*.6}deg)`,opacity:1,offset:.45},
+        {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy+260}px)) scale(.8) rotate(${rot}deg)`,opacity:0}
+      ],{duration:1000+Math.random()*700,easing:'cubic-bezier(.2,.7,.4,1)',delay:Math.random()*120});
+      an.onfinish=()=>el.remove();
+    }
+  }
+  function popLetters(face){
+    face.querySelectorAll('h2 .cl').forEach((l,i)=>{
+      const s=(i%2?1:-1);
+      l.animate([
+        {transform:`translateY(46px) scale(.4) rotate(${s*16}deg)`,opacity:0},
+        {transform:`translateY(-14px) scale(1.18) rotate(${-s*5}deg)`,opacity:1,offset:.6},
+        {transform:'none',opacity:1}
+      ],{duration:650,delay:620+i*38,easing:'cubic-bezier(.3,1.4,.5,1)',fill:'backwards'});
+    });
+  }
+  cta.addEventListener('click',e=>{
+    const btn=e.target.closest('.swap'); if(!btn||busy) return;
+    const f=!cta.classList.contains('flipped');
+    const apply=()=>{
+      cta.classList.toggle('flipped',f);
+      a.toggleAttribute('inert',f); a.setAttribute('aria-hidden',f?'true':'false');
+      b.toggleAttribute('inert',!f); b.setAttribute('aria-hidden',f?'false':'true');
+    };
+    if(!canAnimate){apply();return}
+    busy=true; apply();
+    setTimeout(()=>{busy=false},1600);
+    btn.animate([{transform:'scale(1)'},{transform:'scale(.82) rotate(-6deg)',offset:.3},{transform:'scale(1.12) rotate(4deg)',offset:.65},{transform:'scale(1)'}],{duration:450,easing:'ease-out'});
+    const dir=f?1:-1, an=flipAnim(f?0:180,f?180:0,dir);
+    setTimeout(confetti,520);
+    popLetters(f?b:a);
+    an.onfinish=()=>{busy=false};
+    an.oncancel=()=>{busy=false};
+  });
 })();
 
 document.getElementById('yr').textContent=new Date().getFullYear();
