@@ -214,37 +214,8 @@ Just your library.
 
 ---
 
-```text
-EHSAAN PLAY
-│
-├── 👤 PERSONAL USER DATA
-│   │
-│   ├── Watchlist & watched status
-│   ├── Episode progress & seasonal checkmarks
-│   ├── Star ratings & personal notes
-│   ├── Custom lists & activities
-│   └── Preferences & custom genre palettes
-│
-│   → Stored locally in browser localStorage
-│   → Uses versioned storage keys
-│   → Never stores base64 images or image blobs
-│   → Compact JSON export for backup
-│
-└── 🎨 TMDB ARTWORK
-    │
-    ├── 🌐 ONLINE MODE · Default
-    │   │
-    │   ├── Posters & backdrops load from TMDB when needed
-    │   ├── No intentional permanent image archive
-    │   └── Helps prevent uncontrolled storage growth
-    │
-    └── 📦 OFFLINE MODE
-        │
-        ├── Artwork stored in a dedicated browser cache
-        ├── "Download Artwork for My Library" ~ saves artwork for your library
-        ├── Automatic cache capacity limits
-        └── LRU-based trimming removes older unused artwork
-```
+[![Architecture diagram of ehsaanullah0/ehsaanplay](https://gitdiagram.com/ehsaanullah0/ehsaanplay/diagram.png)](https://gitdiagram.com/ehsaanullah0/ehsaanplay?utm_source=readme&utm_medium=picture)
+
 ---
 
 ## 🛠️ Technology
