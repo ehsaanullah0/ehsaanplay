@@ -1,5 +1,5 @@
 <p align="center">
-<img width="1796" height="876" alt="Ehsaan ULLAH (1)" src="https://github.com/user-attachments/assets/44e8dbff-9318-44aa-b51d-90b8854ab44b" />
+<img width="1796" height="876" alt="EhsaanPlay_ Private Watchlist, Simplified" src="https://github.com/user-attachments/assets/d227364f-9d8c-46cd-b22f-4081527c526f" />
 </p>
 <br>
 
