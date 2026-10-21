@@ -16,12 +16,12 @@
 </p>
 
 
-## WANT STREAMING REFFER [VEGA-ORG](https://github.com/vega-org)
+## WANT STREAMING, REFFER [VEGA-ORG](https://github.com/vega-org)
 
 ---
 
 ## ‼️ DISCLAIMER
-- No fork of this project will recieve support, if you use a fork, ask the forker to support you. 
+This webapp is a personal developed project if you want support please do not expect and try to fork the repo to make the webapp yours.
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
 
 > [!IMPORTANT]
@@ -57,9 +57,6 @@
     <img width="420" src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Watch EHSAAN PLAY Demo" />
   </a>
 </p>
-
-<p align="center">
-  <sub>▶️ Click the preview to watch the EHSAAN PLAY demo.</sub>
 </p>
 
 ---
@@ -184,7 +181,7 @@ EHSAAN PLAY therefore separates:
 
 from
 
-**TMDB Artwork**
+**TMDB+OMDB Artwork**
 
 Artwork can be fetched from TMDB when needed and handled through browser caching rather than unnecessarily storing large image files inside your personal library data.
 
