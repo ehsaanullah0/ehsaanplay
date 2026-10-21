@@ -6,7 +6,7 @@
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
 
-# 📍[EHSAAN PLAY](https://ehsaanplay.ai.studio)📍[
+# 📍[EHSAAN PLAY](https://ehsaanplay.ai.studio)📍
 </a>
 
 <p>
