@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActiveTab } from '../../types/movie';
 import { Film, Bookmark, Layers, Settings, Search } from 'lucide-react';
+import { useFullscreen } from '../../hooks/useFullscreen';
 
 interface BottomNavigationProps {
   activeTab: ActiveTab;
@@ -17,6 +18,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onOpenSearch,
   onTriggerSwapConfirm,
 }) => {
+  const { isFullscreen } = useFullscreen();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const scrollTimeout = useRef<number | null>(null);
@@ -42,7 +44,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         if (onTriggerSwapConfirm) {
           onTriggerSwapConfirm();
         }
-      }, 450);
+      }, 500);
     }
   };
 
@@ -56,26 +58,29 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollY.current;
 
-      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-        // Scrolling down
+      // When near top or bottom, always keep navigation visible
+      if (currentScrollY < 100) {
+        setIsVisible(true);
+      } else if (delta > 40 && currentScrollY > 160) {
+        // Only hide on significant, fast continuous downward scrolling
         setIsVisible(false);
-      } else {
-        // Scrolling up or at top
+      } else if (delta < -10) {
+        // Immediately reveal on any slight upward scroll gesture
         setIsVisible(true);
       }
 
       lastScrollY.current = currentScrollY;
 
-      // Clear any existing timer
       if (scrollTimeout.current) {
         window.clearTimeout(scrollTimeout.current);
       }
 
-      // Re-show navigation when scrolling stops
+      // Fast restore when scrolling pauses so user can always tap
       scrollTimeout.current = window.setTimeout(() => {
         setIsVisible(true);
-      }, 1200);
+      }, 500);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -115,13 +120,21 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   return (
     <div
-      className={`md:hidden fixed bottom-5 left-0 right-0 z-40 flex justify-center pointer-events-none px-4 pb-safe transition-all duration-300 ease-out ${
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0'
+      style={{
+        bottom: isFullscreen
+          ? 'calc(1.1rem + env(safe-area-inset-bottom, 0px))'
+          : 'calc(0.6rem + env(safe-area-inset-bottom, 0px))',
+      }}
+      className={`md:hidden fixed left-0 right-0 z-40 flex justify-center pointer-events-none px-4 transition-all duration-300 ease-out ${
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'
       }`}
     >
       <nav
         aria-label="Mobile Navigation"
-        className="pointer-events-auto flex items-center gap-1.5 p-1.5 bg-[var(--bg-nav-container)] rounded-full shadow-xl border border-[var(--border-subtle)] backdrop-blur-md transition-colors duration-200"
+        className="pointer-events-auto flex items-center gap-1.5 p-1.5 bg-[var(--bg-nav-container)] rounded-full shadow-2xl border border-[var(--border-subtle)] backdrop-blur-xl transition-all duration-200"
+        style={{
+          boxShadow: '0 8px 32px -4px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.2)',
+        }}
       >
         {tabs.map(tab => {
           const isActive = !tab.isSpecialAction && activeTab === tab.id;
@@ -133,6 +146,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
                 onTouchStart={() => startPress(tab.id)}
+                onTouchMove={cancelPress}
                 onTouchEnd={cancelPress}
                 onTouchCancel={cancelPress}
                 onMouseDown={() => startPress(tab.id)}
@@ -144,7 +158,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                     if (onTriggerSwapConfirm) onTriggerSwapConfirm();
                   }
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--bg-nav-active)] text-[var(--text-nav-active)] text-sm font-bold shadow-xs transition-all duration-200 focus:outline-none select-none"
+                style={{ touchAction: 'manipulation' }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--bg-nav-active)] text-[var(--text-nav-active)] text-sm font-bold shadow-xs transition-all duration-200 focus:outline-none select-none active:scale-95"
               >
                 <Icon className="w-4 h-4 stroke-[2.5]" />
                 <span>{tab.label}</span>
@@ -157,6 +172,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               key={tab.id}
               onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
               onTouchStart={() => startPress(tab.id)}
+              onTouchMove={cancelPress}
               onTouchEnd={cancelPress}
               onTouchCancel={cancelPress}
               onMouseDown={() => startPress(tab.id)}
@@ -174,6 +190,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   ? `${tab.label} (Hold to swap layout)`
                   : tab.label
               }
+              style={{ touchAction: 'manipulation' }}
               className={`p-2.5 rounded-full text-[var(--text-nav-inactive)] hover:opacity-80 active:scale-90 transition-all duration-150 focus:outline-none select-none ${
                 tab.isSpecialAction ? 'hover:text-[var(--accent-primary)]' : ''
               }`}
@@ -186,3 +203,4 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     </div>
   );
 };
+

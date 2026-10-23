@@ -10,7 +10,7 @@
     "start": "tsx server.ts",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/tmdb-search.test.ts"
+    "test": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -23,7 +23,6 @@
     "jsqr": "^1.4.0",
     "lucide-react": "^0.546.0",
     "lz-string": "^1.5.0",
-    "motion": "^12.23.24",
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

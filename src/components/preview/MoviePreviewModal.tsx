@@ -38,6 +38,7 @@ import {
   FolderPlus,
   Trash2,
   CheckCircle2,
+  Moon,
 } from 'lucide-react';
 
 export type PreviewCardId =
@@ -97,6 +98,7 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
 export interface HeroCustomizerConfig {
   artOn: boolean;
   opacity: number;
+  forceDarkMode: boolean;
   showTitleBackgroundCard: boolean;
   showTaglineQuote: boolean;
   showGenrePills: boolean;
@@ -116,6 +118,7 @@ export interface HeroCustomizerConfig {
 const DEFAULT_HERO_CUSTOMIZER: HeroCustomizerConfig = {
   artOn: true,
   opacity: 1.0,
+  forceDarkMode: false,
   showTitleBackgroundCard: false,
   showTaglineQuote: true,
   showGenrePills: true,
@@ -415,29 +418,44 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   };
 
   const embedUrl = getYoutubeEmbedUrl(item.trailerUrl);
+  const isDarkPreview = Boolean(heroCustomizer.forceDarkMode);
+  const isDarkHero = Boolean(heroCustomizer.artOn || heroCustomizer.forceDarkMode);
 
   return (
-    <div className="fixed inset-0 z-50 w-full h-full bg-[var(--modal-bg)] overflow-y-auto text-[var(--text-primary)] animate-fade-in flex flex-col">
+    <div
+      data-theme={isDarkPreview ? "dark" : undefined}
+      className={`fixed inset-0 z-50 w-full h-full overflow-y-auto animate-fade-in flex flex-col transition-colors duration-300 ${
+        isDarkPreview ? 'bg-[#0b0d10] text-[#f4f4f5]' : 'bg-[var(--modal-bg)] text-[var(--text-primary)]'
+      }`}
+    >
       
       {/* ========================================================================= */}
-      {/* CINEMATIC HERO SECTION (Artwork visible only for tablet & desktop screens) */}
+      {/* CINEMATIC HERO SECTION                                                    */}
       {/* ========================================================================= */}
       <div className={`relative w-full min-h-[340px] sm:min-h-[540px] md:min-h-[620px] lg:min-h-[680px] flex flex-col justify-between shrink-0 border-b border-[var(--border-subtle)] transition-colors ${
-        heroCustomizer.artOn ? 'bg-[var(--modal-bg)] sm:bg-[#000000]' : 'bg-[var(--modal-bg)]'
+        isDarkHero ? 'bg-[#000000]' : 'bg-[var(--modal-bg)]'
       }`}>
         
-        {/* Backdrop Image Layer (Turned off on mobile screens < sm, visible for tablet and desktop >= sm) */}
+        {/* Backdrop Image Layer (Visible across all screens, full clarity at 100% opacity) */}
         {heroCustomizer.artOn && (
-          <div className="absolute inset-0 z-0 overflow-hidden hidden sm:block bg-[#000000]">
+          <div className="absolute inset-0 z-0 overflow-hidden bg-[#000000]">
             <SafeImage
               src={item.backdropUrl || item.posterUrl}
+              fallbackSrc={item.fallbackPosterUrl}
               alt={item.title}
               className="w-full h-full object-cover transition-opacity duration-300"
               style={{ opacity: heroCustomizer.opacity }}
             />
-            {/* Directional gradient shadow for text legibility and deep dark fog */}
+            {/* Dynamic directional gradient overlay that smoothly recedes at 100% opacity for full, brilliant artwork visibility */}
             <div
-              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/30 sm:bg-[linear-gradient(to_right,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.65)_45%,rgba(0,0,0,0.3)_75%,rgba(0,0,0,0.15)_100%)] pointer-events-none"
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              style={{
+                background: heroCustomizer.opacity >= 0.98
+                  ? 'linear-gradient(to right, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.18) 30%, transparent 62%), linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 35%)'
+                  : heroCustomizer.opacity >= 0.75
+                  ? 'linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 35%, rgba(0,0,0,0.12) 70%, transparent 100%), linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 45%)'
+                  : 'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.1) 100%), linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 50%)'
+              }}
             />
           </div>
         )}
@@ -450,18 +468,18 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               onClick={onClose}
               aria-label="Back to library"
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition border active:scale-95 shadow-xs ${
-                heroCustomizer.artOn
+                isDarkHero
                   ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
                   : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
               }`}
             >
-              <ArrowLeft className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+              <ArrowLeft className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
               <span>Back</span>
             </button>
 
             {item.productionCompany && (
               <span className={`hidden sm:inline-block px-3.5 py-1.5 rounded-full text-xs font-semibold border truncate max-w-[280px] ${
-                heroCustomizer.artOn
+                isDarkHero
                   ? 'bg-black/50 text-white/90 backdrop-blur-md border-white/15'
                   : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
               }`}>
@@ -479,13 +497,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   onClick={() => setIsAddingToList(!isAddingToList)}
                   aria-label="Add to Collection List"
                   className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
-                    heroCustomizer.artOn
+                    isDarkHero
                       ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
                       : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
                   } ${isAddingToList ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
                   title="Add to Collection List"
                 >
-                  <FolderPlus className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+                  <FolderPlus className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
                 </button>
 
                 {isAddingToList && (
@@ -533,20 +551,20 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 onClick={() => setShowCustomizer(!showCustomizer)}
                 aria-label="Preview Customizer"
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
-                  heroCustomizer.artOn
+                  isDarkHero
                     ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
                     : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
                 }`}
                 title="Preview Customizer"
               >
-                <Sliders className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+                <Sliders className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
               </button>
 
               {/* PREVIEW CUSTOMIZER POPUP CARD */}
               {showCustomizer && (
                 <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-84 max-w-sm sm:max-w-none max-h-[80vh] sm:max-h-[540px] overflow-y-auto p-5 bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] z-50 animate-fade-in no-scrollbar mx-auto sm:mx-0">
-                  {/* Header: Title + Art On / Off */}
-                  <div className="flex items-center justify-between mb-4">
+                  {/* Header: Title + Art On / Off + Hide Arrow */}
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--border-subtle)]">
                     <div className="flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-[var(--accent-primary)]" />
                       <span className="text-xs font-black tracking-wider uppercase text-[var(--text-primary)]">
@@ -554,16 +572,27 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => updateHeroCustomizer({ artOn: !heroCustomizer.artOn })}
-                      className={`px-3 py-1 rounded-full text-xs font-black transition ${
-                        heroCustomizer.artOn
-                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
-                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      {heroCustomizer.artOn ? 'ART ON' : 'ART OFF'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateHeroCustomizer({ artOn: !heroCustomizer.artOn })}
+                        className={`px-3 py-1 rounded-full text-xs font-black transition ${
+                          heroCustomizer.artOn
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {heroCustomizer.artOn ? 'ART ON' : 'ART OFF'}
+                      </button>
+
+                      <button
+                        onClick={() => setShowCustomizer(false)}
+                        className="p-1 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--accent-primary)] hover:text-[var(--bg-primary)] text-[var(--text-secondary)] transition active:scale-95 flex items-center justify-center"
+                        title="Hide Customizer"
+                        aria-label="Hide Customizer"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Backdrop Opacity Range */}
@@ -586,12 +615,36 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     />
                   </div>
 
+                  {/* Force Dark Preview Window Toggle (Cinema Mode in Light Theme) */}
+                  <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)] mt-3">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                        <Moon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                        Force Dark Window
+                      </span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">
+                        Dark theater mode even in light theme
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateHeroCustomizer({ forceDarkMode: !heroCustomizer.forceDarkMode })}
+                      className={`px-3 py-1 rounded-full text-xs font-black transition active:scale-95 ${
+                        heroCustomizer.forceDarkMode
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {heroCustomizer.forceDarkMode ? 'DARK ON' : 'AUTO'}
+                    </button>
+                  </div>
+
                   {/* REFRESH ARTWORK & BANNER (THIS TITLE ONLY) */}
-                  <div className="border-t border-[var(--border-subtle)] my-4" />
-                  <div className="text-[11px] font-black text-[var(--text-secondary)] tracking-wider uppercase mb-3 flex items-center justify-between">
+                  <div className="border-t border-[var(--border-subtle)] my-3" />
+                  <div className="text-[11px] font-black text-[var(--text-secondary)] tracking-wider uppercase mb-2 flex items-center justify-between">
                     <span>REFRESH ARTWORK (THIS TITLE):</span>
                     {reloadFeedback && (
-                      <span className="text-[10px] font-bold text-emerald-500 animate-fade-in flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-blue-500 animate-fade-in flex items-center gap-1">
                         <Check className="w-3 h-3" /> {reloadFeedback}
                       </span>
                     )}
@@ -905,6 +958,17 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                         {heroCustomizer.showStreamingProviders ? 'Show' : 'Hide'}
                       </button>
                     </div>
+
+                    {/* Hide Customizer Action at Bottom */}
+                    <div className="pt-3 border-t border-[var(--border-subtle)] mt-3">
+                      <button
+                        onClick={() => setShowCustomizer(false)}
+                        className="w-full py-2 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--accent-primary)] hover:text-[var(--bg-primary)] text-[var(--text-primary)] font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                        <span>Hide Customizer</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -915,13 +979,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               onClick={() => setShowRearrangeModal(true)}
               aria-label="Rearrange cards"
               className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
-                heroCustomizer.artOn
+                isDarkHero
                   ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
                   : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
               }`}
               title="Rearrange & Customize Cards Order"
             >
-              <Pencil className={`w-4 h-4 ${heroCustomizer.artOn ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+              <Pencil className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
             </button>
 
             {/* Filled Blood Red Cross Close Button */}
@@ -958,7 +1022,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           <div className="relative z-10 w-full px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 sm:pb-8 pt-2 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-8">
             {/* Anchored Left Poster / Album Artwork */}
             <div className={`w-40 xs:w-44 sm:w-48 md:w-56 flex-none aspect-[2/3] rounded-2xl overflow-hidden shadow-sm sm:shadow-2xl border select-none transition-transform duration-300 hover:scale-[1.02] relative self-start ${
-              heroCustomizer.artOn
+              isDarkHero
                 ? 'bg-[var(--bg-surface-elevated)] sm:bg-[#24291B] border-[var(--border-subtle)] sm:border-white/25'
                 : 'bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
             }`}>
@@ -975,7 +1039,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             <div
               className={`flex-1 min-w-0 flex flex-col items-start text-left w-full transition-all ${
                 heroCustomizer.showTitleBackgroundCard
-                  ? heroCustomizer.artOn
+                  ? isDarkHero
                     ? 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] sm:bg-black/60 sm:backdrop-blur-md border border-[var(--border-subtle)] sm:border-white/15 shadow-sm sm:shadow-xl'
                     : 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shadow-sm'
                   : ''
@@ -983,7 +1047,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             >
               {/* Media Type & Metadata Line (Cleanly on top of title) */}
               <div className={`flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider mb-1 ${
-                heroCustomizer.artOn
+                isDarkHero
                   ? 'text-[var(--text-secondary)] sm:text-white/90'
                   : 'text-[var(--text-secondary)]'
               }`}>
@@ -1009,7 +1073,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
               {/* Primary Title (Bold, Left-Aligned) */}
               <h1 className={`text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12] text-left ${
-                heroCustomizer.artOn
+                isDarkHero
                   ? 'text-[var(--text-primary)] sm:text-white'
                   : 'text-[var(--text-primary)]'
               }`}>
@@ -1019,7 +1083,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               {/* Tagline Quote */}
               {heroCustomizer.showTaglineQuote && item.tagline && (
                 <p className={`mt-1 text-xs sm:text-sm italic line-clamp-2 text-left ${
-                  heroCustomizer.artOn
+                  isDarkHero
                     ? 'text-[var(--text-secondary)] sm:text-white/85'
                     : 'text-[var(--text-secondary)]'
                 }`}>
@@ -1362,7 +1426,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     <div className="flex items-center gap-2.5 text-[11px]">
                       {isSavedFeedback && (
-                        <span className="inline-flex items-center gap-1 text-emerald-500 font-bold animate-fade-in bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1 text-blue-800 font-bold animate-fade-in bg-blue-800/10 px-2.5 py-0.5 rounded-full border border-blue-800/20">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Saved to journal</span>
                         </span>

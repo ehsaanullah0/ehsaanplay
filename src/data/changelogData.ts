@@ -13,8 +13,31 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.3.0',
+    version: 'v2.3.1',
     isLatest: true,
+    tagline: 'Fullscreen Android Back Preservation, Adaptive Bottom Navigation, Hierarchical Settings Navigation & Minimalist Source Indicators',
+    points: [
+      {
+        title: 'Adaptive Responsive Bottom Navigation',
+        description: 'Optimized the mobile floating navigation bar to operate smoothly across both non-fullscreen and fullscreen modes with dynamic safe-area clearance, zero touch latency, and resilient scroll handling that prevents accidental bar hiding or gesture cancellations.',
+      },
+      {
+        title: 'Persistent Fullscreen Navigation on Android',
+        description: 'Engineered smart back gesture handling to ensure immersive fullscreen mode does not escape when using system-level Android back gestures or hardware buttons during in-app browsing.',
+      },
+      {
+        title: 'Hierarchical Back Gesture in Settings',
+        description: 'Updated the Android back navigation stack inside Settings to return smoothly to the settings overview menu when browsing any settings section instead of jumping straight back to the home page.',
+      },
+      {
+        title: 'Minimalist Source Representation & Customizer Dark Mode',
+        description: 'Unified movie & TV source identification with borderless deep red (TMDB) and deep blue (OMDb) dots across search controls and results, streamlined diagnostic tools, and added an option to force dark mode in the preview customizer.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.0',
+    isLatest: false,
     tagline: 'IMDb Movie & TV Series Link Preview, Search Provider Switcher, Clean OMDb Relevance & Precision Noise Filter',
     points: [
       {

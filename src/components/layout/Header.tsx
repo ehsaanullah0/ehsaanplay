@@ -273,48 +273,121 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Corner Interactive Action Button (Search Bar OR Custom Lists with Long-Press Exchange) */}
-          <button
-            onClick={handleCornerButtonClick}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onContextMenu={handleContextMenu}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition focus:outline-none shadow-3xs active:scale-95 select-none ${
-              swapSearchAndLists
-                ? activeTab === 'lists'
-                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                  : 'bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)]'
-                : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] md:w-56 md:justify-start md:pl-4'
-            }`}
-            aria-label={
-              swapSearchAndLists
-                ? 'Custom lists (long press to exchange position)'
-                : 'Search movies and series (long press to exchange position)'
-            }
-            title={
-              swapSearchAndLists
-                ? 'Custom Lists — Long-press to swap with Search Bar'
-                : 'Search — Long-press to swap with Custom Lists'
-            }
-          >
-            {swapSearchAndLists ? (
-              <>
+          {/* Corner Interactive Action Buttons: Search & IMDb (Divided on Desktop, Compact with Yellow IMDb Circle on Mobile) */}
+          {swapSearchAndLists ? (
+            <div className="flex items-center gap-1.5">
+              {/* Lists Button when swapped */}
+              <button
+                onClick={handleCornerButtonClick}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onContextMenu={handleContextMenu}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition focus:outline-none shadow-3xs active:scale-95 select-none ${
+                  activeTab === 'lists'
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                    : 'bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)]'
+                }`}
+                aria-label="Custom lists (long press to exchange position)"
+                title="Custom Lists — Long-press to swap with Search Bar"
+              >
                 <Layers className="w-4 h-4 stroke-[2.5]" />
                 <span className="font-black">Lists</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 stroke-[2.5] md:mr-1" />
-                <span className="hidden sm:inline font-black">Search...</span>
-              </>
-            )}
-          </button>
+              </button>
+
+              {/* Small Yellow Circle to open IMDb fetch window on smaller screens */}
+              <button
+                onClick={() => onOpenImdbPreview?.()}
+                className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-black text-[10px] tracking-tight shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
+                title="Open IMDb Fetch Window"
+                aria-label="Open IMDb Fetch Window"
+              >
+                <span className="font-black text-[11px] uppercase tracking-tighter">IMDb</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Desktop & Tablet: Divided Search & IMDb Segmented Button */}
+              <div className="hidden sm:inline-flex items-center rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] p-0.5 shadow-2xs border border-[var(--border-subtle)]">
+                {/* Part 1: Search */}
+                <button
+                  type="button"
+                  onClick={handleCornerButtonClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onContextMenu={handleContextMenu}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition active:scale-95 text-xs sm:text-sm font-bold select-none focus:outline-none"
+                  aria-label="Search movies and series (long press to exchange position)"
+                  title="Search movies and series (Long-press to swap with Custom Lists)"
+                >
+                  <Search className="w-4 h-4 stroke-[2.5]" />
+                  <span className="font-black">Search</span>
+                </button>
+
+                {/* Subtle vertical divider between Search and IMDb */}
+                <div className="w-[1.5px] h-4 bg-[var(--text-card-yellow)]/25 mx-0.5 rounded-full" />
+
+                {/* Part 2: IMDb */}
+                <button
+                  type="button"
+                  onClick={() => onOpenImdbPreview?.()}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition active:scale-95 text-xs sm:text-sm font-bold select-none focus:outline-none"
+                  aria-label="Open IMDb Link & ID Fetch Window"
+                  title="Open IMDb Preview & Metadata Fetch Window"
+                >
+                  <span className="px-1.5 py-0.5 rounded-md bg-[var(--text-card-yellow)] text-[var(--bg-card-yellow)] font-black text-[10px] tracking-tight leading-none">
+                    IMDb
+                  </span>
+                  <span className="font-black hidden md:inline">IMDb</span>
+                </button>
+              </div>
+
+              {/* Smaller Screen Size (Mobile): Search Circle + Small Yellow Circle for IMDb */}
+              <div className="flex sm:hidden items-center gap-1.5">
+                {/* Mobile Search Circle */}
+                <button
+                  type="button"
+                  onClick={handleCornerButtonClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onContextMenu={handleContextMenu}
+                  className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-bold shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
+                  aria-label="Search movies and series"
+                  title="Search (Long-press to swap with Lists)"
+                >
+                  <Search className="w-4 h-4 stroke-[2.5]" />
+                </button>
+
+                {/* Mobile Small Circle filled with Yellow colour to open IMDb fetch window */}
+                <button
+                  type="button"
+                  onClick={() => onOpenImdbPreview?.()}
+                  className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-black text-[10px] tracking-tight shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
+                  title="Open IMDb Fetch Window"
+                  aria-label="Open IMDb Fetch Window"
+                >
+                  <span className="font-black text-[11px] uppercase tracking-tighter">IMDb</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

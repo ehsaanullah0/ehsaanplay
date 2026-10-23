@@ -451,26 +451,28 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
             </div>
           )}
 
-          {/* Toggle Batch Mode Button */}
-          <button
-            onClick={() => {
-              if (isSelectionModeActive) {
-                setIsBatchModeActive(false);
-                setSelectedIds(new Set());
-              } else {
-                setIsBatchModeActive(true);
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition active:scale-95 shadow-xs border ${
-              isSelectionModeActive
-                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-[var(--accent-primary)]'
-                : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]'
-            }`}
-            title="Toggle Batch Multi-Select Mode"
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>{isSelectionModeActive ? 'Done' : 'Batch Select'}</span>
-          </button>
+          {/* Toggle Batch Mode Button - only shown when toggled on in Tweaks section or currently active */}
+          {(Boolean(settings?.tweaks?.showBatchSelectButton) || isSelectionModeActive) && (
+            <button
+              onClick={() => {
+                if (isSelectionModeActive) {
+                  setIsBatchModeActive(false);
+                  setSelectedIds(new Set());
+                } else {
+                  setIsBatchModeActive(true);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition active:scale-95 shadow-xs border ${
+                isSelectionModeActive
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-[var(--accent-primary)]'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]'
+              }`}
+              title="Toggle Batch Multi-Select Mode"
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>{isSelectionModeActive ? 'Done' : 'Batch Select'}</span>
+            </button>
+          )}
 
           {/* Random Pick Button (In Secondary Theme Color) */}
           <button

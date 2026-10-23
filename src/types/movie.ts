@@ -159,6 +159,8 @@ export interface AppTweaksConfig {
   showWatchlistButton?: boolean; // Default: true
   swapSearchAndLists?: boolean; // Default: false (exchange search bar & custom lists positions)
   longPressBatchSelection?: boolean; // Default: false (enable long-press to enter batch-selection in Watchlist)
+  showBatchSelectButton?: boolean; // Default: false (display Batch Select button in Watchlist toolbar)
+  showExploreFilterLabels?: boolean; // Default: false (display text labels in Explore selection bar; default is icon-only)
   favoritesLayout?: 'horizontal' | 'vertical'; // Default: 'horizontal' (Personal favorites display format)
   showFooterShowcase?: boolean; // Default: true (Bottom footer showcase visibility)
 }
@@ -180,6 +182,8 @@ export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
   showWatchlistButton: true,
   swapSearchAndLists: false,
   longPressBatchSelection: false,
+  showBatchSelectButton: false,
+  showExploreFilterLabels: false,
   favoritesLayout: 'horizontal',
   showFooterShowcase: true,
 };
@@ -191,6 +195,7 @@ export interface UserSettings {
   backdropOpacity: number; // 0.0 to 1.0 (default 0.40)
   tmdbApiKey?: string;
   omdbApiKey?: string;
+  recommendationProvider?: 'tmdb' | 'omdb'; // Default: 'tmdb' (Active recommendation catalog provider)
   viewMode: 'grid' | 'cards';
   posterQuality: 'standard' | 'high';
   homeSections?: HomeSectionsConfig;

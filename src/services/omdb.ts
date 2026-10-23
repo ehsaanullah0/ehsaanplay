@@ -12,7 +12,7 @@ export interface DiagnosticResult {
 
 const OMDB_BASE_URL = 'https://www.omdbapi.com/';
 const REQUEST_TIMEOUT_MS = 6000;
-export const DEFAULT_OMDB_API_KEY = default';
+export const DEFAULT_OMDB_API_KEY = default omdb key
 
 export function getEffectiveOMDBKey(customKey?: string): string {
   if (customKey && customKey.trim()) {
@@ -230,7 +230,15 @@ async function fetchOMDBJson<T>(params: Record<string, string>, customApiKey?: s
   }
 
   try {
-    const res = await fetch(url.toString(), { signal: controller.signal });
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), { signal: controller.signal });
+    } catch (directErr) {
+      if (signal?.aborted) throw directErr;
+      // Fallback to local server proxy
+      const proxyUrl = `/api/omdb${url.search}`;
+      res = await fetch(proxyUrl, { signal: controller.signal });
+    }
     clearTimeout(timeoutId);
     if (signal) signal.removeEventListener('abort', onCallerAbort);
 
@@ -704,9 +712,16 @@ export async function testOMDBConnection(customApiKey?: string): Promise<Diagnos
 
   try {
     // Test with a canonical lightweight query (e.g., Guardians of the Galaxy Vol 2: tt3896198)
-    const res = await fetch(`${OMDB_BASE_URL}?i=tt3896198&apikey=${encodeURIComponent(apiKey)}`, {
-      signal: controller.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${OMDB_BASE_URL}?i=tt3896198&apikey=${encodeURIComponent(apiKey)}`, {
+        signal: controller.signal,
+      });
+    } catch {
+      res = await fetch(`/api/omdb?i=tt3896198&apikey=${encodeURIComponent(apiKey)}`, {
+        signal: controller.signal,
+      });
+    }
     clearTimeout(timeoutId);
     const latencyMs = Math.round(performance.now() - startTime);
 

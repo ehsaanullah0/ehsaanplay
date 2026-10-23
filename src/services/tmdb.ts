@@ -7,7 +7,7 @@
 
 import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo, EpisodeDetail } from '../types/movie';
 
-export const DEFAULT_TMDB_KEY = 'default'; // Default fallback TMDB API key
+export const DEFAULT_TMDB_KEY = defalt tmdb key// Default fallback TMDB API key
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
@@ -15,8 +15,13 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
  * Custom error class for TMDB operations
  */
 export class TMDBError extends Error {
-  constructor(message: string, public statusCode?: number, public endpoint?: string) {
+  statusCode?: number;
+  endpoint?: string;
+
+  constructor(message: string, statusCode?: number, endpoint?: string) {
     super(message);
+    this.statusCode = statusCode;
+    this.endpoint = endpoint;
     this.name = 'TMDBError';
   }
 }

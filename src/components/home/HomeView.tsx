@@ -42,6 +42,7 @@ interface HomeViewProps {
   onOpenChangelog?: () => void;
   onOpenLicense?: () => void;
   tweaks?: AppTweaksConfig;
+  settings?: UserSettings;
   onUpdateSettings?: (partial: Partial<UserSettings>) => void;
 }
 
@@ -64,6 +65,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenChangelog,
   onOpenLicense,
   tweaks,
+  settings,
   onUpdateSettings,
 }) => {
   const sections = homeSections || {
@@ -153,7 +155,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [mediaItems]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-20 md:pb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-28 md:pb-16">
       {/* Featured 5 Recently Added Hero Slideshow Banner */}
       {sections.showHeroSlideshow === true && featuredSlideshowItems.length > 0 && (
         <HeroSlideshow
@@ -257,7 +259,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         />
       )}
 
-      {/* Explore Recommendations Section (50+ Titles from OMDb excluding Watchlist) */}
+      {/* Explore Recommendations Section (Excluding Watchlist & Watched titles, supporting TMDB & OMDb) */}
       {sections.showExplore !== false && (
         <ExploreSection
           mediaItems={mediaItems}
@@ -270,6 +272,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
           onAddMediaToLibrary={onAddMediaToLibrary}
+          tweaks={tweaks || settings?.tweaks}
+          omdbApiKey={settings?.omdbApiKey}
+          tmdbApiKey={settings?.tmdbApiKey}
+          recommendationProvider={settings?.recommendationProvider}
+          onUpdateSettings={onUpdateSettings}
         />
       )}
 

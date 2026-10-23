@@ -184,7 +184,11 @@ export function useMediaLibrary() {
           const [netflixMovies, netflixSeries, exploreItems] = await Promise.all([
             fetchNetflixTop10Movies(loadedSettings.omdbApiKey),
             fetchNetflixTop10Series(loadedSettings.omdbApiKey),
-            fetchExploreRecommendations(loadedSettings.omdbApiKey),
+            fetchExploreRecommendations(
+              loadedSettings.recommendationProvider || 'tmdb',
+              loadedSettings.tmdbApiKey,
+              loadedSettings.omdbApiKey
+            ),
           ]);
           
           const combined = [...netflixMovies, ...netflixSeries, ...exploreItems];

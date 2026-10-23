@@ -21,10 +21,21 @@ interface LibraryStatsProps {
 export const LibraryStats: React.FC<LibraryStatsProps> = ({
   stats,
   onNavigateToWatchlist,
+  onNavigateTab: _onNavigateTab,
   homeSections,
   onUpdateHomeSections,
 }) => {
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+
+  const safeStats = stats || {
+    moviesCount: 0,
+    seriesCount: 0,
+    watchedCount: 0,
+    watchlistCount: 0,
+    favoritesCount: 0,
+    inProgressCount: 0,
+    totalHours: 0,
+  };
 
   const sections = homeSections || {
     showHeroSlideshow: true,
@@ -70,9 +81,9 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
           </div>
         </div>
         <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-          {stats.totalHours > 0 ? (
+          {safeStats.totalHours > 0 ? (
             <span>
-              <strong className="text-[var(--text-primary)] tabular-nums font-semibold">{stats.totalHours} hrs</strong> total watch time
+              <strong className="text-[var(--text-primary)] tabular-nums font-semibold">{safeStats.totalHours} hrs</strong> total watch time
             </span>
           ) : (
             'Track your collection and watch history.'
@@ -90,7 +101,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
             Movies
           </div>
           <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
-            {stats.moviesCount}
+            {safeStats.moviesCount}
           </div>
         </button>
 
@@ -102,7 +113,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
             TV Series
           </div>
           <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
-            {stats.seriesCount}
+            {safeStats.seriesCount}
           </div>
         </button>
 
@@ -114,7 +125,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
             Watched
           </div>
           <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1 transition-colors">
-            {stats.watchedCount}
+            {safeStats.watchedCount}
           </div>
         </button>
 
@@ -126,7 +137,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
             Watchlist
           </div>
           <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-card-olive)] tabular-nums tracking-tight mt-1">
-            {stats.watchlistCount}
+            {safeStats.watchlistCount}
           </div>
         </button>
       </div>

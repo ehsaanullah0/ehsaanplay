@@ -100,6 +100,8 @@ interface SettingsViewProps {
   onRestoreBackup: (json: string) => ImportResult | boolean;
   mediaItems?: MediaItem[];
   initialTopic?: SettingsTopicId | null;
+  activeTopicId?: SettingsTopicId | null;
+  onSelectTopic?: (topic: SettingsTopicId | null) => void;
   onRefreshData?: () => void;
   onClearCachedTitlesAndImages?: () => Promise<boolean | void> | void;
   onReplayGuide?: () => void;
@@ -220,6 +222,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRestoreBackup,
   mediaItems = [],
   initialTopic,
+  activeTopicId,
+  onSelectTopic,
   onRefreshData,
   onClearCachedTitlesAndImages,
   onReplayGuide,
@@ -296,6 +300,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Selected topic: on desktop default to 'app', on mobile null means topic hub menu
   const [selectedTopic, setSelectedTopic] = useState<SettingsTopicId | null>(() => {
+    if (activeTopicId !== undefined) {
+      return activeTopicId;
+    }
     if (initialTopic !== undefined && initialTopic !== null) {
       return initialTopic;
     }
@@ -306,13 +313,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   });
 
   useEffect(() => {
-    if (initialTopic !== undefined && initialTopic !== null) {
+    if (activeTopicId !== undefined) {
+      setSelectedTopic(activeTopicId);
+    } else if (initialTopic !== undefined) {
       setSelectedTopic(initialTopic);
     }
-  }, [initialTopic]);
+  }, [activeTopicId, initialTopic]);
 
   const handleSelectTopic = (topicId: SettingsTopicId | null) => {
     setSelectedTopic(topicId);
+    if (onSelectTopic) {
+      onSelectTopic(topicId);
+    }
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1019,6 +1031,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Watchlist Batch Selection Button</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Display the 'Batch Select' pill button in the Watchlist action bar to easily multi-select, share, or delete titles</div>
+                </div>
+                <M3Switch
+                  checked={Boolean(settings.tweaks?.showBatchSelectButton)}
+                  onChange={() => {
+                    const nextVal = !Boolean(settings.tweaks?.showBatchSelectButton);
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        showBatchSelectButton: nextVal,
+                      },
+                    });
+                  }}
+                  ariaLabel="Toggle Watchlist Batch Selection Button"
+                />
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="pr-3">
                   <div className="font-bold text-sm text-[var(--text-primary)]">Long press for Watchlist Batch Selection</div>
                   <div className="text-xs text-[var(--text-secondary)]">When enabled, long-pressing on a watchlist item initiates multi-select/batch actions instead of the action popup</div>
                 </div>
@@ -1035,6 +1068,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   }
                   ariaLabel="Toggle Long Press Watchlist Batch Selection"
                 />
+              </div>
+
+              {/* Recommendation Filter Bar Text Labels */}
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Recommendation Filter Bar Labels</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Display text labels alongside icons (All, New Releases, Movies, Series, Top Rated) in the Explore recommendations selection bar (default is compact icons only)</div>
+                </div>
+                <M3Switch
+                  checked={Boolean(settings.tweaks?.showExploreFilterLabels)}
+                  onChange={() => {
+                    const nextVal = !Boolean(settings.tweaks?.showExploreFilterLabels);
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        showExploreFilterLabels: nextVal,
+                      },
+                    });
+                  }}
+                  ariaLabel="Toggle Recommendation Filter Bar Labels"
+                />
+              </div>
+
+              {/* Recommendation Source Provider */}
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Recommendation Source Engine</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Choose between TMDB trending discovery or OMDb acclaimed recommendations on the Home Explore shelf</div>
+                </div>
+                <div className="inline-flex p-1 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] text-xs font-bold self-start sm:self-auto shrink-0 shadow-2xs">
+                  <button
+                    onClick={() => onUpdateSettings({ recommendationProvider: 'tmdb' })}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full transition active:scale-95 ${
+                      (settings.recommendationProvider || 'tmdb') === 'tmdb'
+                        ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs font-black'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-75'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                    <span>TMDB</span>
+                  </button>
+                  <button
+                    onClick={() => onUpdateSettings({ recommendationProvider: 'omdb' })}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full transition active:scale-95 ${
+                      settings.recommendationProvider === 'omdb'
+                        ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs font-black'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-75'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#3B82F6]" />
+                    <span>OMDb</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1700,7 +1787,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         THE DEVELOPMENT OF THIS APP IS STOPPED TILL DECEMBER 2026 DUE TO EXAMINATIONS
                       </h4>
                       <p className="text-xs text-amber-200 font-extrabold mt-1">
-                        Dev. Note: The new release v2.3.1 is coming on 5th JANUARY 2027
+                        Dev. Note: The new release v2.3.2 is coming on 5th JANUARY 2027
                       </p>
                     </div>
                     <a
@@ -1799,7 +1886,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <Key className="w-3.5 h-3.5" />
                 <span>TMDB (Secret Integration)</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="TMDB Proxy Active" />
+                <span className="w-2 h-2 rounded-full bg-red-800 animate-pulse" title="TMDB Proxy Active" />
               </button>
               <button
                 type="button"
@@ -1813,7 +1900,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <Database className="w-3.5 h-3.5" />
                 <span>OMDb API (Fallback)</span>
                 {isOmdbActive && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="OMDb Configured" />
+                  <span className="w-2 h-2 rounded-full bg-blue-800" title="OMDb Configured" />
                 )}
               </button>
             </div>
@@ -1838,8 +1925,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="p-3 rounded-2xl bg-[var(--chip-bg)]/60 border border-[var(--border-subtle)] space-y-1">
                   <div className="flex items-center justify-between font-bold text-[var(--text-primary)]">
                     <span>TMDB (Primary)</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-500 font-extrabold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="inline-flex items-center gap-1 text-[11px] text-red-800 font-extrabold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-800" />
                       {healthStatus.tmdb.state}
                     </span>
                   </div>
@@ -1851,8 +1938,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="p-3 rounded-2xl bg-[var(--chip-bg)]/60 border border-[var(--border-subtle)] space-y-1">
                   <div className="flex items-center justify-between font-bold text-[var(--text-primary)]">
                     <span>OMDb (Fallback)</span>
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold ${isOmdbActive ? 'text-emerald-500' : 'text-amber-500'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${isOmdbActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold ${isOmdbActive ? 'text-blue-800' : 'text-amber-600'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOmdbActive ? 'bg-blue-800' : 'bg-amber-600'}`} />
                       {isOmdbActive ? healthStatus.omdb.state : 'Standby'}
                     </span>
                   </div>
@@ -1875,7 +1962,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="text-xs text-[var(--text-secondary)]">Server-side proxy (/api/tmdb) using environment secret key</div>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-bold">
+                    <span className="px-2.5 py-1 rounded-full bg-red-800/10 text-red-800 border border-red-800/20 text-[11px] font-bold">
                       Secret Proxy Active
                     </span>
                   </div>
@@ -1916,7 +2003,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         Save
                       </button>
                     </div>
-                    {tmdbCopySuccess && <p className="text-xs text-emerald-500 font-bold">TMDB API Key saved successfully!</p>}
+                    {tmdbCopySuccess && <p className="text-xs text-red-800 font-bold">TMDB API Key saved successfully!</p>}
                   </div>
                 </div>
 
@@ -1940,7 +2027,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {tmdbDiagnosticResult && (
                   <div className="p-4 bg-[var(--chip-bg)]/40 flex items-center gap-3 border-t border-[var(--border-subtle)]">
                     {tmdbDiagnosticResult.ok ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-red-800 shrink-0" />
                     ) : (
                       <X className="w-5 h-5 text-rose-500 shrink-0" />
                     )}
@@ -1976,7 +2063,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                       </div>
                       {isOmdbActive ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-bold">
+                        <span className="px-2.5 py-1 rounded-full bg-blue-800/10 text-blue-800 border border-blue-800/20 text-[11px] font-bold">
                           Active
                         </span>
                       ) : (
@@ -2025,7 +2112,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           Save
                         </button>
                       </div>
-                      {omdbCopySuccess && <p className="text-xs text-emerald-500 font-bold">OMDb API Key saved successfully!</p>}
+                      {omdbCopySuccess && <p className="text-xs text-blue-800 font-bold">OMDb API Key saved successfully!</p>}
                     </div>
                   </div>
 
@@ -2049,7 +2136,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {omdbDiagnosticResult && (
                     <div className="p-4 bg-[var(--chip-bg)]/40 flex items-center gap-3">
                       {omdbDiagnosticResult.success ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-blue-800 shrink-0" />
                       ) : (
                         <X className="w-5 h-5 text-rose-500 shrink-0" />
                       )}

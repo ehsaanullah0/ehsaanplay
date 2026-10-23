@@ -3,7 +3,7 @@ import { MediaItem, MediaType, PersonalMediaState } from '../../types/movie';
 import { searchWithFallback, SearchProviderMode, SearchDiagnosticInfo } from '../../services/metadataFallback';
 
 import { parseImdbInput } from '../../services/imdbParser';
-import { Search, X, Star, Loader2, Plus, Check, Bookmark, Database, Sparkles, Layers, AlertCircle, Info, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Search, X, Star, Loader2, Plus, Check, Bookmark, Database, Sparkles, Layers, AlertCircle, Info, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { SafeImage } from '../common/SafeImage';
 
 interface SearchModalProps {
@@ -268,7 +268,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
       <div className="relative w-full max-w-2xl bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 overflow-hidden flex flex-col max-h-[84vh]">
         {/* Clean, Minimalist Search Input Bar */}
-        <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center gap-3 bg-[var(--modal-bg)]">
+        <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center gap-2 sm:gap-3 bg-[var(--modal-bg)]">
           {isSearching ? (
             <Loader2 className="w-5 h-5 text-[var(--accent-primary)] stroke-[2.5] animate-spin flex-none" />
           ) : (
@@ -293,6 +293,22 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </button>
           )}
 
+          {/* Options / Filters Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMoreOpen(!isMoreOpen)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shrink-0 ${
+              isMoreOpen
+                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+            title={isMoreOpen ? "Hide filter options" : "Show filter options"}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Options</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
+          </button>
+
           {/* Filled Blood Red Cross Close Button */}
           <button
             type="button"
@@ -305,7 +321,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           </button>
         </div>
 
-        {/* Collapsible "More" Options Drawer */}
+        {/* Collapsible Options Drawer */}
         {isMoreOpen && (
           <div className="p-3.5 sm:p-4 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] space-y-3 animate-fade-in text-xs">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -353,37 +369,37 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setProviderMode('auto')}
-                  className={`px-2.5 py-1 rounded-full font-bold text-xs flex items-center gap-1 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
                     providerMode === 'auto'
-                      ? 'bg-indigo-600 text-white shadow-xs'
+                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  <span className={`w-2 h-2 rounded-full ${providerMode === 'auto' ? 'bg-[var(--bg-primary)]' : 'bg-indigo-500'}`} />
                   Auto
                 </button>
                 <button
                   type="button"
                   onClick={() => setProviderMode('tmdb')}
-                  className={`px-2.5 py-1 rounded-full font-bold text-xs flex items-center gap-1 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
                     providerMode === 'tmdb'
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className={`w-2.5 h-2.5 rounded-full ${providerMode === 'tmdb' ? 'bg-red-400' : 'bg-red-800'}`} />
                   TMDB
                 </button>
                 <button
                   type="button"
                   onClick={() => setProviderMode('omdb')}
-                  className={`px-2.5 py-1 rounded-full font-bold text-xs flex items-center gap-1 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
                     providerMode === 'omdb'
-                      ? 'bg-amber-600 text-white shadow-xs'
+                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className={`w-2.5 h-2.5 rounded-full ${providerMode === 'omdb' ? 'bg-blue-300' : 'bg-blue-800'}`} />
                   OMDb
                 </button>
               </div>
@@ -402,94 +418,66 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 </button>
               )}
             </div>
+          </div>
+        )}
 
-            {/* Diagnostic Toggle & Source Link */}
-            <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
-              <div className="flex items-center gap-2">
-                <span>Active engine:</span>
-                <span className="font-bold text-[var(--text-primary)]">
-                  {searchSource === 'tmdb'
-                    ? 'TMDB Secret Proxy'
-                    : searchSource === 'omdb'
-                    ? 'OMDb API'
-                    : searchSource === 'cache'
-                    ? 'Offline Cache'
-                    : 'Auto Fallback'}
-                </span>
-                {searchDiagnostic && <span className="opacity-70 font-mono">({searchDiagnostic.durationMs}ms)</span>}
-              </div>
-
+        {/* Clean Status Sub-bar: Result Counter & Diagnostics Toggle */}
+        <div className="px-5 py-2 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2 font-bold tabular-nums">
+            {isSearching ? (
+              <span className="flex items-center gap-1.5 text-[var(--accent-primary)] animate-pulse">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Searching {providerMode === 'tmdb' ? 'TMDB' : providerMode === 'omdb' ? 'OMDb' : 'catalog'}...
+              </span>
+            ) : searchError ? (
               <button
                 type="button"
                 onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)}
-                className="text-[11px] text-[var(--accent-primary)] font-bold hover:underline"
+                className="flex items-center gap-1 text-rose-500 hover:underline"
               >
-                {showDiagnosticPanel ? 'Hide Diagnostic Logs' : 'View Diagnostic Logs'}
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Request issue - view details</span>
               </button>
-            </div>
+            ) : searchSource === 'tmdb' ? (
+              <span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
+                <span className="w-2 h-2 rounded-full bg-red-800 shrink-0" />
+                <span>TMDB · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
+                {searchDiagnostic && <span className="text-[10px] opacity-70 font-mono">({searchDiagnostic.durationMs}ms)</span>}
+              </span>
+            ) : searchSource === 'omdb' ? (
+              <span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
+                <span className="w-2 h-2 rounded-full bg-blue-800 shrink-0" />
+                <span>OMDb {providerMode === 'auto' ? 'Fallback' : ''} · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
+                {searchDiagnostic && <span className="text-[10px] opacity-70 font-mono">({searchDiagnostic.durationMs}ms)</span>}
+              </span>
+            ) : searchSource === 'cache' ? (
+              <span className="flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-blue-400" />
+                <span>Offline Cache · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                <span>
+                  {query.trim()
+                    ? 'No matches found'
+                    : `Featured · ${searchResults.length} ${searchResults.length === 1 ? 'title' : 'titles'}`}
+                </span>
+              </span>
+            )}
           </div>
-        )}
 
-        {/* Minimal Sub-bar for Results Counter Status when More panel is closed */}
-        {!isMoreOpen && (
-          <div className="px-5 py-2 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
-            <div className="flex items-center gap-2 font-bold tabular-nums">
-              {isSearching ? (
-                <span className="flex items-center gap-1.5 text-[var(--accent-primary)] animate-pulse">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Searching {providerMode === 'tmdb' ? 'TMDB' : providerMode === 'omdb' ? 'OMDb' : 'catalog'}...
-                </span>
-              ) : searchError ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMoreOpen(true);
-                    setShowDiagnosticPanel(true);
-                  }}
-                  className="flex items-center gap-1 text-rose-500 hover:underline"
-                >
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>Request issue - click for details</span>
-                </button>
-              ) : searchSource === 'tmdb' ? (
-                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
-                  <span>TMDB · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
-                  {searchDiagnostic && <span className="text-[10px] opacity-70 font-mono">({searchDiagnostic.durationMs}ms)</span>}
-                </span>
-              ) : searchSource === 'omdb' ? (
-                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span>OMDb {providerMode === 'auto' ? 'Fallback' : ''} · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
-                  {searchDiagnostic && <span className="text-[10px] opacity-70 font-mono">({searchDiagnostic.durationMs}ms)</span>}
-                </span>
-              ) : searchSource === 'cache' ? (
-                <span className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Offline Cache · {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-                  <span>
-                    {query.trim()
-                      ? 'No matches found'
-                      : `Featured · ${searchResults.length} ${searchResults.length === 1 ? 'title' : 'titles'}`}
-                  </span>
-                </span>
-              )}
-            </div>
-
+          {searchDiagnostic && (
             <button
               type="button"
-              onClick={() => setIsMoreOpen(!isMoreOpen)}
+              onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)}
               className="text-[11px] font-bold text-[var(--accent-primary)] hover:underline flex items-center gap-1 select-none"
             >
-              <span>Options</span>
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
+              <Info className="w-3 h-3" />
+              <span>{showDiagnosticPanel ? 'Hide Logs' : 'Diagnostics'}</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Diagnostic Panel Dropdown */}
         {showDiagnosticPanel && searchDiagnostic && (
@@ -663,16 +651,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       ) : null}
                     </div>
 
-                    {/* Provider badge and max 2 genres */}
-                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                    {/* Provider representation dots and max 2 genres */}
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
                       {item.metadataSource === 'tmdb' || item.tmdbId ? (
-                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9.5px] font-extrabold uppercase tracking-wide border border-emerald-500/20">
-                          TMDB
-                        </span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-800 inline-block shrink-0" title="TMDB Source" />
                       ) : item.metadataSource === 'omdb' || item.imdbId ? (
-                        <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[9.5px] font-extrabold uppercase tracking-wide border border-amber-500/20">
-                          OMDb
-                        </span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-800 inline-block shrink-0" title="OMDb Source" />
                       ) : null}
                       {item.genres && item.genres.slice(0, 2).map(g => (
                         <span

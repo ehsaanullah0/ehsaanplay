@@ -1,8 +1,9 @@
 // EHSAAN MOVIE — PWA Application Shell Service Worker
 // NOTE: Application owns artwork caching via Cache API. Service worker handles app shell only.
 
-const SHELL_CACHE_NAME = 'ehsaan-play-static-v4';
+const SHELL_CACHE_NAME = 'ehsaan-play-static-v5';
 const OBSOLETE_SHELL_CACHES = [
+  'ehsaan-play-static-v4',
   'ehsaan-movie-shell-v1',
   'ehsaan-movie-shell-v2',
   'ehsaan-movie-shell-v2.2.0',
@@ -28,13 +29,13 @@ const STATIC_ASSETS = [
   '/icons/icon-512-maskable-v2.png',
 ];
 
-// 1. INSTALL LIFECYCLE
+// 1. INSTALL LIFECYCLE - Skip waiting immediately to activate fresh code
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(SHELL_CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
     })
-    // Do NOT automatically skipWaiting here so user controls when to apply updates
   );
 });
 
@@ -55,6 +56,7 @@ self.addEventListener('activate', (event) => {
           // CRITICAL: NEVER delete artwork cache (ehsaan-movie-offline-images-v1) or user data!
           if (
             OBSOLETE_SHELL_CACHES.includes(key) ||
+            key === 'ehsaan-play-static-v4' ||
             (key.startsWith('ehsaan-movie-shell-') && key !== SHELL_CACHE_NAME)
           ) {
             return caches.delete(key);
@@ -103,10 +105,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // DO NOT intercept unsplash or chrome-extension
+  // DO NOT intercept dev server dependencies, Vite internals, node_modules, or API
   if (
     url.hostname.includes('unsplash.com') ||
-    request.url.startsWith('chrome-extension')
+    request.url.startsWith('chrome-extension') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.includes('/node_modules/') ||
+    url.pathname.includes('/@') ||
+    url.pathname.includes('/src/') ||
+    url.pathname.includes('vite')
   ) {
     return;
   }
@@ -135,7 +142,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets (JS, CSS, SVGs, Fonts): Cache-first with Network fallback
+  // Static Assets: Only cache production dist assets, never dev node_modules
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {

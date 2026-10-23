@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState, SortOption, FilterStatus } from '../../types/movie';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, ChevronDown } from 'lucide-react';
 
 interface FilterSheetProps {
   isOpen: boolean;
@@ -62,12 +62,23 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
             </h3>
             <p className="text-xs text-[var(--text-secondary)]">Customise your shelf view</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-[var(--chip-bg)] hover:opacity-85 text-[var(--text-primary)] transition focus:outline-none"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--accent-primary)] hover:text-[var(--bg-primary)] text-[var(--text-secondary)] font-bold text-xs flex items-center gap-1 transition active:scale-95"
+              title="Hide filter sheet"
+            >
+              <span>Hide</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full bg-[var(--chip-bg)] hover:opacity-85 text-[var(--text-primary)] transition focus:outline-none"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="py-5 space-y-6">

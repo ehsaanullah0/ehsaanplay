@@ -22,6 +22,7 @@ import { LicenseModal } from './components/common/LicenseModal';
 import { UpdateNotification } from './components/layout/UpdateNotification';
 import { SwapNavModal } from './components/common/SwapNavModal';
 import { usePWAUpdate } from './hooks/usePWAInstall';
+import { reassertFullscreen } from './hooks/useFullscreen';
 import { deviceTransferService, IncomingTransferEvent } from './services/deviceTransfer';
 import { applyRecentChanges } from './services/recentChanges';
 import { Wifi, Check } from 'lucide-react';
@@ -155,6 +156,10 @@ export default function App() {
   const isImdbPreviewOpenRef = useRef<boolean>(false);
   const randomModalItemRef = useRef<MediaItem | null>(null);
   const activeTabRef = useRef<ActiveTab>('home');
+  const settingsTopicRef = useRef<SettingsTopicId | null>(null);
+  const isLicenseModalOpenRef = useRef<boolean>(false);
+  const isSwapNavConfirmOpenRef = useRef<boolean>(false);
+  const isOnboardingOpenRef = useRef<boolean>(false);
 
   // Keep refs synchronized
   useEffect(() => {
@@ -176,6 +181,22 @@ export default function App() {
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
+
+  useEffect(() => {
+    settingsTopicRef.current = settingsTopic;
+  }, [settingsTopic]);
+
+  useEffect(() => {
+    isLicenseModalOpenRef.current = isLicenseModalOpen;
+  }, [isLicenseModalOpen]);
+
+  useEffect(() => {
+    isSwapNavConfirmOpenRef.current = isSwapNavConfirmOpen;
+  }, [isSwapNavConfirmOpen]);
+
+  useEffect(() => {
+    isOnboardingOpenRef.current = isOnboardingOpen;
+  }, [isOnboardingOpen]);
 
   // Universal & Custom Keyboard Shortcuts
   useEffect(() => {
@@ -200,10 +221,15 @@ export default function App() {
         pKey === normalize(shortcuts.goBack) ||
         (shortcuts.goBack === 'Escape' && pressedKey === 'Escape')
       ) {
-        if (isImdbPreviewOpenRef.current) setIsImdbPreviewOpen(false);
+        if (isLicenseModalOpenRef.current) setIsLicenseModalOpen(false);
+        else if (isSwapNavConfirmOpenRef.current) setIsSwapNavConfirmOpen(false);
+        else if (isOnboardingOpenRef.current) setIsOnboardingOpen(false);
+        else if (isImdbPreviewOpenRef.current) setIsImdbPreviewOpen(false);
         else if (isSearchOpenRef.current) setIsSearchOpen(false);
         else if (selectedMediaRef.current) setSelectedMedia(null);
         else if (randomModalItemRef.current) setRandomModalItem(null);
+        else if (activeTabRef.current === 'settings' && settingsTopicRef.current !== null) setSettingsTopic(null);
+        else if (activeTabRef.current !== 'home') setActiveTab('home');
         return;
       }
 
@@ -252,62 +278,73 @@ export default function App() {
     }
 
     const handlePopState = () => {
-      // 1. If IMDb Preview modal is open, close IMDb preview
+      // Reassert fullscreen if user preferred fullscreen mode
+      reassertFullscreen();
+
+      // 1. If License modal is open, close license modal
+      if (isLicenseModalOpenRef.current) {
+        setIsLicenseModalOpen(false);
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 2. If Swap Nav Confirm modal is open, close it
+      if (isSwapNavConfirmOpenRef.current) {
+        setIsSwapNavConfirmOpen(false);
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 3. If Start Guide modal is open, close it
+      if (isOnboardingOpenRef.current) {
+        setIsOnboardingOpen(false);
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 4. If IMDb Preview modal is open, close IMDb preview
       if (isImdbPreviewOpenRef.current) {
         setIsImdbPreviewOpen(false);
-        try {
-          window.history.pushState({ page: 'ehsaan-home' }, '');
-        } catch {
-          // ignore
-        }
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 2. If Preview modal is open, close preview
+      // 5. If Movie/TV Preview modal is open, close preview
       if (selectedMediaRef.current) {
         setSelectedMedia(null);
-        try {
-          window.history.pushState({ page: 'ehsaan-home' }, '');
-        } catch {
-          // ignore
-        }
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 3. If Search modal is open, close search
+      // 6. If Search modal is open, close search
       if (isSearchOpenRef.current) {
         setIsSearchOpen(false);
-        try {
-          window.history.pushState({ page: 'ehsaan-home' }, '');
-        } catch {
-          // ignore
-        }
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 4. If Random Pick modal is open, close random pick
+      // 7. If Random Pick modal is open, close random pick
       if (randomModalItemRef.current) {
         setRandomModalItem(null);
-        try {
-          window.history.pushState({ page: 'ehsaan-home' }, '');
-        } catch {
-          // ignore
-        }
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 5. If on another tab, go back to Home tab
+      // 8. If in any Settings subpage, return to settings menu/previous page
+      if (activeTabRef.current === 'settings' && settingsTopicRef.current !== null) {
+        setSettingsTopic(null);
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 9. If on another tab, go back to Home tab
       if (activeTabRef.current !== 'home') {
         setActiveTab('home');
-        try {
-          window.history.pushState({ page: 'ehsaan-home' }, '');
-        } catch {
-          // ignore
-        }
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 6. On Home tab: double back within 2 seconds to exit
+      // 10. On Home tab: double back within 2 seconds to exit
       const now = Date.now();
       if (now - lastBackPressTimeRef.current < 2000) {
         // Allow exit
@@ -398,6 +435,7 @@ export default function App() {
             onOpenChangelog={handleOpenChangelog}
             onOpenLicense={() => setIsLicenseModalOpen(true)}
             tweaks={settings.tweaks}
+            settings={settings}
             onUpdateSettings={updateSettings}
           />
         )}
@@ -453,7 +491,8 @@ export default function App() {
             onReplayGuide={() => setIsOnboardingOpen(true)}
             onOpenLicense={() => setIsLicenseModalOpen(true)}
             mediaItems={mediaItems}
-            initialTopic={settingsTopic}
+            activeTopicId={settingsTopic}
+            onSelectTopic={setSettingsTopic}
             onRefreshData={refreshLibrary}
             onReloadAllArtwork={reloadAllArtwork}
             onRemoveAllDuplicates={removeAllDuplicates}

@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -677,6 +678,8 @@ async function startServer() {
 
   if (!isProd) {
     const vite = await createViteServer({
+      root: __dirname,
+      configFile: path.resolve(__dirname, 'vite.config.ts'),
       server: {
         middlewareMode: true,
         host: '0.0.0.0',
@@ -685,6 +688,23 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    app.use('*', async (req: Request, res: Response, next) => {
+      const url = req.originalUrl;
+      if (url.startsWith('/api')) return next();
+      try {
+        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }).end(template);
+      } catch (e: any) {
+        next(e);
+      }
+    });
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req: Request, res: Response) => {
