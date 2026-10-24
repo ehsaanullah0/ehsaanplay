@@ -496,6 +496,99 @@ footer a:hover{color:var(--text)}
 .totop.fx{animation:none}.totop.fx.show{animation:floaty 3.6s ease-in-out infinite}.totop.fx.show:hover{animation-play-state:paused}
 .fx .rip{position:absolute;border-radius:50%;background:currentColor;opacity:.3;transform:scale(0);pointer-events:none;animation:rip .65s ease-out forwards}
 @media(prefers-reduced-motion:reduce){.fx,.totop.fx.show{animation:none}}
+
+/* ===== MOBILE / SMALL-SCREEN OPTIMISATION ===== */
+html{overflow-x:clip;-webkit-text-size-adjust:100%}
+a,button{-webkit-tap-highlight-color:transparent}
+.pill,.swap,.fbtn,.s-arrow,.dot,.totop{touch-action:manipulation}
+#viewport{touch-action:pan-y}
+.totop{right:max(24px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}
+@media(pointer:coarse){.glow{display:none}}
+
+@media(max-width:700px){
+  .wrap{padding:0 18px}
+  nav{padding:18px 0}
+  .logo{font-size:1.08rem;white-space:nowrap;gap:8px}
+  .logo i{width:26px;height:26px;border-radius:9px}
+  .logo i::after{inset:7px}
+  .nav-r{gap:8px}
+  .nav-r .pill{padding:10px 15px;font-size:.84rem}
+
+  .hero{padding:34px 0 40px}
+  h1{margin:26px 0 22px}
+  .lead{font-size:1.05rem}
+  .hero-row{gap:26px}
+  .stats{gap:8px}
+  .stat{min-width:0;padding:16px 14px;border-radius:22px}
+  .stat strong{font-size:1.9rem}
+  .stat small{font-size:.74rem;display:block;line-height:1.25}
+
+  .marquee{margin:10px 0 56px;padding:16px 0}
+  .track span{font-size:1.7rem;padding-right:34px}
+  .marquee.alt{margin-top:56px}
+
+  .sec-head{margin-bottom:22px}
+  .sec-head h2{font-size:clamp(2.2rem,11vw,3rem)}
+  .filters,.wallpaper-tabs{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:10px 18px;margin-inline:-18px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .filters::-webkit-scrollbar,.wallpaper-tabs::-webkit-scrollbar{display:none}
+  .filters .pill,.wallpaper-tabs .pill{flex:none;padding:11px 18px;font-size:.88rem}
+  .wallpaper-tabs{margin-bottom:12px}
+
+  /* slider: arrows move under the banner, beside the dots */
+  .stage{position:static}
+  .viewport{padding:6px 0 14px;margin:-6px 0 -14px}
+  .slider .grid{--gap:14px}
+  .s-meta{margin-top:26px;min-height:48px;justify-content:center}
+  .s-arrow,.s-arrow.prev,.s-arrow.next{top:auto;bottom:2px;width:46px;height:46px;box-shadow:0 6px 16px rgba(0,0,0,.22)}
+  .s-arrow.prev{left:2px;right:auto}.s-arrow.next{right:2px;left:auto}
+  .s-arrow.fx,.s-arrow.fx:hover{translate:var(--tx,0px) var(--ty,0px)}
+  .s-arrow svg{width:22px;height:22px}
+  .float-btns{gap:10px;padding:14px 12px 18px}
+  .fbtn{flex:1 1 0;justify-content:center;min-height:46px;padding:12px 14px;font-size:.88rem;max-width:190px}
+
+  .why{margin-top:72px}
+  .why-grid{gap:10px}
+  .why-item{padding:22px;min-height:0;border-radius:26px}
+  .why-item i{margin:20px 0;font-size:2.2rem}
+  .why-item h4{font-size:1.4rem}
+
+  .wallpaper-section{margin-top:68px}
+  .wallpaper-intro{gap:14px;margin-bottom:20px}
+  .wallpaper-grid{gap:14px}
+  .wallpaper-card{border-radius:28px}
+  .wallpaper-meta{padding:22px}
+  .wallpaper-meta .top{margin-bottom:26px}
+  .w-ico{width:46px;height:46px;border-radius:14px}
+  .wallpaper-meta p{margin:18px 0 22px}
+  .w-specs{margin-bottom:22px}
+  .w-specs div{padding:12px 0}
+  .wallpaper-actions .pill.primary{padding:15px 18px 15px 22px;font-size:.96rem}
+
+  .cta,.cta-face{border-radius:32px}
+  .cta{margin:70px 0 36px}
+  .cta-face{padding:78px 20px 48px}
+  .cta h2{font-size:clamp(2.6rem,14vw,3.6rem)}
+  .cta p{font-size:1rem;margin:18px auto 26px}
+  .cta .btn{padding:16px 26px}
+  .swap{top:16px;right:16px;padding:9px 14px;font-size:.8rem}
+
+  .wordmark{margin:4px 0 18px}
+  footer{flex-direction:column;gap:10px;padding:24px 0 36px}
+  .totop{width:48px;height:48px;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom))}
+}
+@media(max-width:380px){
+  .nav-r .tl{display:none}
+  .nav-r .pill{padding:10px 14px}
+  .stat strong{font-size:1.6rem}
+  .filters .pill,.wallpaper-tabs .pill{padding:10px 15px}
+  .fbtn{font-size:.82rem;padding:11px 10px}
+  .w-specs dt{font-size:.66rem;letter-spacing:.08em}
+  .w-specs dd{font-size:.86rem}
+}
+
+h1 .nw,h1 .nw:hover{display:inline-block;white-space:nowrap;transform:none;transition:none;color:inherit}
+.nav-r .pill .ti{margin-right:7px;vertical-align:-2px}
+@media(max-width:380px){.nav-r .pill .ti{margin-right:0}}
 </style>
 </head>
 <body>
@@ -507,7 +600,7 @@ footer a:hover{color:var(--text)}
     <a href="#" class="logo"><i></i>Ehsan Studio</a>
     <div class="nav-r">
       <a class="pill" href="https://github.com/ehsaanullah0" target="_blank" rel="noopener">GitHub</a>
-      <button class="pill" id="theme" aria-label="Toggle theme">◐ Theme</button>
+      <button class="pill" id="theme" aria-label="Toggle theme"><svg class="ti" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg><span class="tl">Theme</span></button>
     </div>
   </nav>
 
@@ -731,9 +824,12 @@ document.getElementById('track').innerHTML=row;
     [...n.childNodes].forEach(c=>{
       if(c.nodeType===3){
         const f=document.createDocumentFragment();
-        [...c.textContent].forEach(ch=>{
-          if(ch===' '){f.append(' ');return}
-          const s=document.createElement('span'); s.textContent=ch; f.append(s);
+        c.textContent.split(/(\s+)/).forEach(tok=>{
+          if(!tok) return;
+          if(/^\s+$/.test(tok)){f.append(' ');return}
+          const w=document.createElement('span'); w.className='nw';
+          [...tok].forEach(ch=>{const s=document.createElement('span'); s.textContent=ch; w.append(s)});
+          f.append(w);
         });
         c.replaceWith(f);
       } else if(c.nodeType===1 && c.tagName!=='BR') walk(c);
