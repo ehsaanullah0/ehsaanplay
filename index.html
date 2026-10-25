@@ -589,6 +589,15 @@ a,button{-webkit-tap-highlight-color:transparent}
 h1 .nw,h1 .nw:hover{display:inline-block;white-space:nowrap;transform:none;transition:none;color:inherit}
 .nav-r .pill .ti{margin-right:7px;vertical-align:-2px}
 @media(max-width:380px){.nav-r .pill .ti{margin-right:0}}
+
+/* ===== SLIDER v2: native scroll-snap (works with touch, trackpad and without JS) ===== */
+.slider .grid{display:flex;flex-direction:row;gap:var(--gap,24px);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;transform:none!important;transition:none;will-change:auto;padding:4px 0}
+.slider .grid::-webkit-scrollbar{display:none}
+.slider .card,.slider .card.in,.slider .card.active{flex:0 0 100%;min-width:0;scroll-snap-align:center;scroll-snap-stop:always;opacity:1;transform:none;animation:none}
+.viewport{touch-action:auto;padding:0;margin:0}
+@media(max-width:700px){.viewport{padding:0;margin:0}.slider .card,.slider .card.in,.slider .card.active{flex-basis:90%;scroll-snap-align:start}.slider .grid{padding-right:0}}
+@media(prefers-reduced-motion:reduce){.slider .grid{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -926,37 +935,33 @@ document.querySelectorAll('.fbtn,.pill,.cta .btn,.swap,.totop,.s-arrow').forEach
   });
 });
 
-/* product slider: arrows, dots, swipe, keyboard */
+/* product slider: native scroll-snap + arrows, dots, keyboard */
 (function(){
-  const track=document.getElementById('grid'), viewport=document.getElementById('viewport'), slider=document.getElementById('slider');
+  const track=document.getElementById('grid'), slider=document.getElementById('slider');
   const dots=document.getElementById('dots'), count=document.getElementById('count');
   const prev=document.getElementById('prev'), next=document.getElementById('next');
-  let idx=0;
+  let idx=-1, raf=0;
   const vis=()=>[...track.querySelectorAll('.card')].filter(c=>!c.classList.contains('hide'));
-  function render(){
-    const cs=vis(); idx=Math.min(Math.max(idx,0),Math.max(cs.length-1,0));
-    track.style.setProperty('--idx',idx);
-    cs.forEach((c,i)=>{const on=i===idx; c.classList.toggle('active',on); c.toggleAttribute('inert',!on); c.setAttribute('aria-hidden',on?'false':'true');});
-    dots.innerHTML=cs.map((_,i)=>`<button type="button" class="dot${i===idx?' on':''}" data-i="${i}" aria-label="Go to product ${i+1}"></button>`).join('');
+  const step=()=>{const c=vis()[0]; const gap=parseFloat(getComputedStyle(track).columnGap)||0; return c?c.getBoundingClientRect().width+gap:track.clientWidth;};
+  const cur=()=>{const n=vis().length; return Math.min(Math.max(Math.round(track.scrollLeft/step()),0),Math.max(n-1,0));};
+  function render(force){
+    const cs=vis(), i=cur(); if(i===idx&&!force) return; idx=i;
+    cs.forEach((c,k)=>{const on=k===idx; c.classList.toggle('active',on); c.toggleAttribute('inert',!on); c.setAttribute('aria-hidden',on?'false':'true');});
+    dots.innerHTML=cs.map((_,k)=>`<button type="button" class="dot${k===idx?' on':''}" data-i="${k}" aria-label="Go to product ${k+1}"></button>`).join('');
     count.textContent=String(cs.length?idx+1:0).padStart(2,'0')+' / '+String(cs.length).padStart(2,'0');
     prev.disabled=idx<=0; next.disabled=idx>=cs.length-1;
   }
-  const go=n=>{idx=n; render();};
-  prev.addEventListener('click',()=>go(idx-1));
-  next.addEventListener('click',()=>go(idx+1));
+  const go=n=>{const m=vis().length-1; n=Math.min(Math.max(n,0),Math.max(m,0)); track.scrollTo({left:n*step(),behavior:'smooth'});};
+  prev.addEventListener('click',()=>go(cur()-1));
+  next.addEventListener('click',()=>go(cur()+1));
   dots.addEventListener('click',e=>{const b=e.target.closest('.dot'); if(b) go(+b.dataset.i);});
-  document.getElementById('filters').addEventListener('click',()=>go(0));
+  track.addEventListener('scroll',()=>{cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>render());},{passive:true});
+  document.getElementById('filters').addEventListener('click',()=>{track.scrollTo({left:0,behavior:'auto'}); setTimeout(()=>render(true),0);});
   slider.addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight'){go(idx+1)} else if(e.key==='ArrowLeft'){go(idx-1)}
+    if(e.key==='ArrowRight'){go(cur()+1)} else if(e.key==='ArrowLeft'){go(cur()-1)}
   });
-  let sx=null, sy=null;
-  viewport.addEventListener('pointerdown',e=>{sx=e.clientX; sy=e.clientY;});
-  addEventListener('pointerup',e=>{
-    if(sx===null) return;
-    const dx=e.clientX-sx, dy=e.clientY-sy; sx=null;
-    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) go(dx<0?idx+1:idx-1);
-  });
-  render();
+  addEventListener('resize',()=>{track.scrollTo({left:Math.max(idx,0)*step(),behavior:'auto'}); render(true);});
+  render(true);
 })();
 
 /* bottom wordmark: split into letters, pop up in sequence when scrolled into view */
