@@ -376,8 +376,8 @@ footer a:hover{color:var(--text)}
 @keyframes qrScan{from{transform:translateY(0)}to{transform:translateY(300px)}}
 @media(prefers-reduced-motion:reduce){.flow-fab-pulse,.qr-scan{animation:none}}
 /* grey shades: wallpaper cards + GitHub showcase */
-:root{--wp1:#1d1d1d;--wp2:#282828;--cta-bg:#363636;--cta-ink:#f5f5f5}
-:root[data-theme="light"]{--wp1:#e5e5e5;--wp2:#d7d7d7;--cta-bg:#c4c4c4;--cta-ink:#0a0a0a}
+:root{--wp1:#1d1d1d;--wp2:#282828;--cta-bg:var(--bg2);--cta-ink:var(--text)}
+:root[data-theme="light"]{--wp1:#e5e5e5;--wp2:#d7d7d7;--cta-bg:var(--bg2);--cta-ink:var(--text)}
 .wallpaper-card:nth-child(1){background:var(--wp1)}
 .wallpaper-card:nth-child(2){background:var(--wp2)}
 .cta{background:var(--cta-bg);color:var(--cta-ink)}
@@ -403,13 +403,13 @@ footer a:hover{color:var(--text)}
 @media(prefers-reduced-motion:reduce){.wallpaper-card:hover h3 .ch{animation:none}}
 
 /* flip card: GitHub <-> Website */
-:root{--cta2-bg:#4a4a4a}
-:root[data-theme="light"]{--cta2-bg:#b0b0b0}
+:root{--cta2-bg:#1c1c1c}
+:root[data-theme="light"]{--cta2-bg:#e0e0e0}
 .cta{background:none;padding:0;overflow:visible;perspective:1800px;color:inherit}
 .cta-inner{display:grid;position:relative;transform-style:preserve-3d}
 .cta.flipped .cta-inner{transform:rotateY(180deg)}
 .cta-face{grid-area:1/1;position:relative;padding:80px 40px;border-radius:56px;text-align:center;overflow:hidden;
-  background:var(--cta-bg);color:var(--cta-ink);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  background:var(--cta-bg);color:var(--cta-ink);border:1px solid var(--line);transition:background .4s,color .4s,border-color .4s;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .cta-face.face-b{transform:rotateY(180deg);background:var(--cta2-bg)}
 .face-tag{display:inline-block;border:1px solid currentColor;opacity:.55;border-radius:999px;padding:7px 16px;font-size:.8rem;font-weight:600;letter-spacing:.04em;margin-bottom:26px}
 .cta-face .btn{background:var(--cta-ink);color:var(--cta-bg)}
@@ -598,6 +598,79 @@ h1 .nw,h1 .nw:hover{display:inline-block;white-space:nowrap;transform:none;trans
 .viewport{touch-action:auto;padding:0;margin:0}
 @media(max-width:700px){.viewport{padding:0;margin:0}.slider .card,.slider .card.in,.slider .card.active{flex-basis:90%;scroll-snap-align:start}.slider .grid{padding-right:0}}
 @media(prefers-reduced-motion:reduce){.slider .grid{scroll-behavior:auto}}
+/* ===== GOOD TO KNOW (FAQ) ===== */
+.faq{margin-top:110px}
+.faq-title{font-size:clamp(3.6rem,10.5vw,9.2rem);line-height:.9;letter-spacing:-.075em;font-weight:800;font-variation-settings:"ROND" 100;margin:0 0 clamp(34px,5vw,64px);cursor:default;color:var(--text)}
+.faq-title .w{display:block;transition:color .45s ease,transform .6s cubic-bezier(.3,1.5,.5,1)}
+.faq-title .w2{color:var(--muted)}
+.faq-title .ch{display:inline-block;white-space:pre}
+.faq-title:hover .w1{color:var(--muted);transform:translateX(.05em)}
+.faq-title:hover .w2{color:var(--text);transform:translateX(.14em)}
+.faq-title:hover .ch{animation:faqWave .6s cubic-bezier(.3,1.6,.5,1) calc(var(--i)*40ms)}
+@keyframes faqWave{40%{transform:translateY(-.09em) rotate(-3deg)}}
+
+.faq-list{border-top:1px solid var(--line)}
+.faq-item{position:relative;isolation:isolate;border-bottom:1px solid var(--line);opacity:0;transform:translateY(26px);
+  transition:opacity .6s ease,transform .7s cubic-bezier(.2,.9,.3,1.1),border-color .3s}
+.faq-item.in{opacity:1;transform:none}
+.faq-item::before{content:"";position:absolute;inset:0 -20px;z-index:-1;background:var(--bg2);border-radius:22px;opacity:0;transform:scale(.97);
+  transition:opacity .3s ease,transform .45s cubic-bezier(.2,.9,.3,1.2)}
+.faq-item:hover::before,.faq-item.open::before{opacity:1;transform:none}
+.faq-item.open{border-bottom-color:var(--text)}
+
+.faq-q{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:clamp(22px,2.6vw,32px) 0;cursor:pointer;font-weight:800;font-size:clamp(1.35rem,2.7vw,2.25rem);letter-spacing:-.05em;line-height:1.1;color:var(--text);
+  -webkit-tap-highlight-color:transparent}
+.faq-q .q{display:block;transition:transform .5s cubic-bezier(.3,1.5,.5,1)}
+.faq-item:hover .faq-q .q,.faq-q:focus-visible .q{transform:translateX(12px)}
+.faq-q:focus-visible{outline:2px solid var(--text);outline-offset:6px;border-radius:12px}
+
+.faq-ic{position:relative;flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);
+  transition:background .3s,border-color .3s,transform .6s cubic-bezier(.3,1.6,.5,1)}
+.faq-ic::before,.faq-ic::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2px;margin:-1px 0 0 -8px;border-radius:2px;background:var(--text);
+  transition:transform .5s cubic-bezier(.3,1.6,.5,1),background .3s}
+.faq-ic::after{transform:rotate(90deg)}
+.faq-item:hover .faq-ic{border-color:var(--text)}
+.faq-q:active .faq-ic{transform:scale(.88)}
+.faq-item.open .faq-ic{background:var(--accent);border-color:var(--accent);transform:rotate(180deg)}
+.faq-item.open .faq-ic::before,.faq-item.open .faq-ic::after{background:var(--accent-ink)}
+.faq-item.open .faq-ic::after{transform:rotate(0)}
+
+.faq-a{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .55s cubic-bezier(.2,.9,.3,1),visibility 0s linear .55s}
+.faq-item.open .faq-a{grid-template-rows:1fr;visibility:visible;transition-delay:0s}
+.faq-a>div{overflow:hidden;min-height:0;padding:0 4px}
+.faq-a p{max-width:640px;margin:0;padding:0 0 22px;color:var(--muted);font-size:clamp(1.05rem,1.5vw,1.25rem);line-height:1.6;
+  opacity:0;transform:translateY(-12px);transition:opacity .3s ease,transform .5s cubic-bezier(.2,.9,.3,1)}
+.faq-a .faq-extra{padding:0 0 30px;opacity:0;transform:translateY(-12px);transition:opacity .3s ease,transform .5s cubic-bezier(.2,.9,.3,1)}
+.faq-a p:last-child{padding-bottom:30px}
+.faq-item.open .faq-a p,.faq-item.open .faq-a .faq-extra{opacity:1;transform:none;transition-delay:.14s}
+.faq-a a.mail{color:var(--text);font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px;overflow-wrap:anywhere;transition:color .25s}
+.faq-a a.mail:hover{color:var(--muted)}
+.faq-copy{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-weight:600;font-size:.9rem;
+  padding:11px 20px;border-radius:999px;cursor:pointer;transition:background .25s,color .25s,border-color .25s,transform .35s cubic-bezier(.3,1.7,.5,1)}
+.faq-copy:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);transform:translateY(-2px)}
+.faq-copy:active{transform:scale(.95)}
+.faq-copy:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+@media(max-width:700px){
+  .faq{margin-top:72px}
+  .faq-item::before{inset:0 -10px;border-radius:18px}
+  .faq-ic{width:38px;height:38px}
+  .faq-q{gap:16px}
+  .faq-item:hover .faq-q .q{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .faq-item,.faq-a,.faq-a p,.faq-a .faq-extra,.faq-ic,.faq-q .q{transition:none}
+  .faq-item{opacity:1;transform:none}
+  .faq-title:hover .ch{animation:none}
+}
+/* GitHub card: deep blood red on hover */
+.cta-face{box-shadow:0 0 0 rgba(122,6,18,0);transition:background .5s ease,color .5s ease,border-color .5s ease,box-shadow .5s ease}
+@media(hover:hover){
+  .cta:hover{--cta-bg:#4a050c;--cta-ink:#f5f5f5;--cta2-bg:#3a040a}
+  .cta:hover .cta-face{border-color:#7a0612;box-shadow:0 30px 80px rgba(122,6,18,.35)}
+}
+.cta:focus-within{--cta-bg:#4a050c;--cta-ink:#f5f5f5;--cta2-bg:#3a040a}
+.cta:focus-within .cta-face{border-color:#7a0612}
 </style>
 </head>
 <body>
@@ -704,6 +777,34 @@ h1 .nw,h1 .nw:hover{display:inline-block;white-space:nowrap;transform:none;trans
     <p class="wallpaper-note">Free to download · Opens in Google Photos.</p>
   </section>
 
+
+  <section class="faq" id="good-to-know" aria-labelledby="faq-title">
+    <h2 class="faq-title" id="faq-title" aria-label="Good to know.">
+      <span class="w w1" aria-hidden="true">Good to</span>
+      <span class="w w2" aria-hidden="true">know.</span>
+    </h2>
+    <div class="faq-list" id="faq-list">
+      <div class="faq-item">
+        <h3><button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a1" id="faq-q1"><span class="q">Are the tools free?</span><span class="faq-ic" aria-hidden="true"></span></button></h3>
+        <div class="faq-a" id="faq-a1" role="region" aria-labelledby="faq-q1"><div><p>Yes, every tool is completely free to use.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3><button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a2" id="faq-q2"><span class="q">Do I need an account?</span><span class="faq-ic" aria-hidden="true"></span></button></h3>
+        <div class="faq-a" id="faq-a2" role="region" aria-labelledby="faq-q2"><div><p>No, you do not need an account to use any of the tools.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3><button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a3" id="faq-q3"><span class="q">Can I use the code in my own project?</span><span class="faq-ic" aria-hidden="true"></span></button></h3>
+        <div class="faq-a" id="faq-a3" role="region" aria-labelledby="faq-q3"><div><p>Absolutely, the code is fully GPL-3 compliant, so you are free to copy it and use it in your own project under the terms of that license.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3><button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a4" id="faq-q4"><span class="q">How do I report a bug or suggest a feature?</span><span class="faq-ic" aria-hidden="true"></span></button></h3>
+        <div class="faq-a" id="faq-a4" role="region" aria-labelledby="faq-q4"><div>
+          <p>To report a bug or suggest a feature, please contact me at <a class="mail" href="mailto:worsmon@proton.me">worsmon@proton.me</a>.</p>
+          <div class="faq-extra"><button class="faq-copy" type="button" data-copy="worsmon@proton.me"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span>Copy email</span></button></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
 
   <section class="cta" id="cta">
     <div class="cta-inner">
@@ -1070,6 +1171,51 @@ document.querySelectorAll('.wallpaper-meta h3').forEach(h=>{
 })();
 
 document.getElementById('yr').textContent=new Date().getFullYear();
+
+/* good to know: accordion, letter wave, staggered reveal, copy email */
+(function(){
+  const sec=document.getElementById('good-to-know'); if(!sec) return;
+  const title=sec.querySelector('.faq-title');
+  let n=0;
+  title.querySelectorAll('.w').forEach(w=>{
+    const text=w.textContent; w.textContent='';
+    [...text].forEach(c=>{const s=document.createElement('span'); s.className='ch'; s.textContent=c; s.style.setProperty('--i',n++); w.appendChild(s)});
+  });
+
+  const items=[...sec.querySelectorAll('.faq-item')];
+  const btns=items.map(i=>i.querySelector('.faq-q'));
+  const setOpen=(item,open)=>{item.classList.toggle('open',open); item.querySelector('.faq-q').setAttribute('aria-expanded',open)};
+  items.forEach(item=>{
+    item.querySelector('.faq-q').addEventListener('click',()=>{
+      const willOpen=!item.classList.contains('open');
+      items.forEach(o=>{if(o!==item) setOpen(o,false)});
+      setOpen(item,willOpen);
+    });
+  });
+  btns.forEach((b,i)=>b.addEventListener('keydown',e=>{
+    const k=e.key, t={ArrowDown:(i+1)%btns.length,ArrowUp:(i-1+btns.length)%btns.length,Home:0,End:btns.length-1}[k];
+    if(t!==undefined){e.preventDefault(); btns[t].focus()}
+  }));
+
+  const rio=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){
+      const i=items.indexOf(e.target);
+      setTimeout(()=>e.target.classList.add('in'),i*110);
+      rio.unobserve(e.target);
+    }
+  }),{threshold:.2});
+  items.forEach(i=>rio.observe(i));
+
+  const cb=sec.querySelector('.faq-copy');
+  if(cb) cb.addEventListener('click',async()=>{
+    const v=cb.dataset.copy, label=cb.querySelector('span');
+    try{ await navigator.clipboard.writeText(v); }
+    catch(_){ const t=document.createElement('textarea'); t.value=v; t.style.cssText='position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try{document.execCommand('copy')}catch(__){} t.remove(); }
+    const tz=document.getElementById('toast');
+    if(tz){const old=tz.textContent; tz.textContent='Email copied'; tz.classList.add('show'); setTimeout(()=>{tz.classList.remove('show'); setTimeout(()=>{tz.textContent=old},400)},1600)}
+    label.textContent='Copied'; setTimeout(()=>{label.textContent='Copy email'},1600);
+  });
+})();
 </script>
 </body>
 </html>
