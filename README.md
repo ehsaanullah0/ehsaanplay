@@ -29,24 +29,23 @@ This webapp is a personal developed project if you want support please do not ex
 >
 > We're working on exciting new features to make your experience better!
 
-- ✔ **Multi-API Fallback Support** (v2.3.0) -by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/7)
--  ✔ **Local Wi-Fi Peer-to-Peer Sync** *(Beta)*
-- ✔ **Built-in Trailer Player** (v2.1.9)
-- ❌ **Beautiful Analytics Page**
--  ✔ **Personal Favourites Category** — by [@thmeo07](https://github.com/ehsaanullah0/ehsaanplay/pull/3)
--  ✔ **Long-Press Popup Menu** inside movie image cards** (v2.2.8) — by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/4)
+-  ❌ **Beautiful Analytics Page**
+-  ❌ **Automatic Backup to a Chosen Folder**
+-  ❌**introduce direct web search result into app**
+
 </table>
 <details>
-<summary>View More Notes</summary>
+<summary>View COMPLETE TASKS</summary>
  
- - ❌ **Automatic Backup to a Chosen Folder**
+ -  ✔ **Personal Favourites Category** — by [@thmeo07](https://github.com/ehsaanullah0/ehsaanplay/pull/3)
+-  ✔ **Long-Press Popup Menu** inside movie image cards (v2.2.8) — by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/4)
+-  ✔ **Multi-API Fallback Support** (v2.3.0) -by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/7)
+-  ✔ **Local Wi-Fi Peer-to-Peer Sync** *(Beta)*
+-  ✔ **Built-in Trailer Player** (v2.1.9)
 -  ✔ **Beautiful First-Visit Guide** (v2.2.9)
--  ❌**introduce direct web search result into app**
 -  ✔ **add imdb link metadata crowl as fallback of every service.**
  
 </details>
-
-### legend- ✔COMPLETE | ❌PENDING
 
 ---
 
@@ -137,7 +136,7 @@ This webapp is a personal developed project if you want support please do not ex
 ## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
 
 ---
-## ❤SPECIAL THANKS TO [TOMATO](https://github.com/nsh07/Tomato) | [PIX-PLAYER](https://github.com/PixelPlayerHQ/PixelPlayer)
+### ❤SPECIAL THANKS TO [TOMATO](https://github.com/nsh07/Tomato) | [PIX-PLAYER](https://github.com/PixelPlayerHQ/PixelPlayer)
 - the ui is inspired by tomato pomodoro
 - the first visit guide is inspired by pixal player
 ## ✨ What is EHSAAN PLAY?
@@ -263,14 +262,12 @@ The application is designed so that personal library data can remain on your dev
   
 
 
-<div align="center">
 
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
 ## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 
 
-<p align="center">
 
   <a href="https://ehsaancolour.ai.studio/" target="_blank">
     <img width="170" src="https://github.com/user-attachments/assets/00762234-2f32-40c0-8640-225206908e5a" alt="EHSAAN Colour" />
@@ -295,8 +292,6 @@ The application is designed so that personal library data can remain on your dev
 </p>
 
 
-<div align="center">
-
 <br>
 
 <a href="mailto:worsmon@gmail.com">
@@ -313,4 +308,3 @@ The application is designed so that personal library data can remain on your dev
 
 <sub>If you find something useful here, a ⭐ is always appreciated.</sub>
 
-</div>
