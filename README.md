@@ -58,6 +58,8 @@ This webapp is a personal developed project if you want support please do not ex
 </p>
 </p>
 
+### if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
+
 ---
 
 # PREVIEW OF APP
