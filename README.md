@@ -214,7 +214,7 @@ Just your library.
 
 ---
 
-[![Architecture diagram of ehsaanullah0/ehsaanplay](https://gitdiagram.com/ehsaanullah0/ehsaanplay/diagram.png)](https://gitdiagram.com/ehsaanullah0/ehsaanplay?utm_source=readme&utm_medium=picture)
+[<img width="5638" height="4472" alt="diagram" src="https://github.com/user-attachments/assets/d5994f04-d59e-4a69-898b-e26ea5460c69" />](https://gitdiagram.com/ehsaanullah0/ehsaanplay)
 
 ---
 
@@ -260,33 +260,15 @@ The application is designed so that personal library data can remain on your dev
 ## **This project is licencrd under GPN-3**
 
 ### Please[ check the repository license](https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file) before using, modifying, or redistributing the project.
-
-<p align="center">
-<img width="720" height="634" alt="Screenshot_20261007-113639_19" src="https://github.com/user-attachments/assets/bc20935a-ab23-4158-a307-3ab4c2f31625" />
-<p/>
   
----
+
 
 <div align="center">
 
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
+## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 
-# ❤️ Support the Development
-
-If EHSAAN PLAY or any other EHSAAN project is useful to you, you can support the development directly.
-
-<p align="center">
-  <a href="https://ehsaan.odoo.com/support">
-    <strong>💛 CLICK HERE TO SUPPORT EHSAAN</strong>
-  </a>
-</p>
-
-<p align="center">
-  <img width="250" height="250" alt="Support EHSAAN" src="https://github.com/user-attachments/assets/7139284e-c5e5-424a-bd52-aa71ccc392a8" />
-</p>
-
----
 
 <p align="center">
 
@@ -312,14 +294,8 @@ If EHSAAN PLAY or any other EHSAAN project is useful to you, you can support the
 
 </p>
 
----
 
 <div align="center">
-
-# MADE BY EHSAAN ULLAH
-
-**Make useful things. Make them feel good to use.**
-## [CONTACT US NOW](https://ehsaan.odoo.com/contactus)
 
 <br>
 
@@ -338,4 +314,3 @@ If EHSAAN PLAY or any other EHSAAN project is useful to you, you can support the
 <sub>If you find something useful here, a ⭐ is always appreciated.</sub>
 
 </div>
-NOTE: Please any DEV. make this webapp into installable apk or exe
