@@ -31,13 +31,14 @@ This webapp is a personal developed project if you want support please do not ex
 
 -  ❌ **Beautiful Analytics Page**
 -  ❌ **Automatic Backup to a Chosen Folder**
--  ❌**introduce direct web search result into app**
-
+-  ✔ **introduce direct web search result into app**
+-  ✔ **full indipendent actor profile page**
 </table>
 <details>
-<summary>View COMPLETE TASKS</summary>
+<summary>✔ View COMPLETE TASKS</summary>
  
- -  ✔ **Personal Favourites Category** — by [@thmeo07](https://github.com/ehsaanullah0/ehsaanplay/pull/3)
+
+-  ✔ **Personal Favourites Category** — by [@thmeo07](https://github.com/ehsaanullah0/ehsaanplay/pull/3)
 -  ✔ **Long-Press Popup Menu** inside movie image cards (v2.2.8) — by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/4)
 -  ✔ **Multi-API Fallback Support** (v2.3.0) -by [@aleon-ty](https://github.com/ehsaanullah0/ehsaanplay/pull/7)
 -  ✔ **Local Wi-Fi Peer-to-Peer Sync** *(Beta)*
