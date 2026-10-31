@@ -79,6 +79,9 @@ This webapp is a personal developed project if you want support please do not ex
 <img width="1366" height="760" alt="image" src="https://github.com/user-attachments/assets/d5ce31a0-f00c-41c8-a0de-255bf4cbfea0" />
 </p>
 
+<p align="center">
+<img width="1359" height="730" alt="image" src="https://github.com/user-attachments/assets/ef47269b-1b89-449c-ba8d-44be6287e02b" />
+</p>
 <!-- Mobile Screenshots -->
 
 <table>
