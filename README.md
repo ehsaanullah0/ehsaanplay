@@ -3,6 +3,12 @@
 </p>
 <br>
 
+# EHSAAN PLAY
+ ## **Your watchlist. Your taste. Your space.**
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://ehsaanplay.ai.studio)   [<img width="256" height="56" alt="image" src="https://github.com/user-attachments/assets/ff3f6258-3e39-401c-a3f5-d3d92ce4a7d2" />
+](https://ehsaan.odoo.com/) 
+
+=======
  # **Your watchlist. Your taste. Your space.**
 
 </a>
