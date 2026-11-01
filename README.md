@@ -8,6 +8,8 @@
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://ehsaanplay.ai.studio)   [<img width="256" height="56" alt="image" src="https://github.com/user-attachments/assets/ff3f6258-3e39-401c-a3f5-d3d92ce4a7d2" />
 ](https://ehsaan.odoo.com/) 
 
+=======
+ # **Your watchlist. Your taste. Your space.**
 
 </a>
 
@@ -17,8 +19,7 @@
   calm, and enjoyable way.
 </p>
 
-
-## WANT STREAMING, REFFER [VEGA-ORG](https://github.com/vega-org)
+# 📍[EHSAAN PLAY](https://ehsaanplay.ai.studio)📍
 
 ---
 
@@ -50,18 +51,18 @@ This webapp is a personal developed project if you want support please do not ex
  
 </details>
 
+## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
+
 ---
 
 # 🎥 Demo
 
 <p align="center">
   <a href="https://youtu.be/MXh9GdDQqJ4">
-    <img width="420" src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Watch EHSAAN PLAY Demo" />
+    <img width="400" src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Watch EHSAAN PLAY Demo" />
   </a>
 </p>
 </p>
-
-### if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
 
 ---
 
@@ -143,8 +144,11 @@ This webapp is a personal developed project if you want support please do not ex
 
 ## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
 
+> [!IMPORTANT]
+> ### WANT STREAMING, REFFER [VEGA-ORG](https://github.com/vega-org)
+
 ---
-### ❤SPECIAL THANKS TO [TOMATO](https://github.com/nsh07/Tomato) | [PIX-PLAYER](https://github.com/PixelPlayerHQ/PixelPlayer)
+
 - the ui is inspired by tomato pomodoro
 - the first visit guide is inspired by pixal player
 ## ✨ What is EHSAAN PLAY?
