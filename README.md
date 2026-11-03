@@ -18,8 +18,6 @@
   calm, and enjoyable way.
 </p>
 
-# 📍[EHSAAN PLAY](https://ehsaanplay.ai.studio)📍
-
 ---
 
 ## ‼️ DISCLAIMER
