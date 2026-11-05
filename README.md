@@ -49,7 +49,7 @@ This webapp is a personal developed project if you want support please do not ex
 </details>
 
 ## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
-
+## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 ---
 
 # 🎥 Demo
@@ -274,7 +274,7 @@ The application is designed so that personal library data can remain on your dev
 
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
-## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
+
 
 
 
