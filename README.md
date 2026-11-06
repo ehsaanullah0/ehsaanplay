@@ -268,9 +268,9 @@ The application is designed so that personal library data can remain on your dev
 
 ## 📄 License
 
-## **This project is licencrd under GPN-3**
+## **This project is licencrd under MIT**
 
-### Please[ check the repository license](https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file) before using, modifying, or redistributing the project.
+### Please[ check the repository license]([https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file](https://github.com/ehsaanullah0/ehsaanplay/blob/main/LICENSE)) before using, modifying, or redistributing the project.
   
 
 
