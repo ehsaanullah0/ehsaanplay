@@ -5,7 +5,8 @@
 
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
-[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://ehsaanplay.ai.studio)   [<img width="256" height="56" alt="obtainium_button_transparent" src="https://github.com/user-attachments/assets/84cb6b47-cee8-4f97-9698-9aa286c9beea" />](https://ehsaan.odoo.com/)
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://ehsaanplay.ai.studio)   [<img width="256" height="56" alt="obtainium_button_transparent" src="https://github.com/user-attachments/assets/e8248548-eed1-436c-bbab-61defaee1a0e" />
+](https://ehsaan.odoo.com/)
 
 
  # **Your watchlist. Your taste. Your space.**
