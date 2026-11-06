@@ -7,7 +7,7 @@
 
 import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo, EpisodeDetail } from '../types/movie';
 
-export const DEFAULT_TMDB_KEY = 'a846f4eb273f08cf2aa2a8ee0b7ad03d'; // Default fallback TMDB API key
+export const DEFAULT_TMDB_KEY = 'use your own api key'; // Default fallback TMDB API key
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
