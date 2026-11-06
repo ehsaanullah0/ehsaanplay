@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { parseImdbInput, getCanonicalImdbUrl } from '../../services/imdbParser';
 import { fetchImdbPreview, ImdbMetadataPreview } from '../../services/omdb';
 import { MediaItem, PersonalMediaState } from '../../types/movie';
+import { loadUserSettings } from '../../services/storage';
 import { SafeImage } from '../common/SafeImage';
+import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
+import { openStreamingPlatform } from '../../services/streamingDirectUrls';
 import {
   X,
   ExternalLink,
@@ -24,6 +27,7 @@ import {
   RefreshCw,
   Search,
   Eye,
+  User,
 } from 'lucide-react';
 
 interface ImdbPreviewModalProps {
@@ -35,6 +39,7 @@ interface ImdbPreviewModalProps {
   onAddMediaToLibrary?: (item: MediaItem) => void;
   onToggleWatchlist?: (id: string) => void;
   userStates?: Record<string, PersonalMediaState>;
+  mediaItems?: MediaItem[];
 }
 
 const SAMPLE_TITLES = [
@@ -52,10 +57,12 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
   onAddMediaToLibrary,
   onToggleWatchlist,
   userStates = {},
+  mediaItems = [],
 }) => {
   const [inputVal, setInputVal] = useState(initialInput);
   const [parsedId, setParsedId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<SelectedPersonInfo | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [previewData, setPreviewData] = useState<ImdbMetadataPreview | null>(null);
@@ -560,36 +567,91 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                   {/* People / Creators / Crew */}
                   <div className="space-y-1.5 pt-2 text-xs border-t border-[var(--border-subtle)]">
                     {previewData.director && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <span className="text-[var(--text-secondary)] font-bold w-16 shrink-0">Director:</span>
-                        <span className="text-[var(--text-primary)] font-medium">{previewData.director}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPerson({
+                            name: previewData.director!,
+                            job: 'Director',
+                            roleType: 'crew',
+                            currentMediaTitle: previewData.title,
+                            currentMediaId: previewData.mediaItem.id
+                          })}
+                          className="text-[var(--text-primary)] font-bold hover:text-[var(--accent-primary)] hover:underline text-left transition"
+                          title={`View ${previewData.director} profile`}
+                        >
+                          {previewData.director}
+                        </button>
                       </div>
                     )}
                     {previewData.writer && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <span className="text-[var(--text-secondary)] font-bold w-16 shrink-0">Writer:</span>
-                        <span className="text-[var(--text-primary)] font-medium">{previewData.writer}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPerson({
+                            name: previewData.writer!,
+                            job: 'Writer',
+                            roleType: 'crew',
+                            currentMediaTitle: previewData.title,
+                            currentMediaId: previewData.mediaItem.id
+                          })}
+                          className="text-[var(--text-primary)] font-bold hover:text-[var(--accent-primary)] hover:underline text-left transition"
+                          title={`View ${previewData.writer} profile`}
+                        >
+                          {previewData.writer}
+                        </button>
                       </div>
                     )}
                     {previewData.actors && (
-                      <div className="flex gap-2">
-                        <span className="text-[var(--text-secondary)] font-bold w-16 shrink-0">Cast:</span>
-                        <span className="text-[var(--text-primary)] font-medium">{previewData.actors}</span>
+                      <div className="flex gap-2 items-start">
+                        <span className="text-[var(--text-secondary)] font-bold w-16 shrink-0 pt-0.5">Cast:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {previewData.actors.split(',').map((actor, aIdx) => {
+                            const cleanName = actor.trim();
+                            if (!cleanName) return null;
+                            return (
+                              <button
+                                key={aIdx}
+                                type="button"
+                                onClick={() => setSelectedPerson({
+                                  name: cleanName,
+                                  roleType: 'cast',
+                                  currentMediaTitle: previewData.title,
+                                  currentMediaId: previewData.mediaItem.id
+                                })}
+                                className="px-2 py-0.5 rounded-lg bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] text-xs font-semibold text-[var(--text-primary)] transition active:scale-95 shadow-2xs cursor-pointer"
+                                title={`View ${cleanName} profile`}
+                              >
+                                {cleanName}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Streaming Watch Providers */}
+                  {/* Streaming Watch Providers with Direct Landing URLs */}
                   {previewData.mediaItem.providers && previewData.mediaItem.providers.length > 0 && (
                     <div className="pt-2.5 border-t border-[var(--border-subtle)] space-y-1.5">
-                      <span className="text-[11px] font-bold text-[var(--text-secondary)] block uppercase tracking-wide">
-                        Streaming & Watch Services:
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)] block uppercase tracking-wide">
+                          Streaming & Watch Services:
+                        </span>
+                        <span className="text-[10px] text-[var(--accent-primary)] font-semibold">
+                          Click to launch directly
+                        </span>
+                      </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {previewData.mediaItem.providers.map((p, idx) => (
-                          <span
+                          <button
                             key={`${p.name}-${idx}`}
-                            className="px-2.5 py-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-2xs"
+                            type="button"
+                            onClick={() => openStreamingPlatform(p.name, previewData.mediaItem.title, previewData.mediaItem.type, previewData.mediaItem.year)}
+                            title={`Watch "${previewData.mediaItem.title}" directly on ${p.name}`}
+                            className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-98 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-2xs transition cursor-pointer select-none"
                           >
                             {p.logoUrl ? (
                               <img src={p.logoUrl} alt={p.name} className="w-4 h-4 rounded-md object-cover" />
@@ -598,7 +660,8 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                             )}
                             <span>{p.name}</span>
                             <span className="text-[10px] text-[var(--text-secondary)] uppercase font-semibold">({p.type})</span>
-                          </span>
+                            <ExternalLink className="w-2.5 h-2.5 text-[var(--accent-primary)] ml-0.5" />
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -612,9 +675,21 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {previewData.mediaItem.crew.map((c, i) => (
-                          <span key={`${c.name}-${i}`} className="px-2 py-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-primary)]">
+                          <button
+                            key={`${c.name}-${i}`}
+                            type="button"
+                            onClick={() => setSelectedPerson({
+                              name: c.name,
+                              job: c.job,
+                              roleType: 'crew',
+                              currentMediaTitle: previewData.title,
+                              currentMediaId: previewData.mediaItem.id
+                            })}
+                            title={`View ${c.name} profile`}
+                            className="px-2 py-0.5 rounded-lg bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] text-xs font-semibold text-[var(--text-primary)] transition active:scale-95 cursor-pointer text-left shadow-2xs"
+                          >
                             <strong>{c.name}</strong> <span className="text-[10px] text-[var(--text-secondary)]">({c.job})</span>
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -741,6 +816,29 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Full Screen Minimal Details Page for Cast & Crew with Big Circular Portrait */}
+      {selectedPerson && (
+        <CastCrewDetailModal
+          person={selectedPerson}
+          onClose={() => setSelectedPerson(null)}
+          onSelectPerson={(newPerson) => setSelectedPerson(newPerson)}
+          currentMedia={previewData?.mediaItem || null}
+          currentCast={previewData?.mediaItem?.cast || []}
+          currentCrew={previewData?.mediaItem?.crew || []}
+          mediaItems={mediaItems}
+          userStates={userStates}
+          onSelectMedia={(item) => {
+            setSelectedPerson(null);
+            onClose();
+            if (onSelectMedia) {
+              onSelectMedia(item);
+            }
+          }}
+          onToggleWatchlist={onToggleWatchlist}
+          tmdbApiKey={loadUserSettings().tmdbApiKey}
+        />
+      )}
     </div>
   );
 };

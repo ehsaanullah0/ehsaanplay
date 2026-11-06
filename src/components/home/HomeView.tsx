@@ -163,6 +163,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           userStates={userStates}
           onSelectMedia={onSelectMedia}
           onToggleWatchlist={onToggleWatchlist}
+          tweaks={tweaks || settings?.tweaks}
         />
       )}
 

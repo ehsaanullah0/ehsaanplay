@@ -11,6 +11,27 @@ interface BottomNavigationProps {
   onTriggerSwapConfirm?: () => void;
 }
 
+/**
+ * Mathematically continuous, organic 4-pod scalloped metaball contour (248x64).
+ * 4 circular nodes at x = 31, 93, 155, 217; radius = 27; height = 64; waist dip = 7px.
+ * Tangent-continuous cubic Bézier waists connect adjacent circular pods.
+ */
+const SCALLOPED_DOCK_PATH =
+  'M 31 59 A 27 27 0 0 1 31 5 ' +
+  'C 46 5, 50 12, 62 12 ' +
+  'C 74 12, 78 5, 93 5 ' +
+  'C 108 5, 112 12, 124 12 ' +
+  'C 136 12, 140 5, 155 5 ' +
+  'C 170 5, 174 12, 186 12 ' +
+  'C 198 12, 202 5, 217 5 ' +
+  'A 27 27 0 0 1 217 59 ' +
+  'C 202 59, 198 52, 186 52 ' +
+  'C 174 52, 170 59, 155 59 ' +
+  'C 140 59, 136 52, 124 52 ' +
+  'C 112 52, 108 59, 93 59 ' +
+  'C 78 59, 74 52, 62 52 ' +
+  'C 50 52, 46 59, 31 59 Z';
+
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   activeTab,
   onSelectTab,
@@ -105,6 +126,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const activeIndex = tabs.findIndex(tab => !tab.isSpecialAction && activeTab === tab.id);
+
   const handleTabClick = (tabId: ActiveTab | 'search', isSpecialAction?: boolean) => {
     if (isLongPressRef.current) {
       isLongPressRef.current = false;
@@ -123,27 +146,58 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       style={{
         bottom: isFullscreen
           ? 'calc(1.1rem + env(safe-area-inset-bottom, 0px))'
-          : 'calc(0.6rem + env(safe-area-inset-bottom, 0px))',
+          : 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
       }}
       className={`md:hidden fixed left-0 right-0 z-40 flex justify-center pointer-events-none px-4 transition-all duration-300 ease-out ${
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0'
       }`}
     >
+      {/* Floating Conjoined Scalloped Organic Dock Container */}
       <nav
         aria-label="Mobile Navigation"
-        className="pointer-events-auto flex items-center gap-1.5 p-1.5 bg-[var(--bg-nav-container)] rounded-full shadow-2xl border border-[var(--border-subtle)] backdrop-blur-xl transition-all duration-200"
-        style={{
-          boxShadow: '0 8px 32px -4px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.2)',
-        }}
+        className="pointer-events-auto relative w-[248px] h-[64px] select-none touch-manipulation"
       >
-        {tabs.map(tab => {
-          const isActive = !tab.isSpecialAction && activeTab === tab.id;
-          const Icon = tab.icon;
+        {/* SVG Fluid Conjoined Organic Hull with Crisp Outline & Floating Ambient Shadow */}
+        <svg
+          viewBox="0 0 248 64"
+          className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+          style={{
+            filter:
+              'drop-shadow(0 14px 28px rgba(0, 0, 0, 0.25)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.12))',
+          }}
+        >
+          <path
+            d={SCALLOPED_DOCK_PATH}
+            className="fill-[var(--bg-nav-container)] transition-colors duration-300"
+            style={{
+              stroke: 'var(--nav-dock-border, rgba(255, 255, 255, 0.95))',
+              strokeWidth: 2.75,
+              strokeLinejoin: 'round',
+            }}
+          />
+        </svg>
 
-          if (isActive) {
+        {/* Sliding Active Circular Highlight with Spring Physics */}
+        {activeIndex >= 0 && (
+          <div
+            className="absolute top-[8px] left-[7px] w-[48px] h-[48px] rounded-full bg-[var(--bg-nav-active)] pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-10"
+            style={{
+              transform: `translateX(${activeIndex * 62}px)`,
+              boxShadow: '0 4px 14px -1px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.14)',
+            }}
+          />
+        )}
+
+        {/* 4 Interactive Tab Buttons Layer */}
+        <div className="relative z-20 w-full h-full flex items-center">
+          {tabs.map((tab) => {
+            const isActive = !tab.isSpecialAction && activeTab === tab.id;
+            const Icon = tab.icon;
+
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
                 onTouchStart={() => startPress(tab.id)}
                 onTouchMove={cancelPress}
@@ -158,49 +212,44 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                     if (onTriggerSwapConfirm) onTriggerSwapConfirm();
                   }
                 }}
+                aria-label={tab.label}
+                aria-current={isActive ? 'page' : undefined}
+                title={
+                  tab.id === 'lists' || tab.id === 'search'
+                    ? `${tab.label} (Hold to swap layout)`
+                    : tab.label
+                }
                 style={{ touchAction: 'manipulation' }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--bg-nav-active)] text-[var(--text-nav-active)] text-sm font-bold shadow-xs transition-all duration-200 focus:outline-none select-none active:scale-95"
+                className="w-[62px] h-[64px] flex items-center justify-center relative cursor-pointer focus:outline-none active:scale-95 transition-transform duration-150"
               >
-                <Icon className="w-4 h-4 stroke-[2.5]" />
-                <span>{tab.label}</span>
+                {/* Subtle Inactive Circular Pod Background (matches reference image pod disc) */}
+                <div
+                  className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-all duration-200 ${
+                    isActive
+                      ? 'opacity-0 scale-90'
+                      : 'opacity-100 scale-100 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1]'
+                  }`}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-all duration-200 ${
+                      isActive
+                        ? 'text-[var(--text-nav-active)] stroke-[2.5] scale-110'
+                        : 'text-[var(--text-nav-inactive)] stroke-[2] opacity-85 hover:opacity-100'
+                    }`}
+                  />
+                </div>
+
+                {/* Overlaid Active Icon in center of the sliding bubble */}
+                {isActive && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <Icon className="w-5 h-5 text-[var(--text-nav-active)] stroke-[2.5] scale-110 animate-scale-up" />
+                  </div>
+                )}
               </button>
             );
-          }
-
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
-              onTouchStart={() => startPress(tab.id)}
-              onTouchMove={cancelPress}
-              onTouchEnd={cancelPress}
-              onTouchCancel={cancelPress}
-              onMouseDown={() => startPress(tab.id)}
-              onMouseUp={cancelPress}
-              onMouseLeave={cancelPress}
-              onContextMenu={e => {
-                if (tab.id === 'lists' || tab.id === 'search') {
-                  e.preventDefault();
-                  if (onTriggerSwapConfirm) onTriggerSwapConfirm();
-                }
-              }}
-              aria-label={tab.label}
-              title={
-                tab.id === 'lists' || tab.id === 'search'
-                  ? `${tab.label} (Hold to swap layout)`
-                  : tab.label
-              }
-              style={{ touchAction: 'manipulation' }}
-              className={`p-2.5 rounded-full text-[var(--text-nav-inactive)] hover:opacity-80 active:scale-90 transition-all duration-150 focus:outline-none select-none ${
-                tab.isSpecialAction ? 'hover:text-[var(--accent-primary)]' : ''
-              }`}
-            >
-              <Icon className="w-5 h-5 stroke-[2]" />
-            </button>
-          );
-        })}
+          })}
+        </div>
       </nav>
     </div>
   );
 };
-

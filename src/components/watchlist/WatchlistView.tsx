@@ -123,9 +123,10 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
   ): RecentChangesPackage => {
     const changes: LibraryChangeEntry[] = [];
     let currentChangeId = getNextChangeId();
+    const itemMap = new Map<string, MediaItem>(mediaItemsList.map(m => [m.id, m]));
 
     itemIds.forEach((id) => {
-      const item = mediaItemsList.find(m => m.id === id);
+      const item = itemMap.get(id);
       if (item) {
         const state = statesMap[id];
         currentChangeId += 1;
@@ -329,9 +330,12 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       const stateB = userStates[b.id];
 
       if (filters.sortBy === 'recent') {
-        const timeA = stateA?.addedAt || '1970-01-01';
-        const timeB = stateB?.addedAt || '1970-01-01';
-        return new Date(timeB).getTime() - new Date(timeA).getTime();
+        const timeA = stateA?.addedAt || '';
+        const timeB = stateB?.addedAt || '';
+        if (timeA !== timeB) {
+          return timeB.localeCompare(timeA);
+        }
+        return 0;
       }
       if (filters.sortBy === 'rating_desc') {
         const ratingA = stateA?.personalRating || (a.imdbRating || 0);

@@ -64,6 +64,12 @@ export async function getArtworkDisplaySrc(
 
   const isActuallyOffline = isOfflineMode || (typeof navigator !== 'undefined' && !navigator.onLine);
 
+  // Fast path: When online, return the canonical URL immediately without hitting CacheStorage
+  if (!isActuallyOffline) {
+    return canonicalUrl;
+  }
+
+  // Offline fallback: Lookup in CacheStorage for pre-cached offline artwork
   if (typeof window !== 'undefined' && 'caches' in window) {
     try {
       const cacheNames = [ARTWORK_CACHE_NAME, ...LEGACY_ARTWORK_CACHES];
@@ -93,10 +99,6 @@ export async function getArtworkDisplaySrc(
     } catch (err) {
       console.warn('Cache API lookup failed for artwork:', err);
     }
-  }
-
-  if (!isActuallyOffline) {
-    return canonicalUrl;
   }
 
   return null;

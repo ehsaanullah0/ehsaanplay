@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   MediaItem,
   PersonalMediaState,
@@ -10,6 +10,8 @@ import { loadUserSettings, saveMediaCache, loadMediaCache } from '../../services
 import { SafeImage } from '../common/SafeImage';
 import { StarRating } from '../common/StarRating';
 import { StreamingBrandIcon } from '../common/StreamingBrandIcon';
+import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
+import { openStreamingPlatform } from '../../services/streamingDirectUrls';
 import {
   X,
   ArrowLeft,
@@ -39,6 +41,7 @@ import {
   Trash2,
   CheckCircle2,
   Moon,
+  ExternalLink,
 } from 'lucide-react';
 
 export type PreviewCardId =
@@ -70,15 +73,15 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
     visible: true,
   },
   {
-    id: 'overview',
-    label: 'Story Overview',
-    description: 'Plot synopsis and storyline summary',
+    id: 'cast_crew',
+    label: 'Top Cast & Crew',
+    description: 'Featured actors and key production crew profiles',
     visible: true,
   },
   {
-    id: 'production',
-    label: 'Production Details',
-    description: 'Release date, runtime, budget, box office, and studio info',
+    id: 'overview',
+    label: 'Story Overview',
+    description: 'Plot synopsis and storyline summary',
     visible: true,
   },
   {
@@ -88,9 +91,9 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
     visible: true,
   },
   {
-    id: 'cast_crew',
-    label: 'Top Cast & Crew',
-    description: 'Featured actors and key production crew profiles',
+    id: 'production',
+    label: 'Production Details',
+    description: 'Release date, runtime, budget, box office, and studio info',
     visible: true,
   },
 ];
@@ -156,6 +159,15 @@ interface MoviePreviewModalProps {
   onToggleSeasonEpisodes?: (id: string, season: number, episodeNumbers: number[], forceMarkDone: boolean, item?: MediaItem) => void;
   onAddItemToList: (listId: string, mediaId: string) => void;
   onOpenImdbPreview?: (imdbIdOrUrl: string) => void;
+  mediaItems?: MediaItem[];
+  userStates?: Record<string, PersonalMediaState>;
+  onSelectMedia?: (item: MediaItem) => void;
+  onRegisterBackHandler?: (handler: (() => boolean) | null) => void;
+}
+
+export interface PreviewHistoryEntry {
+  item: MediaItem;
+  person: SelectedPersonInfo | null;
 }
 
 export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
@@ -176,6 +188,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   onToggleSeasonEpisodes,
   onAddItemToList,
   onOpenImdbPreview,
+  mediaItems = [],
+  userStates = {},
+  onSelectMedia,
+  onRegisterBackHandler,
 }) => {
   const [item, setItem] = useState<MediaItem | null>(initialItem);
   const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
@@ -188,6 +204,149 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const [showRearrangeModal, setShowRearrangeModal] = useState(false);
   const [reloadingType, setReloadingType] = useState<'poster' | 'banner' | 'all' | null>(null);
   const [reloadFeedback, setReloadFeedback] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<SelectedPersonInfo | null>(null);
+  const [showAllCast, setShowAllCast] = useState(false);
+  const modalScrollRef = useRef<HTMLDivElement>(null);
+
+  // Navigation History Stack (supports returning back to Actor Profile when credit is opened)
+  const [previewHistory, setPreviewHistory] = useState<PreviewHistoryEntry[]>([]);
+  const previewHistoryRef = useRef<PreviewHistoryEntry[]>([]);
+  useEffect(() => {
+    previewHistoryRef.current = previewHistory;
+  }, [previewHistory]);
+
+  const selectedPersonRef = useRef<SelectedPersonInfo | null>(null);
+  useEffect(() => {
+    selectedPersonRef.current = selectedPerson;
+  }, [selectedPerson]);
+
+  const showCustomizerRef = useRef(showCustomizer);
+  useEffect(() => { showCustomizerRef.current = showCustomizer; }, [showCustomizer]);
+  const showRearrangeModalRef = useRef(showRearrangeModal);
+  useEffect(() => { showRearrangeModalRef.current = showRearrangeModal; }, [showRearrangeModal]);
+  const isAddingToListRef = useRef(isAddingToList);
+  useEffect(() => { isAddingToListRef.current = isAddingToList; }, [isAddingToList]);
+
+  // Handle opening a credit from an actor's filmography without destroying the actor profile
+  const handleSelectCreditFromActorProfile = (newMedia: MediaItem) => {
+    if (item && selectedPerson) {
+      setPreviewHistory((prev) => [
+        ...prev,
+        { item, person: selectedPerson },
+      ]);
+    }
+    setSelectedPerson(null);
+    setItem(newMedia);
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+    if (onSelectMedia) {
+      onSelectMedia(newMedia);
+    }
+  };
+
+  // Handle going back in history (returns to actor profile if opened from one)
+  const handleBackClick = () => {
+    if (previewHistory.length > 0) {
+      const prevEntry = previewHistory[previewHistory.length - 1];
+      setPreviewHistory((prev) => prev.slice(0, -1));
+      setItem(prevEntry.item);
+      setSelectedPerson(prevEntry.person);
+      if (onSelectMedia) {
+        onSelectMedia(prevEntry.item);
+      }
+      if (modalScrollRef.current) {
+        modalScrollRef.current.scrollTop = 0;
+      }
+      return;
+    }
+    onClose();
+  };
+
+  // Register back navigation handler with parent App (for Android back gesture and shortcuts)
+  useEffect(() => {
+    if (onRegisterBackHandler) {
+      onRegisterBackHandler(() => {
+        if (showCustomizerRef.current) {
+          setShowCustomizer(false);
+          return true;
+        }
+        if (showRearrangeModalRef.current) {
+          setShowRearrangeModal(false);
+          return true;
+        }
+        if (isAddingToListRef.current) {
+          setIsAddingToList(false);
+          return true;
+        }
+        if (selectedPersonRef.current) {
+          setSelectedPerson(null);
+          return true;
+        }
+        if (previewHistoryRef.current.length > 0) {
+          handleBackClick();
+          return true;
+        }
+        return false;
+      });
+    }
+    return () => {
+      if (onRegisterBackHandler) {
+        onRegisterBackHandler(null);
+      }
+    };
+  }, [onRegisterBackHandler, previewHistory, selectedPerson, showCustomizer, showRearrangeModal, isAddingToList]);
+
+  // Local Escape key interceptor (stops propagation when sub-views or history are active)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleLocalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showCustomizer) {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowCustomizer(false);
+          return;
+        }
+        if (showRearrangeModal) {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowRearrangeModal(false);
+          return;
+        }
+        if (isAddingToList) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsAddingToList(false);
+          return;
+        }
+        if (selectedPerson) {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedPerson(null);
+          return;
+        }
+        if (previewHistory.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleBackClick();
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleLocalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleLocalKeyDown, true);
+  }, [isOpen, showCustomizer, showRearrangeModal, isAddingToList, selectedPerson, previewHistory]);
+
+  // Reset navigation history whenever modal is fully closed
+  useEffect(() => {
+    if (!isOpen) {
+      setPreviewHistory([]);
+      setSelectedPerson(null);
+    }
+  }, [isOpen]);
 
   const handleReloadSingleArtwork = async (target: 'poster' | 'banner' | 'all') => {
     if (!item || reloadingType !== null) return;
@@ -341,6 +500,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     setIsPlayingTrailer(false);
     setIsOverviewExpanded(false);
 
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+
     if (initialItem && onHydrateDetails) {
       if (!initialItem.cast?.length || !initialItem.providers?.length || initialItem.type === 'tv') {
         onHydrateDetails(initialItem).then(enriched => {
@@ -423,6 +586,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
   return (
     <div
+      ref={modalScrollRef}
       data-theme={isDarkPreview ? "dark" : undefined}
       className={`fixed inset-0 z-50 w-full h-full overflow-y-auto animate-fade-in flex flex-col transition-colors duration-300 ${
         isDarkPreview ? 'bg-[#0b0d10] text-[#f4f4f5]' : 'bg-[var(--modal-bg)] text-[var(--text-primary)]'
@@ -465,8 +629,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           {/* Left: Back button + Production label */}
           <div className="flex items-center gap-2.5">
             <button
-              onClick={onClose}
-              aria-label="Back to library"
+              onClick={handleBackClick}
+              aria-label={
+                previewHistory.length > 0 && previewHistory[previewHistory.length - 1].person
+                  ? `Back to ${previewHistory[previewHistory.length - 1].person!.name}`
+                  : 'Back to library'
+              }
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition border active:scale-95 shadow-xs ${
                 isDarkHero
                   ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
@@ -474,7 +642,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               }`}
             >
               <ArrowLeft className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
-              <span>Back</span>
+              <span>
+                {previewHistory.length > 0 && previewHistory[previewHistory.length - 1].person
+                  ? `Back to ${previewHistory[previewHistory.length - 1].person!.name}`
+                  : 'Back'}
+              </span>
             </button>
 
             {item.productionCompany && (
@@ -1664,32 +1836,53 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             );
           }
 
-          // 5. WHERE TO WATCH CARD (INDEPENDENT)
+          // 5. WHERE TO WATCH CARD (INDEPENDENT) - Direct Landing URLs
           if (section.id === 'where_to_watch') {
             return (
               <div key="where_to_watch" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
-                      Where to Watch
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                        Where to Watch
+                      </h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                        Click any platform to jump directly to this {item.type === 'tv' ? 'series' : 'movie'}
+                      </p>
+                    </div>
                     <span className="text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-1 rounded-full">
                       {cleanedProviders.length} Platform{cleanedProviders.length === 1 ? '' : 's'}
                     </span>
                   </div>
 
-                  {/* Clean structured grid of streaming platform tiles */}
+                  {/* Clean structured grid of interactive streaming platform tiles with direct landing */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
                     {cleanedProviders.map((p, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] transition group shadow-2xs"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openStreamingPlatform(p.name, item.title, item.type, item.year)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openStreamingPlatform(p.name, item.title, item.type, item.year);
+                          }
+                        }}
+                        title={`Watch "${item.title}" directly on ${p.name}`}
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <StreamingBrandIcon name={p.name} className="w-6 h-6 rounded-lg shrink-0 shadow-xs" />
-                          <span className="text-xs font-bold text-[var(--text-primary)] truncate">
-                            {p.name}
-                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-primary)] transition-colors">
+                              {p.name}
+                            </span>
+                            <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-0.5">
+                              <span>Direct landing</span>
+                              <ExternalLink className="w-2.5 h-2.5 text-[var(--accent-primary)]" />
+                            </span>
+                          </div>
                         </div>
                         <span
                           className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
@@ -1708,42 +1901,74 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
-                  <span>Availability verified via OMDb</span>
-                  <span className="font-semibold text-[var(--accent-primary)]">4K / HD Support</span>
+                  <span>Direct streaming links verified</span>
+                  <span className="font-semibold text-[var(--accent-primary)]">Instant Play · 4K / HD</span>
                 </div>
               </div>
             );
           }
 
-          // 6. TOP CAST & CREW CARD (INDEPENDENT)
+          // 6. TOP CAST & CREW CARD (INDEPENDENT) - Full Screen Minimal Profile on Click
           if (section.id === 'cast_crew') {
+            const displayedCast = item.cast ? (showAllCast ? item.cast : item.cast.slice(0, 6)) : [];
+            const hasMoreCast = item.cast && item.cast.length > 6;
+
             return (
               <div key="cast_crew" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
-                      Top Cast & Crew
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                        Top Cast & Crew
+                      </h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                        Tap any artist to view full-screen profile, biography & credits
+                      </p>
+                    </div>
                     <span className="text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-1 rounded-full">
                       {item.cast?.length || 0} Actors recorded
                     </span>
                   </div>
 
                   {/* Cast Members Grid with Profile Avatars */}
-                  {(item.cast && item.cast.length > 0) ? (
+                  {displayedCast.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                      {item.cast.slice(0, 6).map((c, idx) => (
+                      {displayedCast.map((c, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shadow-2xs hover:bg-[var(--bg-surface-elevated)] transition"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedPerson({
+                            name: c.name,
+                            character: c.character,
+                            roleType: 'cast',
+                            profileUrl: c.profileUrl,
+                            currentMediaTitle: item.title,
+                            currentMediaId: item.id
+                          })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedPerson({
+                                name: c.name,
+                                character: c.character,
+                                roleType: 'cast',
+                                profileUrl: c.profileUrl,
+                                currentMediaTitle: item.title,
+                                currentMediaId: item.id
+                              });
+                            }
+                          }}
+                          title={`View full-screen profile for ${c.name}`}
+                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
                         >
                           {/* Cast Member Profile Avatar */}
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] flex items-center justify-center">
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] ring-2 ring-transparent group-hover:ring-[var(--accent-primary)]/40 transition flex items-center justify-center">
                             {c.profileUrl ? (
                               <SafeImage
                                 src={c.profileUrl}
                                 alt={c.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                               />
                             ) : (
                               <User className="w-5 h-5 text-[var(--text-secondary)]" />
@@ -1751,8 +1976,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-[var(--text-primary)] truncate">{c.name}</div>
-                            <div className="text-[11px] text-[var(--text-secondary)] truncate">{c.character}</div>
+                            <div className="text-xs font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-primary)] transition-colors">
+                              {c.name}
+                            </div>
+                            <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                              {c.character}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1760,6 +1989,19 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   ) : (
                     <div className="p-4 rounded-2xl bg-[var(--chip-bg)] text-xs text-[var(--text-secondary)]">
                       Featured narrative cast & production crew recorded in journal.
+                    </div>
+                  )}
+
+                  {/* Show All / Show Less Cast Button */}
+                  {hasMoreCast && (
+                    <div className="mt-3 text-center">
+                      <button
+                        onClick={() => setShowAllCast(!showAllCast)}
+                        className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-xs font-bold text-[var(--text-primary)] border border-[var(--border-subtle)] transition active:scale-95 shadow-2xs"
+                      >
+                        <span>{showAllCast ? 'Show Fewer Cast' : `Show All ${item.cast!.length} Cast Members`}</span>
+                        {showAllCast ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1771,25 +2013,53 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       Key Production Crew
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                      {item.crew.slice(0, 4).map((cr, idx) => (
+                      {item.crew.slice(0, 6).map((cr, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)]"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedPerson({
+                            name: cr.name,
+                            job: cr.job,
+                            roleType: 'crew',
+                            profileUrl: cr.profileUrl,
+                            currentMediaTitle: item.title,
+                            currentMediaId: item.id
+                          })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedPerson({
+                                name: cr.name,
+                                job: cr.job,
+                                roleType: 'crew',
+                                profileUrl: cr.profileUrl,
+                                currentMediaTitle: item.title,
+                                currentMediaId: item.id
+                              });
+                            }
+                          }}
+                          title={`View full-screen profile for ${cr.name}`}
+                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
                         >
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] flex items-center justify-center">
+                          <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] ring-2 ring-transparent group-hover:ring-[var(--accent-primary)]/40 transition flex items-center justify-center">
                             {cr.profileUrl ? (
                               <SafeImage
                                 src={cr.profileUrl}
                                 alt={cr.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                               />
                             ) : (
                               <User className="w-4 h-4 text-[var(--text-secondary)]" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0 text-xs">
-                            <div className="font-bold text-[var(--text-primary)] truncate">{cr.name}</div>
-                            <div className="text-[10px] font-semibold text-[var(--accent-primary)] truncate uppercase tracking-wider">{cr.job}</div>
+                            <div className="font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-primary)] transition-colors">
+                              {cr.name}
+                            </div>
+                            <div className="text-[10px] font-semibold text-[var(--accent-primary)] truncate uppercase tracking-wider">
+                              {cr.job}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1910,6 +2180,23 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full Screen Minimal Details Page for Cast & Crew with Big Circular Portrait */}
+      {selectedPerson && (
+        <CastCrewDetailModal
+          person={selectedPerson}
+          onClose={() => setSelectedPerson(null)}
+          onSelectPerson={(newPerson) => setSelectedPerson(newPerson)}
+          currentMedia={item}
+          currentCast={item?.cast || []}
+          currentCrew={item?.crew || []}
+          mediaItems={mediaItems}
+          userStates={userStates}
+          onSelectMedia={handleSelectCreditFromActorProfile}
+          onToggleWatchlist={onToggleWatchlist}
+          tmdbApiKey={loadUserSettings().tmdbApiKey}
+        />
       )}
     </div>
   );

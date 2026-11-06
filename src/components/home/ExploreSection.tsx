@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { MediaItem, PersonalMediaState, MediaType, AppTweaksConfig, UserSettings } from '../../types/movie';
 import { MoviePoster } from '../common/MoviePoster';
 import { fetchExploreRecommendations } from '../../data/curatedCatalog';
@@ -40,6 +40,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
   onUpdateSettings,
 }) => {
   const [provider, setProvider] = useState<'tmdb' | 'omdb'>(initialProvider);
+  const providerCacheRef = useRef<Partial<Record<'tmdb' | 'omdb', MediaItem[]>>>({});
   const [extraExploreItems, setExtraExploreItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | MediaType | 'top_rated' | 'new_releases'>('all');
@@ -53,12 +54,19 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
     }
   }, [initialProvider]);
 
-  // Load recommendations according to active provider (TMDB or OMDb)
-  const loadExploreData = useCallback(async (prov: 'tmdb' | 'omdb' = provider) => {
+  // Load recommendations according to active provider (TMDB or OMDb) with instant cache hit
+  const loadExploreData = useCallback(async (prov: 'tmdb' | 'omdb' = provider, forceRefresh = false) => {
+    // If cached and not forced, display cached items immediately
+    if (!forceRefresh && providerCacheRef.current[prov] && providerCacheRef.current[prov]!.length > 0) {
+      setExtraExploreItems(providerCacheRef.current[prov]!);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const items = await fetchExploreRecommendations(prov, tmdbApiKey, omdbApiKey);
       if (items && items.length > 0) {
+        providerCacheRef.current[prov] = items;
         setExtraExploreItems(items);
       }
     } catch (err) {
@@ -315,7 +323,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
 
           {/* Refresh Button */}
           <button
-            onClick={() => loadExploreData(provider)}
+            onClick={() => loadExploreData(provider, true)}
             disabled={isLoading}
             title={`Refresh ${provider.toUpperCase()} recommendations`}
             aria-label={`Refresh ${provider.toUpperCase()} recommendations`}

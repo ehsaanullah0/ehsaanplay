@@ -14,6 +14,54 @@ interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 export { resolveArtworkUrl as resolveImageUrl };
 
+// Singleton storage state subscriber to avoid dozens of redundant window listeners and localStorage hits
+let singletonStorageOffline: boolean | null = null;
+const storageOfflineSubscribers = new Set<(isOffline: boolean) => void>();
+let isStorageListenerAttached = false;
+
+function getSingletonStorageOffline(): boolean {
+  if (singletonStorageOffline !== null) return singletonStorageOffline;
+  try {
+    if (typeof window !== 'undefined') {
+      const settings = loadUserSettings();
+      if (settings?.imageStorageMode) {
+        singletonStorageOffline = settings.imageStorageMode === 'offline';
+        return singletonStorageOffline;
+      }
+      const raw = localStorage.getItem('ehsaan_user_settings_v1') || localStorage.getItem('ehsaan_movie_user_settings');
+      if (raw) {
+        singletonStorageOffline = JSON.parse(raw).imageStorageMode === 'offline';
+        return singletonStorageOffline;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  singletonStorageOffline = false;
+  return false;
+}
+
+function ensureStorageListenerAttached() {
+  if (isStorageListenerAttached || typeof window === 'undefined') return;
+  isStorageListenerAttached = true;
+
+  const update = () => {
+    try {
+      const settings = loadUserSettings();
+      const newMode = settings?.imageStorageMode === 'offline';
+      if (newMode !== singletonStorageOffline) {
+        singletonStorageOffline = newMode;
+        storageOfflineSubscribers.forEach(cb => cb(newMode));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  window.addEventListener('ehsaan:settings-change', update, { passive: true });
+  window.addEventListener('storage', update, { passive: true });
+}
+
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt,
@@ -24,53 +72,19 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   style,
   size = 'w500',
   forceOffline = false,
-  loading = 'eager',
+  loading = 'lazy',
   ...props
 }) => {
   const isOnline = useOnlineStatus();
   const triedFallbackRef = useRef<boolean>(false);
-  const [isStorageOffline, setIsStorageOffline] = useState<boolean>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const settings = loadUserSettings();
-        if (settings && settings.imageStorageMode) {
-          return settings.imageStorageMode === 'offline';
-        }
-        const raw = localStorage.getItem('ehsaan_user_settings_v1') || localStorage.getItem('ehsaan_movie_user_settings');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return parsed.imageStorageMode === 'offline';
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return false;
-  });
+  const [isStorageOffline, setIsStorageOffline] = useState<boolean>(getSingletonStorageOffline);
 
   useEffect(() => {
-    const handleSettingsUpdate = () => {
-      try {
-        const settings = loadUserSettings();
-        if (settings && settings.imageStorageMode) {
-          setIsStorageOffline(settings.imageStorageMode === 'offline');
-          return;
-        }
-        const raw = localStorage.getItem('ehsaan_user_settings_v1') || localStorage.getItem('ehsaan_movie_user_settings');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setIsStorageOffline(parsed.imageStorageMode === 'offline');
-        }
-      } catch {
-        // ignore
-      }
-    };
-
-    window.addEventListener('ehsaan:settings-change', handleSettingsUpdate);
-    window.addEventListener('storage', handleSettingsUpdate);
+    ensureStorageListenerAttached();
+    const handleUpdate = (offline: boolean) => setIsStorageOffline(offline);
+    storageOfflineSubscribers.add(handleUpdate);
     return () => {
-      window.removeEventListener('ehsaan:settings-change', handleSettingsUpdate);
-      window.removeEventListener('storage', handleSettingsUpdate);
+      storageOfflineSubscribers.delete(handleUpdate);
     };
   }, []);
 
@@ -193,6 +207,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         alt={alt || fallbackTitle || 'Media artwork'}
         referrerPolicy="no-referrer"
         loading={loading}
+        decoding="async"
         onLoad={() => setIsLoading(false)}
         onError={handleImageError}
         className={`w-full h-full object-cover transition-opacity duration-200 ${

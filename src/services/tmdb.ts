@@ -7,7 +7,7 @@
 
 import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo, EpisodeDetail } from '../types/movie';
 
-export const DEFAULT_TMDB_KEY = defalt tmdb key// Default fallback TMDB API key
+export const DEFAULT_TMDB_KEY = 'a846f4eb273f08cf2aa2a8ee0b7ad03d'; // Default fallback TMDB API key
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
@@ -46,7 +46,7 @@ export function getEffectiveTMDBKey(userKey?: string): string {
 /**
  * Helper to construct TMDB image URLs safely
  */
-export function getTMDBImageUrl(path: string | null | undefined, size: 'w300' | 'w500' | 'w1280' | 'original' = 'w500'): string {
+export function getTMDBImageUrl(path: string | null | undefined, size: 'w300' | 'w500' | 'w1280' | 'h632' | 'original' = 'w500'): string {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -383,3 +383,122 @@ export async function testTMDBConnection(customApiKey?: string): Promise<{
     };
   }
 }
+
+export interface TMDBPersonCredit {
+  id: number | string;
+  tmdbId: number;
+  title: string;
+  type: MediaType;
+  character?: string;
+  job?: string;
+  department?: string;
+  year?: number;
+  releaseDate?: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  rating?: number;
+  voteCount?: number;
+  overview?: string;
+}
+
+export interface TMDBPersonDetails {
+  id: number;
+  name: string;
+  biography?: string;
+  birthday?: string;
+  deathday?: string;
+  placeOfBirth?: string;
+  profileUrl?: string;
+  knownForDepartment?: string;
+  imdbId?: string;
+  credits: TMDBPersonCredit[];
+}
+
+/**
+ * Searches and fetches detailed biographical and filmography info for a Cast or Crew person
+ */
+export async function fetchTMDBPersonDetails(
+  name: string,
+  personId?: number,
+  customApiKey?: string
+): Promise<TMDBPersonDetails | null> {
+  if (!name && !personId) return null;
+
+  try {
+    let resolvedId = personId;
+
+    // If no ID provided, search person by name
+    if (!resolvedId) {
+      const searchRes = await tmdbFetch('search/person', { query: name.trim() }, customApiKey);
+      if (searchRes.results && Array.isArray(searchRes.results) && searchRes.results.length > 0) {
+        resolvedId = searchRes.results[0].id;
+      }
+    }
+
+    if (!resolvedId) return null;
+
+    const details = await tmdbFetch(`person/${resolvedId}`, { append_to_response: 'combined_credits,external_ids' }, customApiKey);
+    if (!details || !details.name) return null;
+
+    const rawCredits: any[] = [];
+    if (details.combined_credits?.cast && Array.isArray(details.combined_credits.cast)) {
+      rawCredits.push(...details.combined_credits.cast.map((c: any) => ({ ...c, isCast: true })));
+    }
+    if (details.combined_credits?.crew && Array.isArray(details.combined_credits.crew)) {
+      rawCredits.push(...details.combined_credits.crew.map((c: any) => ({ ...c, isCast: false })));
+    }
+
+    // Deduplicate credits by ID + job/character, prioritize highest popularity / vote count
+    const seen = new Set<string>();
+    const formattedCredits: TMDBPersonCredit[] = [];
+
+    rawCredits
+      .sort((a, b) => (b.vote_count || 0) + (b.popularity || 0) - ((a.vote_count || 0) + (a.popularity || 0)))
+      .forEach((item: any) => {
+        const itemType: MediaType = item.media_type === 'tv' ? 'tv' : 'movie';
+        const key = `${itemType}-${item.id}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const title = item.title || item.name || item.original_title || item.original_name || 'Untitled';
+        const releaseDate = item.release_date || item.first_air_date || '';
+        const year = releaseDate ? parseInt(releaseDate.substring(0, 4), 10) || undefined : undefined;
+        const posterUrl = item.poster_path ? getTMDBImageUrl(item.poster_path, 'w500') : undefined;
+        const backdropUrl = item.backdrop_path ? getTMDBImageUrl(item.backdrop_path, 'w1280') : undefined;
+
+        formattedCredits.push({
+          id: `tmdb-${itemType}-${item.id}`,
+          tmdbId: item.id,
+          title,
+          type: itemType,
+          character: item.character || undefined,
+          job: item.job || item.department || (item.isCast ? 'Actor' : 'Crew'),
+          department: item.department || undefined,
+          year,
+          releaseDate,
+          posterUrl,
+          backdropUrl,
+          rating: item.vote_average ? Math.round(item.vote_average * 10) / 10 : undefined,
+          voteCount: item.vote_count || 0,
+          overview: item.overview || undefined,
+        });
+      });
+
+    return {
+      id: details.id,
+      name: details.name,
+      biography: details.biography || undefined,
+      birthday: details.birthday || undefined,
+      deathday: details.deathday || undefined,
+      placeOfBirth: details.place_of_birth || undefined,
+      profileUrl: details.profile_path ? getTMDBImageUrl(details.profile_path, 'h632') : undefined,
+      knownForDepartment: details.known_for_department || undefined,
+      imdbId: details.external_ids?.imdb_id || undefined,
+      credits: formattedCredits.slice(0, 30), // top 30 notable credits
+    };
+  } catch (err) {
+    console.warn(`TMDB Person lookup failed for "${name}":`, err);
+    return null;
+  }
+}
+

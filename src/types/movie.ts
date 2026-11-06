@@ -163,6 +163,11 @@ export interface AppTweaksConfig {
   showExploreFilterLabels?: boolean; // Default: false (display text labels in Explore selection bar; default is icon-only)
   favoritesLayout?: 'horizontal' | 'vertical'; // Default: 'horizontal' (Personal favorites display format)
   showFooterShowcase?: boolean; // Default: true (Bottom footer showcase visibility)
+  // Hero Slideshow Controls
+  heroSlideshowLayout?: 'card' | 'full-width'; // Default: 'card' (card boxed or edge-to-edge top/sides)
+  heroSlideshowOpacity?: number; // 0.0 to 1.0 (default: 0.75)
+  heroSlideshowGenresPill?: boolean; // Default: false (true = theme colored pills, false = dot separated)
+  heroSlideshowTitleColor?: 'white' | 'artwork-adaptive'; // Default: 'white' (standard white vs theme accent color)
 }
 
 export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
@@ -186,6 +191,10 @@ export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
   showExploreFilterLabels: false,
   favoritesLayout: 'horizontal',
   showFooterShowcase: true,
+  heroSlideshowLayout: 'card',
+  heroSlideshowOpacity: 0.75,
+  heroSlideshowGenresPill: false,
+  heroSlideshowTitleColor: 'white',
 };
 
 export interface UserSettings {

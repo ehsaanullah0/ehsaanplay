@@ -273,11 +273,12 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Corner Interactive Action Buttons: Search & IMDb (Divided on Desktop, Compact with Yellow IMDb Circle on Mobile) */}
+          {/* Interactive Action Buttons: Search & IMDb — Minimal, Colourful & Small */}
           {swapSearchAndLists ? (
-            <div className="flex items-center gap-1.5">
-              {/* Lists Button when swapped */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Lists Button — Minimal, Theme-Colourful, Small (h-8) */}
               <button
+                type="button"
                 onClick={handleCornerButtonClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -288,7 +289,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 onContextMenu={handleContextMenu}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition focus:outline-none shadow-3xs active:scale-95 select-none ${
+                className={`h-8 px-2.5 sm:px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs active:scale-95 transition-all border border-[var(--border-subtle)] select-none focus:outline-none ${
                   activeTab === 'lists'
                     ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                     : 'bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)]'
@@ -296,97 +297,55 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Custom lists (long press to exchange position)"
                 title="Custom Lists — Long-press to swap with Search Bar"
               >
-                <Layers className="w-4 h-4 stroke-[2.5]" />
-                <span className="font-black">Lists</span>
+                <Layers className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span className="hidden sm:inline tracking-tight">Lists</span>
               </button>
 
-              {/* Small Yellow Circle to open IMDb fetch window on smaller screens */}
+              {/* IMDb Button — Minimal, Vibrant Golden Yellow, Small (h-8) */}
               <button
+                type="button"
                 onClick={() => onOpenImdbPreview?.()}
-                className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-black text-[10px] tracking-tight shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
-                title="Open IMDb Fetch Window"
+                className="h-8 px-2.5 sm:px-3 rounded-full bg-[#F5C518] hover:bg-[#E2B616] active:scale-95 text-[#121212] flex items-center justify-center gap-1 text-[11px] font-black tracking-tight shadow-xs hover:shadow-[0_2px_8px_rgba(245,197,24,0.4)] border border-[#DFB00F] transition-all select-none focus:outline-none"
+                title="Open IMDb Link & ID Fetch Window"
                 aria-label="Open IMDb Fetch Window"
               >
-                <span className="font-black text-[11px] uppercase tracking-tighter">IMDb</span>
+                <span className="leading-none">IMDb</span>
               </button>
             </div>
           ) : (
-            <>
-              {/* Desktop & Tablet: Divided Search & IMDb Segmented Button */}
-              <div className="hidden sm:inline-flex items-center rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] p-0.5 shadow-2xs border border-[var(--border-subtle)]">
-                {/* Part 1: Search */}
-                <button
-                  type="button"
-                  onClick={handleCornerButtonClick}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onTouchCancel={handleTouchEnd}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  onContextMenu={handleContextMenu}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition active:scale-95 text-xs sm:text-sm font-bold select-none focus:outline-none"
-                  aria-label="Search movies and series (long press to exchange position)"
-                  title="Search movies and series (Long-press to swap with Custom Lists)"
-                >
-                  <Search className="w-4 h-4 stroke-[2.5]" />
-                  <span className="font-black">Search</span>
-                </button>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Search Button — Minimal, Colourful Theme Accent, Small (h-8) */}
+              <button
+                type="button"
+                onClick={handleCornerButtonClick}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onContextMenu={handleContextMenu}
+                className="h-8 px-2.5 sm:px-3 rounded-full bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)] border border-[var(--border-subtle)] flex items-center justify-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs active:scale-95 transition-all select-none focus:outline-none group/search"
+                aria-label="Search movies and series (long press to exchange position)"
+                title="Search movies and series (Long-press to swap with Custom Lists)"
+              >
+                <Search className="w-3.5 h-3.5 stroke-[2.5] text-[var(--text-card-olive)] group-hover/search:scale-110 transition-transform" />
+                <span className="hidden sm:inline tracking-tight">Search</span>
+              </button>
 
-                {/* Subtle vertical divider between Search and IMDb */}
-                <div className="w-[1.5px] h-4 bg-[var(--text-card-yellow)]/25 mx-0.5 rounded-full" />
-
-                {/* Part 2: IMDb */}
-                <button
-                  type="button"
-                  onClick={() => onOpenImdbPreview?.()}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition active:scale-95 text-xs sm:text-sm font-bold select-none focus:outline-none"
-                  aria-label="Open IMDb Link & ID Fetch Window"
-                  title="Open IMDb Preview & Metadata Fetch Window"
-                >
-                  <span className="px-1.5 py-0.5 rounded-md bg-[var(--text-card-yellow)] text-[var(--bg-card-yellow)] font-black text-[10px] tracking-tight leading-none">
-                    IMDb
-                  </span>
-                  <span className="font-black hidden md:inline">IMDb</span>
-                </button>
-              </div>
-
-              {/* Smaller Screen Size (Mobile): Search Circle + Small Yellow Circle for IMDb */}
-              <div className="flex sm:hidden items-center gap-1.5">
-                {/* Mobile Search Circle */}
-                <button
-                  type="button"
-                  onClick={handleCornerButtonClick}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onTouchCancel={handleTouchEnd}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  onContextMenu={handleContextMenu}
-                  className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-bold shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
-                  aria-label="Search movies and series"
-                  title="Search (Long-press to swap with Lists)"
-                >
-                  <Search className="w-4 h-4 stroke-[2.5]" />
-                </button>
-
-                {/* Mobile Small Circle filled with Yellow colour to open IMDb fetch window */}
-                <button
-                  type="button"
-                  onClick={() => onOpenImdbPreview?.()}
-                  className="w-9 h-9 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center font-black text-[10px] tracking-tight shadow-2xs hover:opacity-90 active:scale-95 border border-[var(--border-subtle)] focus:outline-none"
-                  title="Open IMDb Fetch Window"
-                  aria-label="Open IMDb Fetch Window"
-                >
-                  <span className="font-black text-[11px] uppercase tracking-tighter">IMDb</span>
-                </button>
-              </div>
-            </>
+              {/* IMDb Button — Minimal, Vibrant Golden Yellow, Small (h-8) */}
+              <button
+                type="button"
+                onClick={() => onOpenImdbPreview?.()}
+                className="h-8 px-2.5 sm:px-3 rounded-full bg-[#F5C518] hover:bg-[#E2B616] active:scale-95 text-[#121212] flex items-center justify-center gap-1 text-[11px] font-black tracking-tight shadow-xs hover:shadow-[0_2px_8px_rgba(245,197,24,0.4)] border border-[#DFB00F] transition-all select-none focus:outline-none"
+                title="Open IMDb Link & ID Fetch Window"
+                aria-label="Open IMDb Fetch Window"
+              >
+                <span className="leading-none">IMDb</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

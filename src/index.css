@@ -22,6 +22,7 @@
     --bg-nav-active: #4E562F;
     --text-nav-active: #FAF8F2;
     --text-nav-inactive: #4E562F;
+    --nav-dock-border: rgba(255, 255, 255, 0.95);
     --accent-primary: #4E562F;
     --accent-primary-hover: #3D4424;
     --accent-secondary: #E4EAB8;
@@ -218,6 +219,7 @@
     --bg-nav-active: #E4EAB8;
     --text-nav-active: #1C1F14;
     --text-nav-inactive: #E4EAB8;
+    --nav-dock-border: rgba(255, 255, 255, 0.22);
     --accent-primary: #E4EAB8;
     --accent-primary-hover: #EDF2C8;
     --accent-secondary: #3B421E;
@@ -401,6 +403,7 @@
     --bg-nav-active: #E4EAB8;
     --text-nav-active: #000000;
     --text-nav-inactive: #E4EAB8;
+    --nav-dock-border: rgba(255, 255, 255, 0.18);
     --accent-primary: #E4EAB8;
     --accent-primary-hover: #EDF2C8;
     --accent-secondary: #1C2115;

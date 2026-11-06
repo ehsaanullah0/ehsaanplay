@@ -110,10 +110,11 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
                   type="button"
                   onClick={() => setColorTag(c)}
                   style={{ backgroundColor: c }}
+                  aria-label={`Select color ${c}`}
                   className={`w-8 h-8 rounded-full transition-transform ${
                     colorTag === c ? 'ring-2 ring-offset-2 ring-[var(--accent-primary)] scale-110' : 'opacity-80 hover:opacity-100'
                   }`}
-                />
+                ></button>
               ))}
             </div>
           </div>

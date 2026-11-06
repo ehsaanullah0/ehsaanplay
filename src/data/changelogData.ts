@@ -13,8 +13,100 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.3.1',
+    version: 'v2.3.5',
     isLatest: true,
+    tagline: 'Hero Slideshow Meaning Enrichment: Stable White Title Typography, Below-Title Ratings & Genres, and Interface Decluttering',
+    points: [
+      {
+        title: 'Stable White Title Typography',
+        description: 'Eliminated distracting title hover color changes on the home hero slideshow, preserving pure, crisp white cinematic typography across all themes and interactions.',
+      },
+      {
+        title: 'Contextual Rating & Genres Sub-Header',
+        description: 'Positioned ambient star rating badges and curated genre chips directly below each featured title, delivering instant critical context without visual clutter.',
+      },
+      {
+        title: 'Removed Development Notice',
+        description: 'Cleaned up the Settings Changelog view by removing the historical developer examination break notice, streamlining the update notes experience.',
+      },
+      {
+        title: 'Interactive Pro Tips & Feature Guides',
+        description: 'Added dedicated Pro Tips covering hero slideshow adjustments (card vs. full-width view, dark fog opacity, theme genre pills, and adaptive title color), expanded vertical favorites shelf layout, and full-screen actor & crew profile exploration.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.4',
+    isLatest: false,
+    tagline: 'Interactive Actor Filmography & Direct Movie/Series Preview Navigation, Instant Metadata Hydration & Scroll Reset Guarantee',
+    points: [
+      {
+        title: 'Clickable Notable Filmography & Credits',
+        description: 'Every movie and television series featured in the Notable Filmography & Credits section of an actor\'s profile is now a fully interactive, clickable card with active hover indicators, tactile press feedback, and background TMDB metadata hydration.',
+      },
+      {
+        title: 'Seamless Preview Window Navigation',
+        description: 'Tapping any title immediately transitions to the complete Movie/Series Preview Modal with high-resolution poster artwork, storyline synopsis, rating, trailer playback, season/episode explorer, and direct streaming platform links.',
+      },
+      {
+        title: 'Library & Cache State Preservation',
+        description: 'If a selected title already exists in your personal library or watchlist, all saved states (watched status, custom watchlist flags, personal star ratings, notes, and progress) are preserved upon opening the preview.',
+      },
+      {
+        title: 'Instant Scroll Reset on Preview Transition',
+        description: 'Switching between titles from within actor filmography automatically resets the preview window\'s scroll position to the absolute top of the hero section.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.3',
+    isLatest: false,
+    tagline: 'Theme-Harmonized Segmented Search & IMDb Capsule, Unified Palette Contrast, Zero-Duplication Clean Typography & Tactile Mobile Ergonomics',
+    points: [
+      {
+        title: 'Theme-Harmonized Segmented Header Capsule',
+        description: 'Re-engineered the header search and IMDb trigger into a sleek, backdrop-blurred segmented capsule. Built directly on dynamic theme tokens (--chip-bg, --border-subtle, and --bg-surface-card), eliminating muddy or jarring color clashes across Light Cream, Dark Olive, OLED Black, Midnight Blue, Coral Rose, Violet Purple, and Mint Sage palettes.',
+      },
+      {
+        title: 'Zero-Duplication Typography & IMDb Lookup Action',
+        description: 'Eliminated redundant doubled "IMDb IMDb" label glitch in favor of an authentic golden IMDb badge (#F5C518) paired with a clear "Lookup" action hint on desktop and clean icon styling on tablets.',
+      },
+      {
+        title: 'Dedicated Vibrant Mobile Action Pair',
+        description: 'Optimized smaller mobile screens with an ergonomic duo: an adaptive theme-styled circular Search trigger paired with an authentic, high-visibility golden circular IMDb launcher with tactile active-tap feedback.',
+      },
+      {
+        title: 'Swapped Navigation Harmony',
+        description: 'Applied identical segmented pill aesthetics and tactile mobile circles to the swapped navigation mode, maintaining visual consistency when Lists and Search positions are exchanged.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.2',
+    isLatest: false,
+    tagline: 'Refined Cast & Crew Hierarchy, Instant Artist Switcher Rail, Bold Highlighted Vital Pills, Current Feature Library Summary & Direct Streaming Links',
+    points: [
+      {
+        title: 'Ergonomic Cast & Crew Hierarchy & Quick-Switcher Rail',
+        description: 'Restructured the full-screen artist details view into an intuitive sequence: (1) Actor Profile Hero with bold highlighted birthplace and birthdate pills, (2) All Cast & Crew Quick-Switcher Rail to jump between other ensemble members without scrolling, (3) Biography & Career, (4) In Your Library & Watchlist with a dedicated Current Feature Summary, and (5) Notable Global Filmography.',
+      },
+      {
+        title: 'Bold Highlighted Vital Pills',
+        description: 'Transformed birth date, age, and place of birth badges into prominent, bold, high-contrast pills styled with theme-accent tokens and clear iconography.',
+      },
+      {
+        title: 'Current Feature Library Summary Card',
+        description: 'Relocated current title portrayal details into a clean summary card within the "In Your Library & Watchlist" section, presenting the poster, role name, year, storyline summary, and personal collection status.',
+      },
+      {
+        title: 'Direct Streaming Platform Landing Launchpad',
+        description: 'Where to Watch platform tiles (Netflix, Prime Video, Disney+, Apple TV+, Max, Hulu, Paramount+, Peacock, YouTube, Hotstar, JioCinema, SonyLIV, Zee5, and global streamers) open the exact movie or television show on that provider, removing manual search friction.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.1',
+    isLatest: false,
     tagline: 'Fullscreen Android Back Preservation, Adaptive Bottom Navigation, Hierarchical Settings Navigation & Minimalist Source Indicators',
     points: [
       {

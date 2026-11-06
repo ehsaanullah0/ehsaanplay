@@ -52,6 +52,7 @@ import {
   Coffee,
   SlidersHorizontal,
   History,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   ArrowLeft,
@@ -79,6 +80,7 @@ import {
   Compass,
   LayoutGrid,
   StretchHorizontal,
+  User,
 } from 'lucide-react';
 
 export type SettingsTopicId =
@@ -236,6 +238,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [isDeduping, setIsDeduping] = useState(false);
   const [dedupStatus, setDedupStatus] = useState<string | null>(null);
+
+  // Collapsible desktop sidebar state (persisted in localStorage)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('ehsaan_settings_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('ehsaan_settings_sidebar_collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const handleReloadAllArtworkClick = async () => {
     if (isReloadingArt) return;
@@ -1288,6 +1311,225 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
+            {/* Card Group 3.5: Featured Hero Slideshow Controls & Appearance */}
+            <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
+              <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                  <span>Featured Hero Slideshow Controls</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        heroSlideshowLayout: 'card',
+                        heroSlideshowOpacity: 0.75,
+                        heroSlideshowGenresPill: false,
+                        heroSlideshowTitleColor: 'white',
+                      },
+                    })
+                  }
+                  className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] flex items-center gap-1 transition active:scale-95"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset Defaults</span>
+                </button>
+              </div>
+
+              {/* 1. Card View vs Full Width View */}
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Layout Mode</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Choose Card View or Full-Width View (expands left, right, and top edges with a curved bottom)
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowLayout: 'card',
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                      (settings.tweaks?.heroSlideshowLayout ?? 'card') === 'card'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>Card View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowLayout: 'full-width',
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                      settings.tweaks?.heroSlideshowLayout === 'full-width'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Full-Width View</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Opacity Controller Bar */}
+              <div className="p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-sm text-[var(--text-primary)]">Dark Fog Overlay Opacity</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Adjust the dark vignette transparency over background cinematic artwork
+                    </div>
+                  </div>
+                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
+                    {Math.round((settings.tweaks?.heroSlideshowOpacity ?? 0.75) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={settings.tweaks?.heroSlideshowOpacity ?? 0.75}
+                  onChange={e =>
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        heroSlideshowOpacity: parseFloat(e.target.value),
+                      },
+                    })
+                  }
+                  aria-label="Hero Slideshow Dark Fog Opacity"
+                  className="w-full accent-[var(--accent-primary)] cursor-pointer h-2 bg-[var(--chip-bg)] rounded-lg"
+                />
+                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] font-semibold">
+                  <span>Clear Artwork (0%)</span>
+                  <span>Balanced (75%)</span>
+                  <span>Deep Fog (100%)</span>
+                </div>
+              </div>
+
+              {/* 3. Genres Pilled Shape Filled with Theme Colour */}
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Genres Badge Style</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Display genre tags as solid pills filled with active theme color, or as subtle dot-separated text
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowGenresPill: false,
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      !settings.tweaks?.heroSlideshowGenresPill
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span>Dot-Separated</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowGenresPill: true,
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      settings.tweaks?.heroSlideshowGenresPill
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span>Theme Filled Pills</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Title Colour Option */}
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Title Typography Color</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Choose standard white title typography or artwork-adaptive theme accent color
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowTitleColor: 'white',
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      (settings.tweaks?.heroSlideshowTitleColor ?? 'white') === 'white'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span>Standard White</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          heroSlideshowTitleColor: 'artwork-adaptive',
+                        },
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      settings.tweaks?.heroSlideshowTitleColor === 'artwork-adaptive'
+                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span>Theme / Artwork Adaptive</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Card Group 4: Preview Action Buttons */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
@@ -1588,6 +1830,78 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
               </div>
+
+              {/* Tip 9: Hero Slideshow Adjustments */}
+              <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 font-black text-sm text-[var(--text-primary)]">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] flex items-center justify-center shrink-0">
+                        <Sliders className="w-4 h-4" />
+                      </div>
+                      <span>Hero Slideshow Adjustments</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]">
+                      Tweaks
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Fine-tune the featured home slideshow under Tweaks: toggle between boxed Card View and top/sides Full-Width View, dial in dark fog opacity (0%–100%), format genres into theme-filled capsule pills, and choose standard white or adaptive title colors.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-bold text-[var(--accent-primary)]">
+                  <span>Settings → Tweaks → Hero Slideshow Controls</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              {/* Tip 10: Expanded Vertical Favorites Section */}
+              <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 font-black text-sm text-[var(--text-primary)]">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center shrink-0">
+                        <Heart className="w-4 h-4" />
+                      </div>
+                      <span>Expanded Vertical Favorites</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]">
+                      Shelf
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Prefer viewing all saved favorites at a glance instead of scrolling horizontally? Switch Personal Favorites Layout to "Vertical" in Tweaks to render your favorites shelf as an expanded, multi-column grid directly on your home screen.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-bold text-[var(--accent-primary)]">
+                  <span>Settings → Tweaks → Favorites Layout → Vertical</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              {/* Tip 11: Actor & Crew Profile Section */}
+              <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs p-4 sm:p-5 flex flex-col justify-between space-y-3 sm:col-span-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 font-black text-sm text-[var(--text-primary)]">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span>Actor & Crew Profile Explorer</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]">
+                      Profiles
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Tap any actor or director in a title preview to launch their full-screen profile: view high-res portrait art, rapid cast & crew switcher rail, biography, library appearances, and their complete notable filmography. Every title card is clickable for instant preview navigation, with a top-right deep-red button to add titles directly to your watchlist.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-bold text-[var(--accent-primary)]">
+                  <span>Tap any actor/crew member in movie preview</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -1595,6 +1909,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       case 'storage':
         return (
           <div className="space-y-4">
+            {/* Privacy & Local Storage Guarantee Banner */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] border border-[var(--border-subtle)] shadow-xs space-y-1.5">
+              <div className="flex items-center gap-2">
+                <HardDrive className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider">
+                  Privacy & Local Storage Guarantee
+                </h4>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed opacity-95">
+                Your personal watchlist, library records, custom notes, and ratings never leave your local device storage. Only poster images and backdrop artworks are streamed on-demand from cloud CDNs.
+              </p>
+            </div>
+
             {/* Card Group 1: Storage Mode */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5 space-y-3">
@@ -1772,35 +2099,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-extrabold">
                     {CHANGELOG_VERSIONS[0].version} (Latest)
                   </span>
-                </div>
-
-                {/* Cute Academic Break Notice (Blood Red for all themes) */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#7F1D1D] text-white border border-[#991B1B]/60 shadow-md space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-wider text-amber-300 hidden lg:flex items-center gap-1.5">
-                        <span>Special Notice</span>
-                        <span>·</span>
-                        <span>Examinations Hiatus</span>
-                      </div>
-                      <h4 className="text-xs sm:text-sm font-black leading-snug text-white mt-0.5">
-                        THE DEVELOPMENT OF THIS APP IS STOPPED TILL DECEMBER 2026 DUE TO EXAMINATIONS
-                      </h4>
-                      <p className="text-xs text-amber-200 font-extrabold mt-1">
-                        Dev. Note: The new release v2.3.2 is coming on 5th JANUARY 2027
-                      </p>
-                    </div>
-                    <a
-                      href="mailto:worsmon@proton.me?subject=EHSAAN%20PLAY%20-%20Bug%20Report%20/%20Feature%20Request"
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-black hover:opacity-90 active:scale-95 transition-all shrink-0 shadow-xs border border-white/10"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>Contact</span>
-                    </a>
-                  </div>
-                  <p className="text-xs text-white/85 leading-relaxed">
-                    Any bug and feature request is welcome! Feel free to send your thoughts, suggestions, or issues directly using the contact button.
-                  </p>
                 </div>
 
                 <div className="p-4 sm:p-5 rounded-2xl bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] space-y-3 shadow-2xs border border-[var(--border-subtle)]">
@@ -2494,7 +2792,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <History className="w-5 h-5 text-[var(--accent-primary)] group-hover:rotate-12 transition-transform shrink-0" />
                   <div>
                     <div className="font-bold text-sm text-[var(--text-primary)]">Changelog & Version Notes</div>
-                    <div className="text-xs text-[var(--text-secondary)]">View latest v2.3.0 updates & historical archive</div>
+                    <div className="text-xs text-[var(--text-secondary)]">View latest v2.3.5 updates & historical archive</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 transition-transform" />
@@ -2780,82 +3078,162 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* ========================================================================= */}
       {/* DESKTOP & TABLET VIEW (>= md): Master-Detail Split Screen Sidebar Layout  */}
       {/* ========================================================================= */}
-      <div className="hidden md:flex items-start gap-8">
+      <div className="hidden md:flex items-start gap-6 lg:gap-8 transition-all duration-300">
         {/* Left Sticky Sidebar: Topic List */}
-        <aside className="w-72 lg:w-84 shrink-0 sticky top-20 space-y-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              Preferences
-            </span>
-            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight mt-0.5 text-[var(--text-primary)]">
-              Settings
-            </h1>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              Select a category to customize
-            </p>
-          </div>
+        <aside
+          className={`shrink-0 sticky top-20 transition-all duration-300 ease-in-out ${
+            isSidebarCollapsed ? 'w-16 lg:w-20' : 'w-72 lg:w-84'
+          }`}
+        >
+          {isSidebarCollapsed ? (
+            /* Collapsed Sidebar Header: Expand Toggle */
+            <div className="flex flex-col items-center gap-1.5 pb-2 mb-2 animate-fade-in">
+              <button
+                type="button"
+                onClick={toggleSidebarCollapse}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+                className="w-10 h-10 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all active:scale-95 shadow-2xs hover:scale-105 cursor-pointer group"
+              >
+                <ChevronRight className="w-4 h-4 stroke-[2.5] text-[var(--accent-primary)] group-hover:translate-x-0.5 transition-transform" />
+              </button>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                Menu
+              </span>
+            </div>
+          ) : (
+            /* Expanded Sidebar Header: Title & Collapse Toggle */
+            <div className="flex items-start justify-between gap-2 mb-4 animate-fade-in">
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                  Preferences
+                </span>
+                <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight mt-0.5 text-[var(--text-primary)]">
+                  Settings
+                </h1>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Select a category to customize
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleSidebarCollapse}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+                className="w-8 h-8 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center justify-center transition-all active:scale-95 shadow-2xs hover:scale-105 shrink-0 mt-1 cursor-pointer group"
+              >
+                <ChevronLeft className="w-4 h-4 stroke-[2.5] text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] group-hover:-translate-x-0.5 transition-all" />
+              </button>
+            </div>
+          )}
 
-          <nav className="space-y-1.5" aria-label="Settings Categories">
-            {topics.map(topic => {
-              const isSelected = (selectedTopic || 'app') === topic.id;
-              return (
-                <button
-                  key={topic.id}
-                  onClick={() => handleSelectTopic(topic.id)}
-                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-left transition-all active:scale-[0.98] ${
-                    isSelected
-                      ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs font-bold border border-transparent'
-                      : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0 pr-2">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        isSelected
-                          ? 'bg-black/15 text-[var(--text-card-olive)]'
-                          : 'bg-[var(--chip-bg)] text-[var(--accent-primary)]'
-                      }`}
-                    >
-                      {topic.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs lg:text-sm font-bold truncate">
-                        {topic.title}
-                      </div>
-                      <div className={`text-[11px] truncate mt-0.5 ${isSelected ? 'opacity-90' : 'text-[var(--text-secondary)]'}`}>
-                        {topic.subtitle}
-                      </div>
-                    </div>
-                  </div>
-                  {/* Filled Circle with Yellow Colour in Arrow */}
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform ${
+          {isSidebarCollapsed ? (
+            /* Collapsed Sidebar Nav: Sleek Icon Rail with Tooltips */
+            <nav className="space-y-2 flex flex-col items-center animate-fade-in" aria-label="Settings Categories">
+              {topics.map(topic => {
+                const isSelected = (selectedTopic || 'app') === topic.id;
+                return (
+                  <button
+                    key={topic.id}
+                    type="button"
+                    onClick={() => handleSelectTopic(topic.id)}
+                    title={`${topic.title} · ${topic.subtitle}`}
+                    aria-label={topic.title}
+                    className={`relative group w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
                       isSelected
-                        ? 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-xs scale-105 border border-black/10'
-                        : 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] opacity-85 group-hover:opacity-100 group-hover:scale-105 border border-[var(--border-subtle)]'
+                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs ring-2 ring-[var(--accent-primary)]/40 font-bold'
+                        : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:scale-105'
                     }`}
                   >
-                    <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
+                    <div className="w-5 h-5 flex items-center justify-center">
+                      {topic.icon}
+                    </div>
+
+                    {/* Active side pill indicator */}
+                    {isSelected && (
+                      <span className="absolute -left-1 w-1 h-5 rounded-full bg-[var(--accent-primary)] shadow-xs" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          ) : (
+            /* Expanded Sidebar Nav: Full Detailed Cards */
+            <nav className="space-y-1.5 animate-fade-in" aria-label="Settings Categories">
+              {topics.map(topic => {
+                const isSelected = (selectedTopic || 'app') === topic.id;
+                return (
+                  <button
+                    key={topic.id}
+                    onClick={() => handleSelectTopic(topic.id)}
+                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-left transition-all active:scale-[0.98] cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs font-bold border border-transparent'
+                        : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? 'bg-black/15 text-[var(--text-card-olive)]'
+                            : 'bg-[var(--chip-bg)] text-[var(--accent-primary)]'
+                        }`}
+                      >
+                        {topic.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs lg:text-sm font-bold truncate">
+                          {topic.title}
+                        </div>
+                        <div className={`text-[11px] truncate mt-0.5 ${isSelected ? 'opacity-90' : 'text-[var(--text-secondary)]'}`}>
+                          {topic.subtitle}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Filled Circle with Yellow Colour in Arrow */}
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform ${
+                        isSelected
+                          ? 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-xs scale-105 border border-black/10'
+                          : 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] opacity-85 group-hover:opacity-100 group-hover:scale-105 border border-[var(--border-subtle)]'
+                      }`}
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </aside>
 
         {/* Right Main Canvas: Active Topic Inner Settings Full Screen */}
         <main className="flex-1 min-w-0 animate-fade-in">
-          {/* Header of Active Topic */}
+          {/* Header of Active Topic with Expand Arrow when Collapsed */}
           <div className="mb-6 flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
-                <span>Settings</span>
-                <span>/</span>
-                <span className="text-[var(--text-primary)]">{currentTopic.title}</span>
+            <div className="flex items-center gap-3">
+              {isSidebarCollapsed && (
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapse}
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
+                  className="w-8 h-8 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] flex items-center justify-center transition-all active:scale-95 shadow-2xs hover:scale-105 cursor-pointer shrink-0 group"
+                >
+                  <ChevronRight className="w-4 h-4 stroke-[2.5] text-[var(--accent-primary)] group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                  <span>Settings</span>
+                  <span>/</span>
+                  <span className="text-[var(--text-primary)]">{currentTopic.title}</span>
+                </div>
+                <h2 className="text-xl lg:text-2xl font-extrabold text-[var(--text-primary)] mt-0.5">
+                  {currentTopic.title}
+                </h2>
               </div>
-              <h2 className="text-xl lg:text-2xl font-extrabold text-[var(--text-primary)] mt-0.5">
-                {currentTopic.title}
-              </h2>
             </div>
           </div>
 

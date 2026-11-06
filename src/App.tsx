@@ -160,6 +160,7 @@ export default function App() {
   const isLicenseModalOpenRef = useRef<boolean>(false);
   const isSwapNavConfirmOpenRef = useRef<boolean>(false);
   const isOnboardingOpenRef = useRef<boolean>(false);
+  const moviePreviewBackHandlerRef = useRef<(() => boolean) | null>(null);
 
   // Keep refs synchronized
   useEffect(() => {
@@ -226,7 +227,12 @@ export default function App() {
         else if (isOnboardingOpenRef.current) setIsOnboardingOpen(false);
         else if (isImdbPreviewOpenRef.current) setIsImdbPreviewOpen(false);
         else if (isSearchOpenRef.current) setIsSearchOpen(false);
-        else if (selectedMediaRef.current) setSelectedMedia(null);
+        else if (selectedMediaRef.current) {
+          if (moviePreviewBackHandlerRef.current && moviePreviewBackHandlerRef.current()) {
+            return;
+          }
+          setSelectedMedia(null);
+        }
         else if (randomModalItemRef.current) setRandomModalItem(null);
         else if (activeTabRef.current === 'settings' && settingsTopicRef.current !== null) setSettingsTopic(null);
         else if (activeTabRef.current !== 'home') setActiveTab('home');
@@ -309,8 +315,12 @@ export default function App() {
         return;
       }
 
-      // 5. If Movie/TV Preview modal is open, close preview
+      // 5. If Movie/TV Preview modal is open, check if it has internal history (e.g. actor profile) or close preview
       if (selectedMediaRef.current) {
+        if (moviePreviewBackHandlerRef.current && moviePreviewBackHandlerRef.current()) {
+          try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+          return;
+        }
         setSelectedMedia(null);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
@@ -560,6 +570,12 @@ export default function App() {
         onToggleSeasonEpisodes={toggleSeasonEpisodes}
         onAddItemToList={addItemToList}
         onOpenImdbPreview={handleOpenImdbPreview}
+        mediaItems={mediaItems}
+        userStates={userStates}
+        onSelectMedia={setSelectedMedia}
+        onRegisterBackHandler={(handler) => {
+          moviePreviewBackHandlerRef.current = handler;
+        }}
       />
 
       {/* Universal Search Modal with Plus/Tick Actions */}
@@ -587,6 +603,7 @@ export default function App() {
         onAddMediaToLibrary={addMediaToLibrary}
         onToggleWatchlist={toggleWatchlist}
         userStates={userStates}
+        mediaItems={mediaItems}
       />
 
       {/* Random Pick Modal */}
