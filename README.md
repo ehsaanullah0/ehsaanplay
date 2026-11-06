@@ -49,7 +49,7 @@ This webapp is a personal developed project if you want support please do not ex
 </details>
 
 ## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
-## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
+## SUPPORT THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 ---
 
 # 🎥 Demo
