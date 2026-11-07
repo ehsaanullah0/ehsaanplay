@@ -75,6 +75,10 @@ This webapp is a personal developed project if you want support please do not ex
 </p>
 
 <p align="center">
+  <img width="100%" src="https://github.com/user-attachments/assets/6c31a5a1-6cce-4f2e-94c3-830db6bba06a" />
+</p>
+
+<p align="center">
   <img width="100%" src="https://github.com/user-attachments/assets/367acd6c-a606-44ec-897e-12776918d48a" alt="Desktop Screenshot 2">
 </p>
 
