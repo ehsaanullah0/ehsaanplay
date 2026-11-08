@@ -3,6 +3,13 @@
 </p>
 <br>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/m3-chips-dark.svg">
+    <img src="assets/m3-chips-light.svg" alt="Native Kotlin, Jetpack Compose, Material 3 Expressive, zero trackers, open source" height="40">
+  </picture>
+</p>
+
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk)
