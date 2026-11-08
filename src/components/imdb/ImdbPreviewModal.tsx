@@ -792,7 +792,7 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                       }}
                       className={`px-3 py-2 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-3xs ${
                         inWatchlist
-                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                          ? 'bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] font-black border border-[#DFB00F]'
                           : 'bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
                       }`}
                     >

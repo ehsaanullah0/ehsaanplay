@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   MediaItem,
   PersonalMediaState,
@@ -8,7 +8,8 @@ import {
   UserSettings,
   DEFAULT_APP_TWEAKS,
 } from '../../types/movie';
-import { HeroSlideshow } from './HeroSlideshow';
+import { fetchNetflixTop10Movies, fetchNetflixTop10Series } from '../../data/curatedCatalog';
+import { TrendingHeroShowcase } from './TrendingHeroShowcase';
 import { LibraryStats } from './LibraryStats';
 import { RankingRail } from './RankingRail';
 import { ContinueWatchingRail } from './ContinueWatchingRail';
@@ -77,29 +78,37 @@ export const HomeView: React.FC<HomeViewProps> = ({
     showExplore: true,
   };
 
-  // Top 10 Movies sorted by OMDb / user rating
-  const top10Movies = useMemo(() => {
-    return mediaItems
-      .filter(m => m.type === 'movie')
-      .sort((a, b) => {
-        const ratingA = userStates[a.id]?.personalRating || (a.imdbRating || 0);
-        const ratingB = userStates[b.id]?.personalRating || (b.imdbRating || 0);
-        return ratingB - ratingA;
-      })
-      .slice(0, 10);
-  }, [mediaItems, userStates]);
+  // State for Industry Trending Top 10 Movies & Series (Fetched live from TMDB / Industry trends)
+  const [trendingMovies, setTrendingMovies] = useState<MediaItem[]>([]);
+  const [trendingSeries, setTrendingSeries] = useState<MediaItem[]>([]);
 
-  // Top 10 Series
-  const top10Series = useMemo(() => {
-    return mediaItems
-      .filter(m => m.type === 'tv')
-      .sort((a, b) => {
-        const ratingA = userStates[a.id]?.personalRating || (a.imdbRating || 0);
-        const ratingB = userStates[b.id]?.personalRating || (b.imdbRating || 0);
-        return ratingB - ratingA;
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchNetflixTop10Movies(settings?.tmdbApiKey)
+      .then(movies => {
+        if (isMounted && movies && movies.length > 0) {
+          setTrendingMovies(movies);
+        }
       })
-      .slice(0, 10);
-  }, [mediaItems, userStates]);
+      .catch(err => {
+        console.warn('Failed to load industry trending movies:', err);
+      });
+
+    fetchNetflixTop10Series(settings?.tmdbApiKey)
+      .then(series => {
+        if (isMounted && series && series.length > 0) {
+          setTrendingSeries(series);
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load industry trending series:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [settings?.tmdbApiKey]);
 
   // In-Progress / Continue Watching items
   const continueWatchingItems = useMemo(() => {
@@ -155,26 +164,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [mediaItems]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-28 md:pb-16">
-      {/* Featured 5 Recently Added Hero Slideshow Banner */}
-      {sections.showHeroSlideshow === true && featuredSlideshowItems.length > 0 && (
-        <HeroSlideshow
-          items={featuredSlideshowItems}
-          userStates={userStates}
+    <div className="w-full pb-28 md:pb-16 animate-fade-in">
+      {/* Full-Screen Trending Shows Coverflow Stage (Directly from TMDB) */}
+      {sections.showHeroSlideshow !== false && (
+        <TrendingHeroShowcase
           onSelectMedia={onSelectMedia}
-          onToggleWatchlist={onToggleWatchlist}
+          userStates={userStates}
+          settings={settings}
           tweaks={tweaks || settings?.tweaks}
+          onToggleWatchlist={onToggleWatchlist}
+          onScrollToCinema={() => {
+            const el = document.getElementById('your-cinema-shelf');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
         />
       )}
 
-      {/* Integrated Library Stats */}
-      <LibraryStats
-        stats={stats}
-        onNavigateToWatchlist={onNavigateToWatchlistWithFilter}
-        onNavigateTab={onNavigateTab}
-        homeSections={sections}
-        onUpdateHomeSections={onUpdateHomeSections}
-      />
+      {/* Main Home Content: Your Cinema Shelf and Personal Collection Rails (Visible After Scroll) */}
+      <div id="your-cinema-shelf" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-14 scroll-mt-16">
+        {/* Integrated Library Stats ("Your Cinema Shelf") */}
+        <LibraryStats
+          stats={stats}
+          onNavigateToWatchlist={onNavigateToWatchlistWithFilter}
+          onNavigateTab={onNavigateTab}
+          homeSections={sections}
+          onUpdateHomeSections={onUpdateHomeSections}
+        />
 
       {/* Continue Watching Section */}
       {sections.showContinueWatching && continueWatchingItems.length > 0 && (
@@ -185,12 +200,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
         />
       )}
 
-      {/* Top 10 Movies Rail */}
+      {/* Top 10 Movies Rail (Industry Trends Worldwide) */}
       {sections.showTopMovies && (
         <RankingRail
           title="Top 10 Movies"
-          subtitle="Highest rated feature films in your library"
-          items={top10Movies}
+          subtitle="Trending movies in the industry worldwide"
+          items={trendingMovies}
           userStates={userStates}
           onSelectMedia={onSelectMedia}
           showRankingNumbers={true}
@@ -203,12 +218,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
         />
       )}
 
-      {/* Top 10 Series Rail */}
+      {/* Top 10 Series Rail (Industry Trends Worldwide) */}
       {sections.showTopSeries && (
         <RankingRail
           title="Top 10 Series"
-          subtitle="Top rated television series in your collection"
-          items={top10Series}
+          subtitle="Trending television series in the industry worldwide"
+          items={trendingSeries}
           userStates={userStates}
           onSelectMedia={onSelectMedia}
           showRankingNumbers={true}
@@ -299,6 +314,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           }}
         />
       )}
+      </div>
     </div>
   );
 };

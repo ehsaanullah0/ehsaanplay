@@ -1,5 +1,5 @@
 import React from 'react';
-import { FilterState, SortOption, FilterStatus } from '../../types/movie';
+import { FilterState, SortOption, FilterStatus, RATING_TAGS } from '../../types/movie';
 import { X, RotateCcw, ChevronDown } from 'lucide-react';
 
 interface FilterSheetProps {
@@ -126,6 +126,41 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                     }`}
                   >
                     {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Rating Tier Tag Filter */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
+              Rating Tier Tag
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <button
+                onClick={() => onUpdateFilters({ ratingTag: 'all' })}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold text-center transition ${
+                  !filters.ratingTag || filters.ratingTag === 'all'
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
+                    : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
+                }`}
+              >
+                All Tags
+              </button>
+              {RATING_TAGS.map(tag => {
+                const isSelected = filters.ratingTag === tag.id;
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => onUpdateFilters({ ratingTag: tag.id })}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold text-center transition border ${
+                      isSelected
+                        ? `${tag.activeBgClass} ${tag.activeBorderClass} ${tag.colorClass}`
+                        : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:opacity-85'
+                    }`}
+                  >
+                    <span className="truncate">{tag.label}</span>
                   </button>
                 );
               })}

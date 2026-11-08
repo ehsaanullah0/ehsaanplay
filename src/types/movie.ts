@@ -90,6 +90,72 @@ export interface TVProgress {
   completedEpisodes: Record<string, boolean>; // e.g. "s1e1": true
 }
 
+export type RatingTagId = 'snoozefest' | 'popcorn_flick' | 'worth_the_hype' | 'absolute_cinema';
+
+export interface RatingTagItem {
+  id: RatingTagId;
+  label: string;
+  description: string;
+  colorClass: string;
+  activeBorderClass: string;
+  activeBgClass: string;
+  numericRating: number;
+}
+
+export const RATING_TAGS: RatingTagItem[] = [
+  {
+    id: 'snoozefest',
+    label: 'Snoozefest',
+    description: 'Your time is worth more.',
+    colorClass: 'text-red-700 dark:text-red-400',
+    activeBorderClass: 'border-red-600/80 ring-2 ring-red-500/20',
+    activeBgClass: 'bg-red-500/10',
+    numericRating: 2.5,
+  },
+  {
+    id: 'popcorn_flick',
+    label: 'Popcorn Flick',
+    description: "Fun if you don't overthink it.",
+    colorClass: 'text-sky-700 dark:text-sky-400',
+    activeBorderClass: 'border-sky-600/80 ring-2 ring-sky-500/20',
+    activeBgClass: 'bg-sky-500/10',
+    numericRating: 5.5,
+  },
+  {
+    id: 'worth_the_hype',
+    label: 'Worth the Hype',
+    description: 'Clear your evening for this.',
+    colorClass: 'text-emerald-700 dark:text-emerald-400',
+    activeBorderClass: 'border-emerald-600/80 ring-2 ring-emerald-500/20',
+    activeBgClass: 'bg-emerald-500/10',
+    numericRating: 8.0,
+  },
+  {
+    id: 'absolute_cinema',
+    label: 'Absolute Cinema',
+    description: 'Drop everything and watch it.',
+    colorClass: 'text-amber-900 dark:text-amber-300',
+    activeBorderClass: 'border-amber-700/90 dark:border-amber-500/80 ring-2 ring-amber-600/30',
+    activeBgClass: 'bg-amber-600/15 dark:bg-amber-500/15',
+    numericRating: 10.0,
+  },
+];
+
+export function resolveRatingTag(state?: PersonalMediaState): RatingTagItem | undefined {
+  if (!state) return undefined;
+  if (state.ratingTag) {
+    return RATING_TAGS.find(t => t.id === state.ratingTag);
+  }
+  if (state.personalRating && state.personalRating > 0) {
+    const r = state.personalRating;
+    if (r <= 4) return RATING_TAGS[0];
+    if (r <= 6.5) return RATING_TAGS[1];
+    if (r <= 8.5) return RATING_TAGS[2];
+    return RATING_TAGS[3];
+  }
+  return undefined;
+}
+
 export interface PersonalMediaState {
   mediaId: string;
   inWatchlist: boolean;
@@ -97,6 +163,7 @@ export interface PersonalMediaState {
   isFavorite: boolean;
   favoritedAt?: string;
   personalRating?: number; // 1 to 10
+  ratingTag?: RatingTagId;
   notes?: string;
   progressPercent?: number; // 0 to 100
   lastWatchedAt?: string;
@@ -223,6 +290,7 @@ export interface FilterState {
   genre: string; // 'all' or specific genre
   year: string; // 'all' or specific decade/year
   minRating: number; // 0 to 10
+  ratingTag?: 'all' | RatingTagId;
   sortBy: SortOption;
   searchQuery: string;
 }

@@ -683,7 +683,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition active:scale-90 shadow-2xs ${
                       inWatchlist
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                        ? 'bg-[#F5C518] text-[#121212] font-black border border-[#DFB00F]'
                         : 'bg-[var(--chip-bg)] hover:opacity-90 text-[var(--text-primary)] border border-[var(--border-subtle)]'
                     }`}
                   >

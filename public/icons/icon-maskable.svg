@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full Bleed Square Background for Android Adaptive Mask (No rounded corners) -->
+  <rect width="512" height="512" fill="#FBA4BC"/>
+
+  <!-- Centered Clapperboard Scaled to 45% (Safe Zone: max radius 161px < 169px safe zone) -->
+  <g transform="translate(256 256) scale(0.60) translate(-256 -260)">
+    <!-- Top Angled Clapper Stick -->
+    <g transform="rotate(-6 256 160)">
+      <rect x="64" y="80" width="384" height="88" rx="28" fill="#FFFFFF" stroke="#20102B" stroke-width="20" stroke-linejoin="round"/>
+      <line x1="144" y1="80" x2="176" y2="168" stroke="#20102B" stroke-width="20" stroke-linecap="round"/>
+      <line x1="224" y1="80" x2="256" y2="168" stroke="#20102B" stroke-width="20" stroke-linecap="round"/>
+      <line x1="304" y1="80" x2="336" y2="168" stroke="#20102B" stroke-width="20" stroke-linecap="round"/>
+      <line x1="384" y1="80" x2="416" y2="168" stroke="#20102B" stroke-width="20" stroke-linecap="round"/>
+    </g>
+
+    <!-- Main Clapper Body -->
+    <rect x="64" y="192" width="384" height="256" rx="48" fill="#FFFFFF" stroke="#20102B" stroke-width="20" stroke-linejoin="round"/>
+
+    <!-- Centered Play Mark in Deep Purple -->
+    <polygon points="224,272 224,368 320,320" fill="#4F266F" stroke="#4F266F" stroke-width="12" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -41,8 +41,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   const { isFullscreen } = useFullscreen();
   const [isVisible, setIsVisible] = useState(true);
+  const [optimisticTab, setOptimisticTab] = useState<ActiveTab>(activeTab);
   const lastScrollY = useRef(0);
-  const scrollTimeout = useRef<number | null>(null);
+
+  // Keep optimistic tab in sync whenever parent activeTab updates
+  useEffect(() => {
+    setOptimisticTab(activeTab);
+  }, [activeTab]);
 
   // Long press detection on tabs (especially search/lists to trigger swap confirm)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,38 +81,51 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     }
   };
 
+  // Robust directional scroll detection that cleanly hides while reading/scrolling down
+  // and stays hidden until the user scrolls upwards or reaches near the top/bottom.
   useEffect(() => {
+    let accumulatedDelta = 0;
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const delta = currentScrollY - lastScrollY.current;
 
-      // When near top or bottom, always keep navigation visible
-      if (currentScrollY < 100) {
+      // Always show near top of page
+      if (currentScrollY <= 50) {
         setIsVisible(true);
-      } else if (delta > 40 && currentScrollY > 160) {
-        // Only hide on significant, fast continuous downward scrolling
+        accumulatedDelta = 0;
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Reset accumulation on directional shift
+      if ((delta > 0 && accumulatedDelta < 0) || (delta < 0 && accumulatedDelta > 0)) {
+        accumulatedDelta = 0;
+      }
+      accumulatedDelta += delta;
+
+      // Scrolling DOWN by > 12px -> cleanly hide dock
+      if (accumulatedDelta > 12 && currentScrollY > 50) {
         setIsVisible(false);
-      } else if (delta < -10) {
-        // Immediately reveal on any slight upward scroll gesture
+      }
+      // Scrolling UP by > 12px -> reveal dock
+      else if (accumulatedDelta < -12) {
+        setIsVisible(true);
+      }
+
+      // Keep visible if user is at the very bottom of the document
+      const isAtBottom =
+        window.innerHeight + currentScrollY >= document.documentElement.scrollHeight - 30;
+      if (isAtBottom) {
         setIsVisible(true);
       }
 
       lastScrollY.current = currentScrollY;
-
-      if (scrollTimeout.current) {
-        window.clearTimeout(scrollTimeout.current);
-      }
-
-      // Fast restore when scrolling pauses so user can always tap
-      scrollTimeout.current = window.setTimeout(() => {
-        setIsVisible(true);
-      }, 500);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeout.current) window.clearTimeout(scrollTimeout.current);
     };
   }, []);
 
@@ -126,7 +144,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const activeIndex = tabs.findIndex(tab => !tab.isSpecialAction && activeTab === tab.id);
+  const currentTab = optimisticTab || activeTab;
+  const activeIndex = tabs.findIndex(tab => !tab.isSpecialAction && currentTab === tab.id);
 
   const handleTabClick = (tabId: ActiveTab | 'search', isSpecialAction?: boolean) => {
     if (isLongPressRef.current) {
@@ -137,6 +156,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     if (isSpecialAction && tabId === 'search') {
       if (onOpenSearch) onOpenSearch();
     } else {
+      // Immediate optimistic feedback without delay
+      setOptimisticTab(tabId as ActiveTab);
+      setIsVisible(true);
       onSelectTab(tabId as ActiveTab);
     }
   };
@@ -148,14 +170,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           ? 'calc(1.1rem + env(safe-area-inset-bottom, 0px))'
           : 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
       }}
-      className={`md:hidden fixed left-0 right-0 z-40 flex justify-center pointer-events-none px-4 transition-all duration-300 ease-out ${
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0'
+      className={`md:hidden fixed left-0 right-0 z-40 flex justify-center px-4 transition-all duration-300 ease-out will-change-transform ${
+        isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
       }`}
     >
       {/* Floating Conjoined Scalloped Organic Dock Container */}
       <nav
         aria-label="Mobile Navigation"
-        className="pointer-events-auto relative w-[248px] h-[64px] select-none touch-manipulation"
+        className="relative w-[248px] h-[64px] select-none touch-manipulation"
       >
         {/* SVG Fluid Conjoined Organic Hull with Crisp Outline & Floating Ambient Shadow */}
         <svg
@@ -180,7 +202,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         {/* Sliding Active Circular Highlight with Spring Physics */}
         {activeIndex >= 0 && (
           <div
-            className="absolute top-[8px] left-[7px] w-[48px] h-[48px] rounded-full bg-[var(--bg-nav-active)] pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-10"
+            className="absolute top-[8px] left-[7px] w-[48px] h-[48px] rounded-full bg-[var(--bg-nav-active)] pointer-events-none transition-transform duration-250 ease-[cubic-bezier(0.2,0.8,0.2,1)] z-10 will-change-transform"
             style={{
               transform: `translateX(${activeIndex * 62}px)`,
               boxShadow: '0 4px 14px -1px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.14)',
@@ -191,7 +213,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         {/* 4 Interactive Tab Buttons Layer */}
         <div className="relative z-20 w-full h-full flex items-center">
           {tabs.map((tab) => {
-            const isActive = !tab.isSpecialAction && activeTab === tab.id;
+            const isActive = !tab.isSpecialAction && currentTab === tab.id;
             const Icon = tab.icon;
 
             return (

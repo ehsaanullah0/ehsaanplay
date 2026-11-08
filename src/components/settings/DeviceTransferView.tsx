@@ -60,7 +60,6 @@ import {
   encodeChangesToCode,
   decodeChangesFromCode,
   validateChangesPackage,
-  saveCheckpoint,
   clearChangeLogHistory,
   RecentChangesPackage,
 } from '../../services/recentChanges';
@@ -583,8 +582,8 @@ export const DeviceTransferView: React.FC<DeviceTransferViewProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      saveCheckpoint(pkg.toChangeId);
-      setStats(getChangeLogStats());
+      // Change history is never removed on export or copy; only through manual user clear button
+      // saveCheckpoint is preserved exclusively for the manual Clear History action
 
       setJsonResult({
         success: true,
@@ -700,8 +699,7 @@ export const DeviceTransferView: React.FC<DeviceTransferViewProps> = ({
       setCodeModalMode('generate');
       setIsCodeModalOpen(true);
       setCodeCopied(false);
-      saveCheckpoint(pkg.toChangeId);
-      setStats(getChangeLogStats());
+      // History is never removed on generating or copying code; only through manual user button
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate sync code.');
     }

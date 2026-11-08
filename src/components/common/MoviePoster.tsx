@@ -483,7 +483,7 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
                         onClick={handleToggleWatchlistAction}
                         className={`w-full flex items-center justify-between px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all border cursor-pointer touch-manipulation active:scale-[0.97] ${
                           inWatchlist
-                            ? 'bg-[var(--bg-card-yellow,#fef3c7)] text-[var(--text-card-yellow,#78350f)] border-amber-300/40 shadow-xs'
+                            ? 'bg-[#F5C518] text-[#121212] font-black border border-[#DFB00F] shadow-xs'
                             : 'bg-[var(--chip-bg,rgba(255,255,255,0.08))] text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
                         }`}
                       >

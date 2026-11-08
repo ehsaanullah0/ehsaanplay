@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ActiveTab } from '../../types/movie';
-import { Search, Download, Sparkles, Maximize2, Minimize2, Layers } from 'lucide-react';
-import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { Search, Sparkles, Maximize2, Minimize2, Layers } from 'lucide-react';
 import { useFullscreen } from '../../hooks/useFullscreen';
 
 interface HeaderProps {
@@ -25,15 +24,9 @@ export const Header: React.FC<HeaderProps> = ({
   swapSearchAndLists = false,
   onTriggerSwapConfirm,
 }) => {
-  const { isInstallable, isInstalled, install } = usePWAInstall();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollYRef = useRef(0);
-
-  const handleHeaderInstall = async () => {
-    // Immediately awake native browser install prompt dialog window
-    await install();
-  };
 
   // Long press detection on the top corner action button (Search or Lists)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -260,18 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
 
 
 
-          {/* PWA Install Button — Located directly LEFT to Search as requested */}
-          {!isInstalled && (
-            <button
-              onClick={handleHeaderInstall}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90 active:scale-95 transition shadow-xs border border-transparent select-none animate-pulse"
-              title="Install EHSAAN PLAY as Standalone Web App (Left to Search)"
-              aria-label="Install as Standalone Web App"
-            >
-              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span className="hidden sm:inline">Install</span>
-            </button>
-          )}
+
 
           {/* Interactive Action Buttons: Search & IMDb — Minimal, Colourful & Small */}
           {swapSearchAndLists ? (

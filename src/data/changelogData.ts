@@ -13,8 +13,63 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.3.5',
+    version: 'v2.3.6',
     isLatest: true,
+    tagline: 'Next-Gen 3D Coverflow Trending Showcase, Clean & Polished Random Pick Window & Cinematic Artwork',
+    points: [
+      {
+        title: 'New 3D Coverflow Trending Showcase on Home Page',
+        description: 'Replaced the legacy hero slideshow with a high-fidelity 3D coverflow showcase streaming live TMDB trending movies and series. Features expansive edge-to-edge layout, Google Sans Flex typography, accelerated 3.2s auto-cycling, and tactile touch/drag navigation.',
+      },
+      {
+        title: 'Tactile 3D Card Flip on Random Roll',
+        description: 'Added a responsive 3D card flip animation when clicking Shuffle Again / rolling back. The title poster smoothly rotates on its Y-axis at 60fps to reveal the next pick, paired with seamless metadata cross-fades.',
+      },
+      {
+        title: 'New 4-Tier Verdict Rating Cards System',
+        description: 'Replaced legacy star rating with 4 thematic verdict cards (Snoozefest, Popcorn Flick, Worth the Hype, Absolute Cinema). Rate titles in 1 click and instantly filter your library by rating tier tags.',
+      },
+      {
+        title: 'Industry Trending Top 10 Movies & Series Rails',
+        description: 'Decoupled the Top 10 Movies and Top 10 Series home rails from personal library ratings, streaming live global TMDB industry trends worldwide while retaining poster interactive options.',
+      },
+      {
+        title: 'Enhanced Absolute Cinema Yellow Contrast',
+        description: 'Darkened the signature yellow text tone for Absolute Cinema to deep amber (text-amber-900 / dark:text-amber-300), maximizing text contrast and legibility across light cream and dark backgrounds.',
+      },
+      {
+        title: 'Zero Repeat Rolls & Watched Titles Excluded',
+        description: 'Random Pick now strictly excludes all watched titles from your candidate pool. In addition, intelligent session tracking ensures titles never repeat when rolling back or shuffling, guaranteeing a fresh discovery every roll.',
+      },
+      {
+        title: 'Clean & Minimal Random Pick Modal',
+        description: 'Re-engineered the random pick experience into a clean, minimal, and polished popup window featuring prominent title artwork, rating & genre breakdown, synopsis overview, a primary color Open Preview button, and a secondary color Shuffle Again button.',
+      },
+      {
+        title: 'Dynamic Theme Color Integration',
+        description: 'The winning movie card, precision caret pointers, action buttons, and status chips dynamically adapt to the active app palette (Olive, Orange, Blue, Rose, Lavender, Teal) with glowing accent borders.',
+      },
+      {
+        title: 'Guaranteed High-Resolution Artwork Resolution',
+        description: 'Implemented multi-tier artwork hydration ensuring titles never lack posters. Added high-resolution metadata for classic library titles including The Silence of the Lambs with seamless fuzzy title matching.',
+      },
+      {
+        title: 'Enlarged Movie Preview Window Poster',
+        description: 'Significantly enlarged the primary movie and series artwork card in the preview window with refined corner rounding and elevation shadows for commanding visual presence.',
+      },
+      {
+        title: 'Responsive Preview Artwork & 95% Desktop Opacity',
+        description: 'Background artwork in the preview window is now cleanly disabled on mobile and tablet devices for maximum readability and speed. On desktop and larger screens, background artwork is enabled by default with a refined 95% opacity level.',
+      },
+      {
+        title: 'Icon-Only Mobile/Tablet Buttons & Yellow Watchlist Ribbon',
+        description: 'Preview window action buttons are now always in compact icon-only circular mode on mobile and tablet screens. The Watchlist button is consistently styled in iconic golden yellow (#F5C518) across all active app themes.',
+      },
+    ],
+  },
+  {
+    version: 'v2.3.5',
+    isLatest: false,
     tagline: 'Hero Slideshow Meaning Enrichment: Stable White Title Typography, Below-Title Ratings & Genres, and Interface Decluttering',
     points: [
       {
@@ -32,6 +87,14 @@ export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
       {
         title: 'Interactive Pro Tips & Feature Guides',
         description: 'Added dedicated Pro Tips covering hero slideshow adjustments (card vs. full-width view, dark fog opacity, theme genre pills, and adaptive title color), expanded vertical favorites shelf layout, and full-screen actor & crew profile exploration.',
+      },
+      {
+        title: 'Redesigned Organic Bottom Navigation Dock',
+        description: 'Adapted an ergonomic 4-pod scalloped conjoined mobile navigation dock with tactile physics and instant zero-delay tab switching.',
+      },
+      {
+        title: 'Intelligent Scroll Auto-Hiding',
+        description: 'Directional scroll tracking automatically glides the bottom dock away during downward browsing and immediately restores it upon scrolling up.',
       },
     ],
   },

@@ -33,7 +33,7 @@ export const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
 
     const timer = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % featuredItems.length);
-    }, 6500);
+    }, 3200);
 
     return () => clearInterval(timer);
   }, [featuredItems.length, isPaused]);

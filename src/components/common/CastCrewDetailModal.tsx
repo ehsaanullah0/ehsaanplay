@@ -1254,8 +1254,8 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
                             }}
                             className={`absolute top-1.5 right-1.5 z-20 w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full flex items-center justify-center shadow-md transition-all active:scale-90 cursor-pointer border ${
                               isInWatchlist
-                                ? 'bg-[#881337] hover:bg-[#700f2b] text-white border-rose-300/40 opacity-100 ring-2 ring-rose-950/20'
-                                : 'bg-[#991B1B]/90 hover:bg-[#881337] text-white border-white/25 opacity-0 group-hover:opacity-100 hover:scale-110 focus:opacity-100 backdrop-blur-xs'
+                                ? 'bg-[#F5C518] text-[#121212] font-black border border-[#DFB00F] opacity-100 shadow-xs ring-2 ring-[#DFB00F]/30'
+                                : 'bg-[var(--accent-primary)]/90 hover:bg-[var(--accent-primary)] text-[var(--bg-primary)] border border-white/25 opacity-0 group-hover:opacity-100 hover:scale-110 focus:opacity-100 backdrop-blur-xs'
                             }`}
                             title={isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
                             aria-label={isInWatchlist ? `Remove ${cr.title} from Watchlist` : `Add ${cr.title} to Watchlist`}

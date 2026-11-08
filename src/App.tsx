@@ -71,6 +71,7 @@ export default function App() {
   const [isImdbPreviewOpen, setIsImdbPreviewOpen] = useState(false);
   const [imdbPreviewInput, setImdbPreviewInput] = useState('');
   const [randomModalItem, setRandomModalItem] = useState<MediaItem | null>(null);
+  const [randomModalPool, setRandomModalPool] = useState<MediaItem[]>([]);
   const [watchlistInitialFilter, setWatchlistInitialFilter] = useState<string>('watchlist');
   const [backToastMessage, setBackToastMessage] = useState<string | null>(null);
   const [settingsTopic, setSettingsTopic] = useState<SettingsTopicId | null>(null);
@@ -385,22 +386,27 @@ export default function App() {
   const handleNavigateToWatchlistWithFilter = useCallback((status: string = 'all') => {
     setWatchlistInitialFilter(status);
     setActiveTab('watchlist');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }, []);
 
-  // Quick Random Pick trigger from top bar or home
+  // Quick Random Pick trigger from top bar or home (strictly excludes watched titles)
   const handleTriggerRandomGlobal = useCallback(() => {
-    const picked = getRandomItem();
-    if (picked) {
+    const unwatched = mediaItems.filter(i => !userStates[i.id]?.isWatched);
+    const targetPool = unwatched.length > 0 ? unwatched : mediaItems;
+    const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
+    const pool = validPool.length > 0 ? validPool : targetPool;
+    if (pool.length > 0) {
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      setRandomModalPool(targetPool);
       setRandomModalItem(picked);
     }
-  }, [getRandomItem]);
+  }, [mediaItems, userStates]);
 
   // Navigate directly to Changelog inside Settings > EHSAAN PLAY
   const handleOpenChangelog = useCallback(() => {
     setSettingsTopic('app');
     setActiveTab('settings');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }, []);
 
   return (
@@ -413,7 +419,7 @@ export default function App() {
             setSettingsTopic(null);
           }
           setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo(0, 0);
         }}
         onOpenSearch={() => setIsSearchOpen(true)}
         onRandomPick={handleTriggerRandomGlobal}
@@ -480,7 +486,12 @@ export default function App() {
             onRemoveItemFromList={removeItemFromList}
             onRandomPick={items => {
               if (items.length > 0) {
-                const picked = items[Math.floor(Math.random() * items.length)];
+                const unwatched = items.filter(i => !userStates[i.id]?.isWatched);
+                const targetPool = unwatched.length > 0 ? unwatched : items;
+                const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
+                const pool = validPool.length > 0 ? validPool : targetPool;
+                const picked = pool[Math.floor(Math.random() * pool.length)];
+                setRandomModalPool(targetPool);
                 setRandomModalItem(picked);
               }
             }}
@@ -518,7 +529,7 @@ export default function App() {
             setSettingsTopic(null);
           }
           setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo(0, 0);
         }}
         swapSearchAndLists={isSwappedNav}
         onOpenSearch={() => setIsSearchOpen(true)}
@@ -614,6 +625,8 @@ export default function App() {
         onSelectMedia={setSelectedMedia}
         onPickAnother={handleTriggerRandomGlobal}
         userState={randomModalItem ? userStates[randomModalItem.id] : undefined}
+        userStates={userStates}
+        candidatePool={randomModalPool.length > 0 ? randomModalPool : mediaItems}
       />
 
       {/* Global In-App Incoming Transfer Alert (LocalSend Style) */}

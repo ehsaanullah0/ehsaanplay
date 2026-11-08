@@ -5,6 +5,7 @@ import {
   CustomList,
   UserSettings,
   SeasonInfo,
+  RatingTagId,
 } from '../types/movie';
 import {
   loadUserStates,
@@ -651,8 +652,8 @@ export function useMediaLibrary() {
     });
   }, [getOrCreateState, mediaItems]);
 
-  // Set Personal Rating
-  const setPersonalRating = useCallback((mediaId: string, rating: number | undefined) => {
+  // Set Personal Rating & Rating Tag
+  const setPersonalRating = useCallback((mediaId: string, rating: number | undefined, ratingTag?: RatingTagId) => {
     setUserStates(prev => {
       const current = getOrCreateState(mediaId, prev);
       const updated = {
@@ -660,11 +661,12 @@ export function useMediaLibrary() {
         [mediaId]: {
           ...current,
           personalRating: rating,
+          ratingTag: ratingTag,
         },
       };
       saveUserStates(updated);
       const mediaItem = mediaItems.find(m => m.id === mediaId);
-      recordLibraryChange('update_state', mediaId, { state: { personalRating: rating }, mediaItem });
+      recordLibraryChange('update_state', mediaId, { state: { personalRating: rating, ratingTag }, mediaItem });
       return updated;
     });
   }, [getOrCreateState, mediaItems]);
@@ -1143,15 +1145,17 @@ export function useMediaLibrary() {
     };
   }, [mediaItems, userStates]);
 
-  // Random item picker
+  // Random item picker (strictly prefers unwatched titles)
   const getRandomItem = useCallback(
     (predicate?: (item: MediaItem) => boolean): MediaItem | null => {
-      const pool = predicate ? mediaItems.filter(predicate) : mediaItems;
-      if (pool.length === 0) return null;
+      const basePool = predicate ? mediaItems.filter(predicate) : mediaItems;
+      if (basePool.length === 0) return null;
+      const unwatched = basePool.filter(i => !userStates[i.id]?.isWatched);
+      const pool = unwatched.length > 0 ? unwatched : basePool;
       const index = Math.floor(Math.random() * pool.length);
       return pool[index];
     },
-    [mediaItems]
+    [mediaItems, userStates]
   );
 
   // Delete All Data action (complete purge of all stored titles, watchlists, and image caches)

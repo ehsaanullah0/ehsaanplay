@@ -24,7 +24,7 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_HOME_SECTIONS: HomeSectionsConfig = {
-  showHeroSlideshow: false,
+  showHeroSlideshow: true,
   showTopMovies: true,
   showTopSeries: true,
   showContinueWatching: true,

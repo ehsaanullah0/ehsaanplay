@@ -1155,19 +1155,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
-                <div className="font-bold text-sm text-[var(--text-primary)]">Featured Hero Slideshow</div>
+                <div>
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Trending Shows 3D Showcase</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">Live TMDB/IMDb trending 3D coverflow with hover details</div>
+                </div>
                 <M3Switch
-                  checked={settings.homeSections?.showHeroSlideshow === true}
+                  checked={settings.homeSections?.showHeroSlideshow !== false}
                   onChange={() =>
                     onUpdateSettings({
                       homeSections: {
                         ...DEFAULT_HOME_SECTIONS,
                         ...settings.homeSections,
-                        showHeroSlideshow: settings.homeSections?.showHeroSlideshow !== true,
+                        showHeroSlideshow: settings.homeSections?.showHeroSlideshow === false,
                       },
                     })
                   }
-                  ariaLabel="Toggle Featured Hero Slideshow"
+                  ariaLabel="Toggle Trending Shows 3D Showcase"
                 />
               </div>
 
@@ -2792,7 +2795,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <History className="w-5 h-5 text-[var(--accent-primary)] group-hover:rotate-12 transition-transform shrink-0" />
                   <div>
                     <div className="font-bold text-sm text-[var(--text-primary)]">Changelog & Version Notes</div>
-                    <div className="text-xs text-[var(--text-secondary)]">View latest v2.3.5 updates & historical archive</div>
+                    <div className="text-xs text-[var(--text-secondary)]">View latest v2.3.6 updates & historical archive</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 transition-transform" />

@@ -1,8 +1,9 @@
 // EHSAAN MOVIE — PWA Application Shell Service Worker
 // NOTE: Application owns artwork caching via Cache API. Service worker handles app shell only.
 
-const SHELL_CACHE_NAME = 'ehsaan-play-static-v5';
+const SHELL_CACHE_NAME = 'ehsaan-play-static-v6';
 const OBSOLETE_SHELL_CACHES = [
+  'ehsaan-play-static-v5',
   'ehsaan-play-static-v4',
   'ehsaan-movie-shell-v1',
   'ehsaan-movie-shell-v2',
@@ -26,6 +27,7 @@ const STATIC_ASSETS = [
   '/icons/apple-touch-icon-v2.png',
   '/icons/icon-192-v2.png',
   '/icons/icon-512-v2.png',
+  '/icons/icon-192-maskable-v2.png',
   '/icons/icon-512-maskable-v2.png',
 ];
 

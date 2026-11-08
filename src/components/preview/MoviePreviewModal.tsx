@@ -3,6 +3,9 @@ import {
   MediaItem,
   PersonalMediaState,
   CustomList,
+  RATING_TAGS,
+  RatingTagId,
+  resolveRatingTag,
 } from '../../types/movie';
 import { KNOWN_TV_SHOWS_METADATA } from '../../data/curatedCatalog';
 import { fetchDetailsWithFallback } from '../../services/metadataFallback';
@@ -152,7 +155,7 @@ interface MoviePreviewModalProps {
   onToggleWatchlist: (id: string, item?: MediaItem) => void;
   onToggleWatched: (id: string, item?: MediaItem) => void;
   onToggleFavorite: (id: string, item?: MediaItem) => void;
-  onSetRating: (id: string, rating: number) => void;
+  onSetRating: (id: string, rating: number | undefined, ratingTag?: RatingTagId) => void;
   onSetNotes: (id: string, notes: string) => void;
   onSetProgress: (id: string, progress: number, item?: MediaItem) => void;
   onToggleTVEpisode: (id: string, season: number, episode: number, item?: MediaItem) => void;
@@ -423,17 +426,24 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     }
   };
 
-  // Load customizable hero options
+  // Load customizable hero options (background artwork defaults to off on mobile/tablet, on on desktop)
   const [heroCustomizer, setHeroCustomizer] = useState<HeroCustomizerConfig>(() => {
+    const isMobileOrTablet = typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+    const defaultArtOn = !isMobileOrTablet;
     try {
       const saved = localStorage.getItem(HERO_CUSTOMIZER_STORAGE_KEY);
       if (saved) {
-        return { ...DEFAULT_HERO_CUSTOMIZER, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_HERO_CUSTOMIZER,
+          artOn: parsed.artOn !== undefined ? parsed.artOn : defaultArtOn,
+          ...parsed,
+        };
       }
     } catch {
       // ignore
     }
-    return DEFAULT_HERO_CUSTOMIZER;
+    return { ...DEFAULT_HERO_CUSTOMIZER, artOn: defaultArtOn };
   });
 
   const updateHeroCustomizer = (partial: Partial<HeroCustomizerConfig>) => {
@@ -493,12 +503,29 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     saveSections(DEFAULT_CARD_SECTIONS);
   };
 
-  // Sync item and trigger real-time rich details hydration
+  // Sync item, screen-size default artOn, and trigger real-time rich details hydration
   useEffect(() => {
     setItem(initialItem);
     setNotesDraft(userState?.notes || '');
     setIsPlayingTrailer(false);
     setIsOverviewExpanded(false);
+
+    if (isOpen) {
+      const isMobileOrTablet = typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+      try {
+        const saved = localStorage.getItem(HERO_CUSTOMIZER_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.artOn === undefined) {
+            setHeroCustomizer(prev => ({ ...prev, artOn: !isMobileOrTablet }));
+          }
+        } else {
+          setHeroCustomizer(prev => ({ ...prev, artOn: !isMobileOrTablet }));
+        }
+      } catch {
+        setHeroCustomizer(prev => ({ ...prev, artOn: !isMobileOrTablet }));
+      }
+    }
 
     if (modalScrollRef.current) {
       modalScrollRef.current.scrollTop = 0;
@@ -513,7 +540,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         });
       }
     }
-  }, [initialItem, userState?.notes, onHydrateDetails]);
+  }, [initialItem, isOpen, userState?.notes, onHydrateDetails]);
 
   // Providers fallback & intelligent deduplication (called unconditionally before early return)
   const cleanedProviders = React.useMemo(() => {
@@ -1193,7 +1220,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           /* Hero Content Area: Left-Anchored Poster & Left-Aligned Information */
           <div className="relative z-10 w-full px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 sm:pb-8 pt-2 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-8">
             {/* Anchored Left Poster / Album Artwork */}
-            <div className={`w-40 xs:w-44 sm:w-48 md:w-56 flex-none aspect-[2/3] rounded-2xl overflow-hidden shadow-sm sm:shadow-2xl border select-none transition-transform duration-300 hover:scale-[1.02] relative self-start ${
+            <div className={`w-48 xs:w-56 sm:w-64 md:w-76 lg:w-84 flex-none aspect-[2/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg sm:shadow-2xl border select-none transition-transform duration-300 hover:scale-[1.02] relative self-start shrink-0 ${
               isDarkHero
                 ? 'bg-[var(--bg-surface-elevated)] sm:bg-[#24291B] border-[var(--border-subtle)] sm:border-white/25'
                 : 'bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
@@ -1401,7 +1428,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                         : 'w-11 h-11 sm:w-auto sm:px-4 sm:py-3 rounded-full text-xs font-bold gap-2'
                     } ${
                       inWatchlist
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
+                        ? 'bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] font-black border border-[#DFB00F]'
                         : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
                     }`}
                   >
@@ -1528,29 +1555,85 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
           // 1. Personal Rating & Reflections Card (FULL WIDTH)
           if (section.id === 'journal') {
+            const activeRatingTag = resolveRatingTag(userState);
+
             return (
               <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-2 border-b border-[var(--border-subtle)]">
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3">
-                      YOUR PERSONAL RATING
+                
+                {/* 4-Tier Rating Cards Grid */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                      YOUR VERDICT & RATING TIER
                     </label>
-                    <StarRating
-                      value={personalRating}
-                      onChange={r => onSetRating(item.id, r)}
-                      size="md"
-                      layout="stacked"
-                    />
+                    {activeRatingTag && (
+                      <button
+                        type="button"
+                        onClick={() => onSetRating(item.id, undefined, undefined)}
+                        className="text-xs font-black text-red-700 dark:text-red-500 hover:underline transition active:scale-95 cursor-pointer"
+                      >
+                        Reset Rating
+                      </button>
+                    )}
                   </div>
 
-                  {/* Watch Progress Slider */}
-                  <div className="w-full sm:w-80">
-                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
-                      <span className="font-black uppercase tracking-wider">PROGRESS</span>
-                      <span className="font-bold text-[var(--text-primary)] tabular-nums">
-                        {progressPercent}%
-                      </span>
-                    </div>
+                  {/* 4-Tier Rating Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {RATING_TAGS.map(tag => {
+                      const isSelected = activeRatingTag?.id === tag.id;
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              onSetRating(item.id, undefined, undefined);
+                            } else {
+                              onSetRating(item.id, tag.numericRating, tag.id);
+                            }
+                          }}
+                          className={`group relative p-4.5 rounded-2xl text-left transition-all duration-200 border cursor-pointer select-none active:scale-[0.98] flex flex-col justify-between min-h-[110px] ${
+                            isSelected
+                              ? `${tag.activeBgClass} ${tag.activeBorderClass} shadow-md`
+                              : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+                          }`}
+                        >
+                          <div>
+                            {/* Card Title */}
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <h4 className={`text-base font-black tracking-tight ${tag.colorClass}`}>
+                                {tag.label}
+                              </h4>
+                              {isSelected && (
+                                <div className="w-5 h-5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center shrink-0 shadow-xs">
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Description (Uses Theme Primary Color for Crisp Readability in Light & Dark Modes) */}
+                            <p className="text-xs text-[var(--text-primary)] font-semibold leading-relaxed">
+                              {tag.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-4 text-xs text-[var(--text-secondary)] font-medium pb-2 border-b border-[var(--border-subtle)]">
+                    Saved privately on this device.
+                  </p>
+                </div>
+
+                {/* Watch Progress Slider */}
+                <div className="w-full">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
+                    <span className="font-black uppercase tracking-wider">PROGRESS</span>
+                    <span className="font-bold text-[var(--text-primary)] tabular-nums">
+                      {progressPercent}%
+                    </span>
+                  </div>
                     <div className="relative w-full py-1 flex items-center select-none">
                       {/* Thick M3 Tactile Track */}
                       <div className="relative w-full h-3 rounded-full flex items-center overflow-hidden bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
@@ -1584,7 +1667,6 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       />
                     </div>
                   </div>
-                </div>
 
                 {/* Improved Personal Notes & Reflections Section */}
                 <div>

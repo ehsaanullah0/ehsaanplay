@@ -4,6 +4,7 @@ import {
   PersonalMediaState,
   FilterState,
   UserSettings,
+  resolveRatingTag,
 } from '../../types/movie';
 import { SafeImage } from '../common/SafeImage';
 import { MoviePoster } from '../common/MoviePoster';
@@ -311,6 +312,14 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
         if (!hasInteraction) return false;
       }
 
+      // Rating Tier Tag filter
+      if (filters.ratingTag && filters.ratingTag !== 'all') {
+        const resolvedTag = resolveRatingTag(state);
+        if (!resolvedTag || resolvedTag.id !== filters.ratingTag) {
+          return false;
+        }
+      }
+
       // Genre filter
       if (filters.genre !== 'all' && !item.genres.includes(filters.genre)) {
         return false;
@@ -354,11 +363,16 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
     });
   }, [mediaItems, userStates, filters]);
 
-  // Handle Random Pick
+  // Handle Random Pick (strictly excludes watched titles)
   const handleTriggerRandom = () => {
-    if (filteredItems.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * filteredItems.length);
-    setRandomItem(filteredItems[randomIndex]);
+    const sourceItems = filteredItems.length > 0 ? filteredItems : mediaItems;
+    const unwatched = sourceItems.filter(i => !userStates[i.id]?.isWatched);
+    const targetPool = unwatched.length > 0 ? unwatched : sourceItems;
+    if (targetPool.length === 0) return;
+    const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
+    const pool = validPool.length > 0 ? validPool : targetPool;
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    setRandomItem(pool[randomIndex]);
     setIsRandomModalOpen(true);
   };
 
@@ -366,6 +380,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
     filters.type !== 'all' ||
     filters.status !== 'watchlist' ||
     filters.genre !== 'all' ||
+    (filters.ratingTag && filters.ratingTag !== 'all') ||
     filters.sortBy !== 'recent' ||
     filters.searchQuery.length > 0;
 
@@ -627,8 +642,13 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
                         </span>
                       )}
                       {state?.inWatchlist && !state?.isWatched && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--chip-bg)] text-[var(--text-primary)]">
-                          <Bookmark className="w-3 h-3 fill-current" /> Watchlist
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#F5C518] text-[#121212] border border-[#DFB00F]">
+                          <Bookmark className="w-3 h-3 fill-current text-[#121212]" /> Watchlist
+                        </span>
+                      )}
+                      {state && resolveRatingTag(state) && (
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${resolveRatingTag(state)!.activeBgClass} ${resolveRatingTag(state)!.activeBorderClass} ${resolveRatingTag(state)!.colorClass}`}>
+                          <span>{resolveRatingTag(state)!.label}</span>
                         </span>
                       )}
                       {progress > 0 && !state?.isWatched && (
@@ -710,6 +730,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
         onSelectMedia={onSelectMedia}
         onPickAnother={handleTriggerRandom}
         userState={randomItem ? userStates[randomItem.id] : undefined}
+        userStates={userStates}
+        candidatePool={filteredItems.length > 0 ? filteredItems : mediaItems}
       />
 
       {/* Custom Themed Share & Export Modal */}

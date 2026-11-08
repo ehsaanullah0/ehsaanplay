@@ -157,7 +157,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
 
           <div className="mt-3 space-y-2">
             {[
-              { key: 'showHeroSlideshow', label: 'Featured Hero Slideshow' },
+              { key: 'showHeroSlideshow', label: 'Trending Shows Showcase (3D Coverflow)' },
               { key: 'showContinueWatching', label: 'Continue Watching' },
               { key: 'showTopMovies', label: 'Top 10 Movies' },
               { key: 'showTopSeries', label: 'Top 10 Series' },
@@ -165,9 +165,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
               { key: 'showRecentlyWatched', label: 'Recently Watched' },
               { key: 'showExplore', label: 'Explore Recommendations' },
             ].map(({ key, label }) => {
-              const active = key === 'showHeroSlideshow'
-                ? sections.showHeroSlideshow === true
-                : sections[key as keyof HomeSectionsConfig] !== false;
+              const active = sections[key as keyof HomeSectionsConfig] !== false;
               return (
                 <button
                   key={key}
