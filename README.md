@@ -13,6 +13,8 @@
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk)
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaan-play)
+
 
 **the apk is currently in beta have some bugs**
 
