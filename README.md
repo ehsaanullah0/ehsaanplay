@@ -19,7 +19,7 @@
   calm, and enjoyable way.
 </p>
 
-# 📍[EHSAAN PLAY](https://ehsaanplay.ai.studio)📍
+# 📍[EHSAAN PLAY WEB](https://ehsaanplay.ai.studio)📍
 
 ---
 
