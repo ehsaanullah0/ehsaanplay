@@ -5,8 +5,8 @@
 
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
-[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />]([https://ehsaanplay.ai.studio](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk))  
-](https://ehsaan.odoo.com/)
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk)
+
 
 
  # **Your watchlist. Your taste. Your space.**
