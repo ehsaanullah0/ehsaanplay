@@ -307,10 +307,6 @@ The application is designed so that personal library data can remain on your dev
     <img width="170" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" alt="EHSAAN QR" />
   </a>
 
-  <a href="https://ehsaanplay.ai.studio/" target="_blank">
-    <img width="170" src="https://github.com/user-attachments/assets/7d64243b-7eaa-49c8-bf67-897415f990ee" alt="EHSAAN PLAY" />
-  </a>
-
   <a href="https://ehsaancompress.ai.studio/" target="_blank">
     <img width="170" src="https://github.com/user-attachments/assets/d3a5b184-a158-4f39-abe6-a3795ef7c2eb" alt="EHSAAN Compress" />
   </a>
