@@ -12,14 +12,14 @@
 
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
-[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk)
-[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaanplay)
-
-
+ 
 > [!WARNING]
 > The Apk is currently in beta may have some bugs.
 
  # **Your watchlist. Your taste. Your space.**
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.3.5/EhsaanPlay-beta.apk)
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaanplay)
+
 
 </a>
 
@@ -99,12 +99,17 @@ This webapp is a personal developed project if you want support please do not ex
 <p align="center">
 <img width="1359" height="730" alt="image" src="https://github.com/user-attachments/assets/ef47269b-1b89-449c-ba8d-44be6287e02b" />
 </p>
+
+<p align="center">
+<img width="1364" height="680" alt="image" src="https://github.com/user-attachments/assets/7d5db6f6-c9f2-4896-891f-65830d392c9a" />
+</p>
+
 <!-- Mobile Screenshots -->
 
 <table>
   <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/72d3bb7f-e49e-4b93-be42-f7218c715bc4" width="100%">
+    <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/3cbed1d4-0d3f-4b22-9133-e2ebb7a2420a" />
     </td>
     <td align="center">
    <img width="720" src="https://github.com/user-attachments/assets/248524bf-5305-4274-9fa9-ef5897bf1089" />
