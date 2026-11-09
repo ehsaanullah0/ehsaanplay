@@ -109,13 +109,13 @@ This webapp is a personal developed project if you want support please do not ex
 <table>
   <tr>
     <td align="center">
-    <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/3cbed1d4-0d3f-4b22-9133-e2ebb7a2420a" />
+   <img width="720" src="https://github.com/user-attachments/assets/6c601f1b-0294-4884-b625-6371ec0bca11" />
     </td>
     <td align="center">
-   <img width="720" src="https://github.com/user-attachments/assets/248524bf-5305-4274-9fa9-ef5897bf1089" />
+   <img width="720" src="https://github.com/user-attachments/assets/22905a5d-4707-4c7c-81a2-4871b454af5a" />
   </td>
     <td align="center">
-   <img width="720" src="https://github.com/user-attachments/assets/c466c0a7-8f41-4bfe-b863-d2635f31c210" />
+   <img width="720" src="https://github.com/user-attachments/assets/61dfde18-15f2-497b-a806-73b566c1ed9e" />
     </td>
   </tr>
   <tr>
@@ -123,7 +123,7 @@ This webapp is a personal developed project if you want support please do not ex
    <img width="720" height="1600" src="https://github.com/user-attachments/assets/bd21b38e-68db-49ab-9250-2186c7dea6ab" />
     </td>
     <td align="center">
-   <img width="720" height="1600" src="https://github.com/user-attachments/assets/cf1c76a1-b220-4b18-9d2c-f4787ae065da" />
+   <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/25801077-c130-4ecc-84b4-1dcb498180c9" />
     </td>
     <td align="center">
      <img src="https://github.com/user-attachments/assets/e55f2eca-7d44-4da5-9bd4-bbc427e5e487" width="100%">
@@ -131,10 +131,10 @@ This webapp is a personal developed project if you want support please do not ex
   </tr>
   <tr>
     <td align="center">
-   <img src="https://github.com/user-attachments/assets/d68009b2-1cfb-4502-ab62-cf4ff0ab64f8" width="100%">
+   <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/4fc69027-b10b-4e44-a0d9-f6ea65e93cba" />
     </td>
    <td align="center">
-   <img width="720"  src="https://github.com/user-attachments/assets/4f6176fe-6fff-4266-995c-5aab1fffcd6a" />
+   <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/25efc215-2d17-4f9e-a2ed-027b0e4bbf87" />
     </td>
    <td align="center">
    <img width="720" height="1600" src="https://github.com/user-attachments/assets/63f99fdf-426e-4f47-a1f7-8074c591b7c6" />
