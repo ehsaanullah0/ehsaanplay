@@ -29,8 +29,6 @@
   calm, and enjoyable way.
 </p>
 
-# 📍[EHSAAN PLAY WEB](https://ehsaanplay.ai.studio)📍
-
 ---
 
 ## ‼️ DISCLAIMER
