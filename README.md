@@ -1,7 +1,6 @@
 <p align="center">
 <img width="1796" height="876" alt="EhsaanPlay_ Private Watchlist, Simplified" src="https://github.com/user-attachments/assets/d227364f-9d8c-46cd-b22f-4081527c526f" />
 </p>
-<br>
 
 <p align="center">
   <picture>
@@ -20,7 +19,8 @@
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaanplay)
 [<img width="212" height="56" src="https://github.com/user-attachments/assets/9151bdd1-3a42-49ba-948d-89356ceaf511" />](https://ehsaanplay.ai.studio/)
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.4.0/app-debug.apk)
-
+[<img width="212" height="56" alt="Gemini_Generated_Image_f0kvvof0kvvof0kv-removebg-preview" src="https://github.com/user-attachments/assets/7c72a19e-dd4b-4067-b9c2-62eb75233920" />
+](https://github.com/ehsaanullah0/ehsaanplay/releases)
 </a>
 
 <p>
