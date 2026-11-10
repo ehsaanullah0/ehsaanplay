@@ -453,7 +453,7 @@ async function startServer() {
   app.get('/api/omdb', async (req: Request, res: Response) => {
     const imdbId = req.query.i as string;
     const query = req.query.s as string;
-    const apiKey = process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || '5ac583a2';
+    const apiKey = process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || use your own ;
 
     if (!imdbId && !query) {
       return res.status(400).json({ Response: 'False', Error: 'Missing i (imdbId) or s (search) query parameter' });
@@ -491,7 +491,7 @@ async function startServer() {
     
     // Key resolution order: header override > server env secret > client vite env secret > default fallback
     const customHeaderKey = req.headers['x-tmdb-api-key'] as string;
-    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'a846f4eb273f08cf2aa2a8ee0b7ad03d';
+    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || use your own';
     const bearerToken = process.env.TMDB_READ_ACCESS_TOKEN;
 
     try {
