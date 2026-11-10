@@ -14,7 +14,7 @@
  ## **Your watchlist. Your taste. Your space.**
  
 > [!WARNING]
-> The Apk is currently in beta may have some bugs. raffer webapp for smooth experience.
+> The Apk is currently in beta may have some bugs. prefer webapp for smooth experience.
 
  # **Your watchlist. Your taste. Your space.**
 [<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/b735e6c2-6bf4-4471-9098-fea5b73ceec4" />](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.4.0/Play_beta-V1.0.1.apk)
