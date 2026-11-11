@@ -31,6 +31,10 @@
 
 ---
 
+<img width="800" height="250" alt="{32629188-8AFA-49B2-AE9F-8A6B88D253D9}" src="https://github.com/user-attachments/assets/bf3914fd-65ee-4a0f-8028-16e6507eb15b" />
+
+---
+
 ## ‼️ DISCLAIMER
 This webapp is a personal developed project if you want support please do not expect and try to fork the repo to make the webapp yours.
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
@@ -41,7 +45,6 @@ This webapp is a personal developed project if you want support please do not ex
 > We're working on exciting new features to make your experience better!
 
 -  ❌ **Beautiful Analytics Page**
--  ❌ **Automatic Backup to a Chosen Folder**
 -  ✔ **introduce direct web search result into app**
 -  ✔ **full indipendent actor profile page**
 </table>
