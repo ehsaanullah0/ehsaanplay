@@ -31,7 +31,8 @@
 
 ---
 
-<img width="750" height="250" alt="{32629188-8AFA-49B2-AE9F-8A6B88D253D9}" src="https://github.com/user-attachments/assets/bf3914fd-65ee-4a0f-8028-16e6507eb15b" />
+## ♻️EHSAAN PLAY NOW CAPABLE TO SYNC WITH MULTI-DEVICE
+### READ THE [CLOUD_SYNC_ACTIVATION_GUIDE.md](https://github.com/ehsaanullah0/ehsaanplay/blob/main/CLOUD_SYNC_ACTIVATION_GUIDE.md)
 
 ## capacity to hold near **60,000+** movies titles and metadata.
 
