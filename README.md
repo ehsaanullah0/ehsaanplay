@@ -23,12 +23,15 @@
 ](https://github.com/ehsaanullah0/ehsaanplay/releases)
 </a>
 
+</a>
 <p>
   <strong>Still taking screenshots of movies?</strong><br>
   Try EHSAAN PLAY and track what you watch in a simple,<br>
   calm, and enjoyable way.
 </p>
-
+<a href="https://github.com/ehsaanullah0/ehsaanplay/stargazers">
+  <img src="https://img.shields.io/badge/⭐_GIVE_US_A_STAR-If_you_love_EHSAANPLAY,_support_the_project_on_GitHub!-000000?style=for-the-badge&logo=github&logoColor=white&labelColor=000000" alt="Star WatchWave on GitHub" width="550" />
+  
 ---
 
 ## ♻️EHSAAN PLAY NOW CAPABLE TO SYNC WITH MULTI-DEVICE
