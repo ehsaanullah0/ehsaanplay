@@ -226,7 +226,7 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
 
 ---
 
-## 🖼️ Smart Artwork Storage
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/h-smart-artwork-storage.svg"><img src="assets/reademe/light/h-smart-artwork-storage.svg" alt="Smart Artwork Storage" width="100%"></picture></h2>
 
 Large movie libraries can become surprisingly heavy when posters and backdrops are permanently stored on the device.
 
@@ -250,7 +250,7 @@ This keeps your actual library data lightweight even when your collection grows 
 
 
 
-## 🎞️ TMDB
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/h-tmdb.svg"><img src="assets/reademe/light/h-tmdb.svg" alt="TMDB" width="100%"></picture></h2>
 
 Movie and TV information and artwork are provided through **[The Movie Database (TMDB)](https://www.themoviedb.org/)**.
 
@@ -258,7 +258,7 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 
 ---
 
-## 🔐 Privacy
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/h-privacy.svg"><img src="assets/reademe/light/h-privacy.svg" alt="Privacy" width="100%"></picture></h2>
 
 EHSAAN PLAY follows a simple principle:
 
