@@ -43,37 +43,6 @@ EHSAAN PLAY is **local-first with optional cloud sync**. Your library works with
   <tr>
     <td width="50%" valign="top">
 
-**01 · LOCAL-FIRST**
-
-Your library stays on your device by default. Cloud sync is optional, not a requirement for everyday use.
-
-</td>
-    <td width="50%" valign="top">
-
-**02 · YOUR DATABASE**
-
-Bring Your Own Database (BYOD). Connect a Supabase project using its Project URL and publishable key.
-
-</td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-
-**03 · ACCOUNT PROTECTION**
-
-Sign-in associates your library with your account. Row Level Security (RLS) helps isolate each user's records.
-
-</td>
-    <td width="50%" valign="top">
-
-**04 · LIGHTWEIGHT SYNC**
-
-Only library metadata is synchronized. Posters and backdrops are retrieved separately through TMDB and browser caching.
-
-</td>
-  </tr>
-</table>
-
 **Sync flow**
 
 `Connect Supabase` → `Set up database` → `Verify schema` → `Register / sign in` → `Sync across devices`
