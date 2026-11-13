@@ -196,16 +196,6 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
   </picture>
 </div>
 
-| Area | Technology |
-|---|---|
-| Application | HTML, CSS, JavaScript / TypeScript, React |
-| Build tooling | Vite |
-| Metadata | TMDB API and OMDb fallback |
-| Local persistence | Browser storage / IndexedDB |
-| Artwork delivery | Cache API and browser caching |
-| Offline and installability | Service Worker and Progressive Web App technologies |
-| Optional cloud sync | Supabase-backed synchronization |
-
 ---
 
 
