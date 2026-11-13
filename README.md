@@ -42,7 +42,7 @@
 
 ---
 
-<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/disclaimer.svg"><img src="assets/reademe/light/disclaimer.svg" alt="Disclaimer" height="48"></picture></h2>
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/disclaimer.svg"><img src="assets/reademe/light/disclaimer.svg" alt="Legal and disclaimer" width="100%"></picture></h2>
 
 EHSAAN PLAY is an independently developed personal-library application, not a streaming service. Movie and TV metadata, posters, and related artwork are supplied by third-party providers and remain subject to their respective terms. Features that depend on external services may change or become unavailable. The project is provided as-is, without a guarantee of uninterrupted or error-free operation. Please review the project license before redistributing or modifying the source.
 ### [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) FOR CUSTOM PWA LOGO
@@ -90,7 +90,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <h2 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/screenshots.svg">
-    <img src="assets/reademe/light/screenshots.svg" alt="Screenshots — Explore the EHSAAN PLAY interface" height="48">
+    <img src="assets/reademe/light/screenshots.svg" alt="Screenshots" width="100%">
   </picture>
 </h2>
 
@@ -177,13 +177,15 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 
 </details>
 
-## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" height="38"></picture>
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" height="38"></picture>
+</p>
 
 EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: expressive shapes, comfortable spacing, clear visual hierarchy, thoughtful motion, and a warm, adaptable colour system. Its interface brings these ideas into a personal movie-library experience, with customizable palettes and both light and dark themes.
 
 ---
 
-<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/technology.svg"><img src="assets/reademe/light/technology.svg" alt="Technology" height="48"></picture></h2>
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/technology.svg"><img src="assets/reademe/light/technology.svg" alt="Technology stack" width="100%"></picture></h2>
 
 EHSAAN PLAY is a modern, browser-first application built around client-side functionality and installable PWA support.
 
@@ -309,7 +311,7 @@ The application is designed so that personal library data can remain on your dev
 
 ---
 
-<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/license.svg"><img src="assets/reademe/light/license.svg" alt="License" height="48"></picture></h2>
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/license.svg"><img src="assets/reademe/light/license.svg" alt="GNU General Public License v3.0" width="100%"></picture></h2>
 
 EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You may use, study, modify, and redistribute the project under the terms and conditions of that license. If you distribute a modified version, you must comply with the GPL-3.0 requirements, including providing the corresponding source code where required.
 
