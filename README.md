@@ -221,11 +221,6 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
 
 ---
 
-- the ui is inspired by tomato pomodoro
-- the first visit guide is inspired by pixal player
-
----
-
 Large movie libraries can become surprisingly heavy when posters and backdrops are permanently stored on the device.
 
 EHSAAN PLAY therefore separates:
