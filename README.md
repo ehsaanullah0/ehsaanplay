@@ -42,8 +42,9 @@
 
 ---
 
-## ‼️ DISCLAIMER
-This webapp is a personal developed project if you want support please do not expect and try to fork the repo to make the webapp yours.
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/disclaimer.svg"><img src="assets/reademe/light/disclaimer.svg" alt="Disclaimer" height="48"></picture></h2>
+
+EHSAAN PLAY is an independently developed personal-library application, not a streaming service. Movie and TV metadata, posters, and related artwork are supplied by third-party providers and remain subject to their respective terms. Features that depend on external services may change or become unavailable. The project is provided as-is, without a guarantee of uninterrupted or error-free operation. Please review the project license before redistributing or modifying the source.
 ### [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) FOR CUSTOM PWA LOGO
  
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
@@ -86,7 +87,12 @@ This webapp is a personal developed project if you want support please do not ex
 
 ---
 
-# PREVIEW OF APP
+<h2 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/screenshots.svg">
+    <img src="assets/reademe/light/screenshots.svg" alt="Screenshots — Explore the EHSAAN PLAY interface" height="48">
+  </picture>
+</h2>
 
 <!-- Desktop Screenshots -->
 
@@ -170,6 +176,29 @@ This webapp is a personal developed project if you want support please do not ex
 <img width="1366" height="754" alt="image" src="https://github.com/user-attachments/assets/4bb54cca-8388-4378-8e4a-023702c46831" />
 
 </details>
+
+## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" height="38"></picture>
+
+EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: expressive shapes, comfortable spacing, clear visual hierarchy, thoughtful motion, and a warm, adaptable colour system. Its interface brings these ideas into a personal movie-library experience, with customizable palettes and both light and dark themes.
+
+---
+
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/technology.svg"><img src="assets/reademe/light/technology.svg" alt="Technology" height="48"></picture></h2>
+
+EHSAAN PLAY is a modern, browser-first application built around client-side functionality and installable PWA support.
+
+| Area | Technology |
+|---|---|
+| Application | HTML, CSS, JavaScript / TypeScript, React |
+| Build tooling | Vite |
+| Metadata | TMDB API and OMDb fallback |
+| Local persistence | Browser storage / IndexedDB |
+| Artwork delivery | Cache API and browser caching |
+| Offline and installability | Service Worker and Progressive Web App technologies |
+| Optional cloud sync | Supabase-backed synchronization |
+
+---
+
 
 ## It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
 
@@ -258,22 +287,7 @@ Just your library.
 
 ---
 
-## 🛠️ Technology
 
-EHSAAN PLAY is built as a modern web application with a focus on browser-based storage and client-side functionality.
-
-Core technologies include:
-
-* HTML
-* CSS
-* JavaScript / TypeScript
-* TMDB API
-* Local browser storage
-* Cache API
-* Service Worker
-* Progressive Web App technologies
-
----
 
 ## 🎞️ TMDB
 
@@ -295,11 +309,11 @@ The application is designed so that personal library data can remain on your dev
 
 ---
 
-## 📄 License
+<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/license.svg"><img src="assets/reademe/light/license.svg" alt="License" height="48"></picture></h2>
 
-## **This project is licencrd under MIT**
+EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You may use, study, modify, and redistribute the project under the terms and conditions of that license. If you distribute a modified version, you must comply with the GPL-3.0 requirements, including providing the corresponding source code where required.
 
-### Please[ check the repository license]([https://github.com/ehsaanullah0/ehsaanplay/tree/main?tab=GPL-3.0-1-ov-file](https://github.com/ehsaanullah0/ehsaanplay/blob/main/LICENSE)) before using, modifying, or redistributing the project.
+[Read the full GPL-3.0 license](LICENSE).
   
 
 
