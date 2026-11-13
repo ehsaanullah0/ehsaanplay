@@ -193,7 +193,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 </details>
 
 <p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" height="38"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" width="216" height="38"></picture>
 </p>
 
 EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: expressive shapes, comfortable spacing, clear visual hierarchy, thoughtful motion, and a warm, adaptable colour system. Its interface brings these ideas into a personal movie-library experience, with customizable palettes and both light and dark themes.
