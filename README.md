@@ -254,34 +254,6 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
 
 - the ui is inspired by tomato pomodoro
 - the first visit guide is inspired by pixal player
-## ✨ What is EHSAAN PLAY?
-
-EHSAAN PLAY brings your personal movie and series collection into one clean interface.
-
-You can:
-
-* 🎬 Discover movies and TV series
-* 🔎 Search titles using TMDB
-* ❤️ Build your personal watchlist
-* ✅ Track watched movies and episodes
-* ⭐ Give your own ratings
-* 📝 Add personal notes
-* 📚 Organize titles into custom lists
-* 🎨 Customize your experience
-* 📊 Keep track of your viewing progress
-* 📱 Use it as an installable PWA
-
-Everything is designed around one idea:
-
-> **Your library should feel like yours.**
-
----
-
-### 🔒 Your data stays yours
-
-EHSAAN PLAY does not require an account or personal cloud database for your library.
-
-Personal data is stored locally in your browser/device.
 
 ---
 
@@ -300,31 +272,6 @@ from
 Artwork can be fetched from TMDB when needed and handled through browser caching rather than unnecessarily storing large image files inside your personal library data.
 
 This keeps your actual library data lightweight even when your collection grows significantly.
-
----
-
-## 🎨 Design Philosophy
-
-EHSAAN PLAY follows the EHSAAN design philosophy:
-
-> **Make useful things. Make them feel good to use.**
-
-The interface focuses on:
-
-* Calm visual hierarchy
-* Minimal controls
-* Comfortable spacing
-* Clean typography
-* Subtle interactions
-* Personal customization
-* Dark and light themes
-* A distraction-free browsing experience
-
-No unnecessary dashboards.
-
-No complicated menus.
-
-Just your library.
 
 ---
 
@@ -366,13 +313,6 @@ EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
 
-<h2>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/support-ehsaanplay.svg">
-    <img src="assets/reademe/light/support-ehsaanplay.svg" alt="Support EHSAAN PLAY" width="100%">
-  </picture>
-</h2>
-
 EHSAAN PLAY is independently developed. If you find it useful, your support helps me maintain the project, improve features, and keep building useful tools.
 
 <p align="center">
@@ -383,41 +323,13 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
     </picture>
   </a>
 </p>
+<br>
 
 ## MORE FROM EHSAAN
 
-<table align="center">
-  <tr>
-    <td align="center">
-      <a href="https://ehsaancolour.ai.studio/" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-colour.svg"><img src="assets/reademe/light/product-colour.svg" alt="EHSAAN Colour" width="190" height="48"></picture></a>
-    </td>
-    <td align="center">
-      <a href="https://ehsaanflow.ai.studio/" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-flow.svg"><img src="assets/reademe/light/product-flow.svg" alt="EHSAAN Flow" width="178" height="48"></picture></a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://ehsaanqr.ai.studio/" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-qr.svg"><img src="assets/reademe/light/product-qr.svg" alt="EHSAAN QR" width="166" height="48"></picture></a>
-    </td>
-    <td align="center">
-      <a href="https://ehsaancompress.ai.studio/" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-compress.svg"><img src="assets/reademe/light/product-compress.svg" alt="EHSAAN Compress" width="220" height="48"></picture></a>
-    </td>
-  </tr>
-</table>
+EHSAAN QR |
+EHSAAN FLOW |
+EHSAAAN COMPRESS |
+EHSAAN COLOUR 
 
 
-<br>
-
-<a href="mailto:worsmon@gmail.com">
-  <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
-</a>
-&nbsp;
-<a href="https://github.com/ehsaanullah0">
-  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
-</a>
-&nbsp;
-<a href="https://ehsaan.odoo.com/">
-  <img src="https://img.shields.io/badge/Website-0A84FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website">
-</a>
-
-<sub>If you find something useful here, a ⭐ is always appreciated.</sub>
