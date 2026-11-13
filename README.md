@@ -91,13 +91,14 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 
 ---
 
-# 🎥 Demo
+<h2 align="center">🎬 Watch EHSAAN PLAY in action</h2>
+
+<p align="center">Take a quick tour of the interface, discover the library experience, and see EHSAAN PLAY in action.</p>
 
 <p align="center">
   <a href="https://youtu.be/MXh9GdDQqJ4">
-    <img width="400" src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Watch EHSAAN PLAY Demo" />
+    <img src="https://github.com/user-attachments/assets/bf633cc6-a8ed-4fca-b7b1-1aef2df991d3" alt="Play the EHSAAN PLAY video demo on YouTube" width="720">
   </a>
-</p>
 </p>
 
 ---
@@ -192,9 +193,12 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 
 </details>
 
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive.svg"><img src="assets/reademe/light/material-3-expressive.svg" alt="Material 3 Expressive" width="216" height="38"></picture>
-</p>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/material-3-expressive-banner.svg">
+    <img src="assets/reademe/light/material-3-expressive-banner.svg" alt="Material 3 Expressive — expressive shapes, motion and dynamic colour" width="100%">
+  </picture>
+</div>
 
 EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: expressive shapes, comfortable spacing, clear visual hierarchy, thoughtful motion, and a warm, adaptable colour system. Its interface brings these ideas into a personal movie-library experience, with customizable palettes and both light and dark themes.
 
