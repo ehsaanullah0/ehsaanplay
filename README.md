@@ -226,8 +226,6 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
 
 ---
 
-<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/h-smart-artwork-storage.svg"><img src="assets/reademe/light/h-smart-artwork-storage.svg" alt="Smart Artwork Storage" width="100%"></picture></h2>
-
 Large movie libraries can become surprisingly heavy when posters and backdrops are permanently stored on the device.
 
 EHSAAN PLAY therefore separates:
@@ -243,14 +241,6 @@ Artwork can be fetched from TMDB when needed and handled through browser caching
 This keeps your actual library data lightweight even when your collection grows significantly.
 
 ---
-
-[<img width="5638" height="4472" alt="diagram" src="https://github.com/user-attachments/assets/d5994f04-d59e-4a69-898b-e26ea5460c69" />](https://gitdiagram.com/ehsaanullah0/ehsaanplay)
-
----
-
-
-
-<h2><picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/h-tmdb.svg"><img src="assets/reademe/light/h-tmdb.svg" alt="TMDB" width="100%"></picture></h2>
 
 Movie and TV information and artwork are provided through **[The Movie Database (TMDB)](https://www.themoviedb.org/)**.
 
