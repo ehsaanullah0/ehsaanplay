@@ -35,10 +35,56 @@
   
 ---
 
-## ♻️EHSAAN PLAY NOW CAPABLE TO SYNC WITH MULTI-DEVICE
-### READ THE [CLOUD_SYNC_ACTIVATION_GUIDE.md](https://github.com/ehsaanullah0/ehsaanplay/blob/main/CLOUD_SYNC_ACTIVATION_GUIDE.md)
+## ☁️ CLOUD DATABASE & MULTI-DEVICE SYNC
 
-## capacity to hold near **60,000+** movies titles and metadata.
+EHSAAN PLAY is **local-first with optional cloud sync**. Your library works without an account; connect your own Supabase project when you want to access the same collection across devices.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+
+**01 · LOCAL-FIRST**
+
+Your library stays on your device by default. Cloud sync is optional, not a requirement for everyday use.
+
+</td>
+    <td width="50%" valign="top">
+
+**02 · YOUR DATABASE**
+
+Bring Your Own Database (BYOD). Connect a Supabase project using its Project URL and publishable key.
+
+</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+
+**03 · ACCOUNT PROTECTION**
+
+Sign-in associates your library with your account. Row Level Security (RLS) helps isolate each user's records.
+
+</td>
+    <td width="50%" valign="top">
+
+**04 · LIGHTWEIGHT SYNC**
+
+Only library metadata is synchronized. Posters and backdrops are retrieved separately through TMDB and browser caching.
+
+</td>
+  </tr>
+</table>
+
+**Sync flow**
+
+`Connect Supabase` → `Set up database` → `Verify schema` → `Register / sign in` → `Sync across devices`
+
+<p align="center">
+  <a href="https://github.com/ehsaanullah0/ehsaanplay/blob/main/CLOUD_SYNC_ACTIVATION_GUIDE.md">
+    <strong>OPEN THE CLOUD SYNC ACTIVATION GUIDE →</strong>
+  </a>
+</p>
+
+<sub>Designed for large personal libraries, with capacity for approximately **60,000+ movie titles and metadata**. Actual limits depend on device storage, browser capabilities, and the configured database.</sub>
 
 ---
 
