@@ -189,6 +189,13 @@ EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: express
 
 EHSAAN PLAY is a modern, browser-first application built around client-side functionality and installable PWA support.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/tech-stack-pills.svg">
+    <img src="assets/reademe/light/tech-stack-pills.svg" alt="EHSAAN PLAY technology stack: HTML, CSS, JavaScript, React, Vite, TMDB API, Supabase and PWA" width="100%">
+  </picture>
+</p>
+
 | Area | Technology |
 |---|---|
 | Application | HTML, CSS, JavaScript / TypeScript, React |
@@ -322,26 +329,40 @@ EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
-## SUPPORT THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 
+<h2>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/support-ehsaanplay.svg">
+    <img src="assets/reademe/light/support-ehsaanplay.svg" alt="Support EHSAAN PLAY" width="100%">
+  </picture>
+</h2>
 
+EHSAAN PLAY is independently developed. If you find it useful, your support helps me maintain the project, improve features, and keep building useful tools.
 
+<p align="center">
+  <a href="https://ehsaan.odoo.com/support">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/btn-support-ehsaanplay.svg">
+      <img src="assets/reademe/light/btn-support-ehsaanplay.svg" alt="Support the EHSAAN PLAY project" height="68">
+    </picture>
+  </a>
+</p>
+
+## MORE FROM EHSAAN
+
+<p align="center">
   <a href="https://ehsaancolour.ai.studio/" target="_blank">
-    <img width="170" src="https://github.com/user-attachments/assets/00762234-2f32-40c0-8640-225206908e5a" alt="EHSAAN Colour" />
+    <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-colour.svg"><img src="assets/reademe/light/product-colour.svg" alt="EHSAAN Colour" height="42"></picture>
   </a>
-
   <a href="https://ehsaanflow.ai.studio/" target="_blank">
-    <img width="170" src="https://github.com/user-attachments/assets/f1f073ca-70f6-418a-8ea8-dbf07780247f" alt="EHSAAN Flow" />
+    <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-flow.svg"><img src="assets/reademe/light/product-flow.svg" alt="EHSAAN Flow" height="42"></picture>
   </a>
-
   <a href="https://ehsaanqr.ai.studio/" target="_blank">
-    <img width="170" src="https://github.com/user-attachments/assets/432a43cc-999e-4f0d-8674-07443b19ade8" alt="EHSAAN QR" />
+    <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-qr.svg"><img src="assets/reademe/light/product-qr.svg" alt="EHSAAN QR" height="42"></picture>
   </a>
-
   <a href="https://ehsaancompress.ai.studio/" target="_blank">
-    <img width="170" src="https://github.com/user-attachments/assets/d3a5b184-a158-4f39-abe6-a3795ef7c2eb" alt="EHSAAN Compress" />
+    <picture><source media="(prefers-color-scheme: dark)" srcset="assets/reademe/dark/product-compress.svg"><img src="assets/reademe/light/product-compress.svg" alt="EHSAAN Compress" height="42"></picture>
   </a>
-
 </p>
 
 
