@@ -43,6 +43,8 @@
 
 ## ‼️ DISCLAIMER
 This webapp is a personal developed project if you want support please do not expect and try to fork the repo to make the webapp yours.
+### [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) FOR CUSTOM PWA LOGO
+ 
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
 
 > [!IMPORTANT]
@@ -303,7 +305,7 @@ The application is designed so that personal library data can remain on your dev
 
 ## MADE BY EHSAAN ULLAH
 **Make useful things. Make them feel good to use.**
-## SPONSOR THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
+## SUPPORT THE PROJECT [CLICK NOW](https://ehsaan.odoo.com/support)
 
 
 
