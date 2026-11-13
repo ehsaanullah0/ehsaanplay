@@ -256,7 +256,7 @@ EHSAAN PLAY follows a simple principle:
 
 The application is designed so that personal library data can remain on your device.
 
-### EHSAAN PLAY does not need a traditional user account or personal cloud database to manage your collection.
+### EHSAAN PLAY does not need a traditional user account or personal cloud supabase is optional.
 
 ---
 
