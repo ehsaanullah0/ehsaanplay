@@ -1,8 +1,29 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { MediaItem, PersonalMediaState } from '../../types/movie';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { MediaItem, PersonalMediaState, CustomList } from '../../types/movie';
 import { SafeImage } from '../common/SafeImage';
-import { Sparkles, X, Star, ArrowRight, RotateCw, Play, Film, Tv, Copy, Check } from 'lucide-react';
+import {
+  Sparkles,
+  X,
+  Star,
+  ArrowRight,
+  RotateCw,
+  Play,
+  Film,
+  Tv,
+  Copy,
+  Check,
+  Heart,
+  FolderPlus,
+  Plus,
+} from 'lucide-react';
 import { CURATED_OMDB_RECOMMENDATIONS } from '../../data/curatedCatalog';
+import { resolveStateForMediaItem, areMediaItemsSame } from '../../utils/mediaDedup';
+import {
+  loadCustomLists,
+  saveCustomLists,
+  loadUserStates,
+  saveUserStates,
+} from '../../services/storage';
 
 interface RandomModalProps {
   item: MediaItem | null;
@@ -13,6 +34,11 @@ interface RandomModalProps {
   userState?: PersonalMediaState;
   userStates?: Record<string, PersonalMediaState>;
   candidatePool?: MediaItem[];
+  customLists?: CustomList[];
+  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
+  onCreateList?: (title: string, description?: string, colorTag?: string) => CustomList | void;
+  onToggleFavorite?: (id: string, item?: MediaItem) => void;
 }
 
 /**
@@ -66,6 +92,11 @@ export const RandomModal: React.FC<RandomModalProps> = ({
   userState,
   userStates,
   candidatePool = [],
+  customLists,
+  onAddItemToList,
+  onRemoveItemFromList,
+  onCreateList,
+  onToggleFavorite,
 }) => {
   const [currentItem, setCurrentItem] = useState<MediaItem | null>(null);
   const [isShuffling, setIsShuffling] = useState<boolean>(false);
@@ -75,26 +106,73 @@ export const RandomModal: React.FC<RandomModalProps> = ({
   // Session tracking to ensure we never repeat a title when rolling back
   const [seenKeys, setSeenKeys] = useState<string[]>([]);
 
+  // Favorite & List Picker states
+  const [localFavoriteOverride, setLocalFavoriteOverride] = useState<boolean | null>(null);
+  const [isListPickerOpen, setIsListPickerOpen] = useState<boolean>(false);
+  const [localLists, setLocalLists] = useState<CustomList[]>(() => customLists || loadCustomLists());
+  const [newListName, setNewListName] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const listPickerRef = useRef<HTMLDivElement | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shuffleOutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shuffleInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAllTimers = useCallback(() => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    if (shuffleOutTimerRef.current) clearTimeout(shuffleOutTimerRef.current);
+    if (shuffleInTimerRef.current) clearTimeout(shuffleInTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    return () => clearAllTimers();
+  }, [clearAllTimers]);
+
+  // Sync custom lists when opened or prop updates
+  useEffect(() => {
+    if (customLists && customLists.length > 0) {
+      setLocalLists(customLists);
+    } else {
+      setLocalLists(loadCustomLists());
+    }
+  }, [customLists, isOpen]);
+
+  // Close list picker when clicking outside
+  useEffect(() => {
+    if (!isListPickerOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (listPickerRef.current && !listPickerRef.current.contains(target)) {
+        setIsListPickerOpen(false);
+      }
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [isListPickerOpen]);
+
   const handleCopyTitle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentItem?.title) return;
     navigator.clipboard.writeText(currentItem.title).then(() => {
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setIsCopied(false), 2000);
     }).catch(err => {
       console.error('Failed to copy title:', err);
     });
   };
 
-  // Check if an item has been marked as watched
+  // Check if an item has been marked as watched (alias-aware)
   const isItemWatched = useCallback(
     (cand: MediaItem): boolean => {
-      if (userStates && userStates[cand.id]?.isWatched) return true;
+      const resolvedState = resolveStateForMediaItem(cand, userStates || {}, candidatePool);
+      if (resolvedState?.isWatched) return true;
       if (cand.status && cand.status.toLowerCase() === 'watched') return true;
       if (initialItem && cand.id === initialItem.id && userState?.isWatched) return true;
       return false;
     },
-    [userStates, initialItem, userState]
+    [userStates, candidatePool, initialItem, userState]
   );
 
   // Retrieve eligible pool strictly excluding watched titles
@@ -114,11 +192,15 @@ export const RandomModal: React.FC<RandomModalProps> = ({
   // Sync current item whenever modal opens or initialItem changes
   useEffect(() => {
     if (!isOpen) {
+      clearAllTimers();
       setIsShuffling(false);
       setFlipStage('idle');
       setFlipAngle(0);
       setIsCopied(false);
       setSeenKeys([]);
+      setIsListPickerOpen(false);
+      setLocalFavoriteOverride(null);
+      setToastMessage(null);
       return;
     }
 
@@ -139,6 +221,8 @@ export const RandomModal: React.FC<RandomModalProps> = ({
       setFlipStage('idle');
       setFlipAngle(0);
       setIsCopied(false);
+      setIsListPickerOpen(false);
+      setLocalFavoriteOverride(null);
       const key = resolved.id || resolved.title.toLowerCase().trim();
       setSeenKeys([key]);
     }
@@ -149,12 +233,15 @@ export const RandomModal: React.FC<RandomModalProps> = ({
     if (isShuffling) return;
     setIsShuffling(true);
     setIsCopied(false);
+    setIsListPickerOpen(false);
+    setLocalFavoriteOverride(null);
+    setToastMessage(null);
 
     // Phase 1: Flip out (card rotates around Y-axis to 90 degrees)
     setFlipStage('flipping-out');
     setFlipAngle(90);
 
-    setTimeout(() => {
+    shuffleOutTimerRef.current = setTimeout(() => {
       // Phase 2: At 90 degrees (edge-on/invisible), pick next UNWATCHED, UNREPEATED title
       const pool = getUnwatchedPool();
       const currentKey = currentItem ? (currentItem.id || currentItem.title.toLowerCase().trim()) : '';
@@ -196,7 +283,7 @@ export const RandomModal: React.FC<RandomModalProps> = ({
         requestAnimationFrame(() => {
           setFlipAngle(0);
 
-          setTimeout(() => {
+          shuffleInTimerRef.current = setTimeout(() => {
             setFlipStage('idle');
             setIsShuffling(false);
           }, 260);
@@ -205,16 +292,160 @@ export const RandomModal: React.FC<RandomModalProps> = ({
     }, 200);
   }, [isShuffling, getUnwatchedPool, currentItem, seenKeys]);
 
+  // Favorite status resolution (alias-aware)
+  const resolvedCurrentState = currentItem
+    ? resolveStateForMediaItem(currentItem, userStates || {}, candidatePool)
+    : undefined;
+  const isFavorite = localFavoriteOverride !== null
+    ? localFavoriteOverride
+    : Boolean(
+        resolvedCurrentState?.isFavorite ||
+        (currentItem && initialItem?.id === currentItem.id && userState?.isFavorite)
+      );
+
+  const displayedLists = customLists || localLists;
+  const isItemInList = useCallback((list: CustomList, target: MediaItem): boolean => {
+    return list.itemIds.some(id => {
+      if (id === target.id || (target.imdbId && id === target.imdbId)) return true;
+      if (target.tmdbId && id === `tmdb-${target.type || 'movie'}-${target.tmdbId}`) return true;
+      const existing = candidatePool.find(m => m.id === id);
+      return Boolean(existing && areMediaItemsSame(existing, target));
+    });
+  }, [candidatePool]);
+  const isInAnyList = Boolean(currentItem && displayedLists.some(l => isItemInList(l, currentItem)));
+
+  // Handle Favorite Toggle
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentItem) return;
+    const nextFav = !isFavorite;
+    setLocalFavoriteOverride(nextFav);
+
+    if (onToggleFavorite) {
+      onToggleFavorite(currentItem.id, currentItem);
+    } else {
+      const states = loadUserStates();
+      const cur = states[currentItem.id] || {
+        mediaId: currentItem.id,
+        inWatchlist: false,
+        isWatched: false,
+        isFavorite: false,
+        addedAt: new Date().toISOString(),
+      };
+      states[currentItem.id] = {
+        ...cur,
+        isFavorite: nextFav,
+        favoritedAt: nextFav ? new Date().toISOString() : undefined,
+      };
+      saveUserStates(states);
+    }
+
+    setToastMessage(nextFav ? 'Added to Favorites' : 'Removed from Favorites');
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  // Handle List Item Toggle
+  const handleToggleListItem = (list: CustomList) => {
+    if (!currentItem) return;
+    const inList = isItemInList(list, currentItem);
+
+    if (inList) {
+      if (onRemoveItemFromList) {
+        onRemoveItemFromList(list.id, currentItem.id);
+      } else {
+        const updatedLists = (localLists.length > 0 ? localLists : loadCustomLists()).map(l =>
+          l.id === list.id ? { ...l, itemIds: l.itemIds.filter(id => id !== currentItem.id) } : l
+        );
+        saveCustomLists(updatedLists);
+        setLocalLists(updatedLists);
+      }
+      setToastMessage(`Removed from "${list.title}"`);
+    } else {
+      if (onAddItemToList) {
+        onAddItemToList(list.id, currentItem.id, currentItem);
+      } else {
+        const updatedLists = (localLists.length > 0 ? localLists : loadCustomLists()).map(l =>
+          l.id === list.id ? { ...l, itemIds: Array.from(new Set([...l.itemIds, currentItem.id])) } : l
+        );
+        saveCustomLists(updatedLists);
+        setLocalLists(updatedLists);
+      }
+      setToastMessage(`Added to "${list.title}"`);
+    }
+
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  // Handle Create New List inline
+  const handleCreateNewList = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newListName.trim() || !currentItem) return;
+    const title = newListName.trim();
+
+    if (onCreateList) {
+      const existing = displayedLists.find(l => l.title.toLowerCase() === title.toLowerCase());
+      if (existing) {
+        onAddItemToList?.(existing.id, currentItem.id, currentItem);
+      } else {
+        const created = onCreateList(title);
+        if (created && created.id) {
+          onAddItemToList?.(created.id, currentItem.id, currentItem);
+        }
+      }
+    } else {
+      const currentStorageLists = loadCustomLists();
+      const existing = currentStorageLists.find(l => l.title.toLowerCase() === title.toLowerCase());
+      let nextLists: CustomList[];
+
+      if (existing) {
+        nextLists = currentStorageLists.map(l =>
+          l.id === existing.id
+            ? { ...l, itemIds: Array.from(new Set([...l.itemIds, currentItem.id])) }
+            : l
+        );
+      } else {
+        const newList: CustomList = {
+          id: `list-${Date.now()}`,
+          title,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          itemIds: [currentItem.id],
+          colorTag: '#4E562F',
+        };
+        nextLists = [newList, ...currentStorageLists];
+      }
+
+      saveCustomLists(nextLists);
+      setLocalLists(nextLists);
+    }
+
+    setNewListName('');
+    setToastMessage(`Created & added to "${title}"`);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 2500);
+  };
+
   // Keyboard navigation: Escape closes, Space/R shuffles, Enter opens preview
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isListPickerOpen) {
+          setIsListPickerOpen(false);
+          return;
+        }
         onClose();
       } else if (e.key === 'r' || e.key === 'R' || e.key === ' ') {
+        // Don't trigger shuffle if typing in input
+        const target = e.target as HTMLElement;
+        if (target && target.tagName === 'INPUT') return;
         e.preventDefault();
         handleShuffle();
       } else if (e.key === 'Enter' && currentItem) {
+        const target = e.target as HTMLElement;
+        if (target && target.tagName === 'INPUT') return;
         e.preventDefault();
         onClose();
         onSelectMedia(currentItem);
@@ -222,12 +453,14 @@ export const RandomModal: React.FC<RandomModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentItem, onClose, onSelectMedia, handleShuffle]);
+  }, [isOpen, currentItem, onClose, onSelectMedia, handleShuffle, isListPickerOpen]);
 
   if (!isOpen || !currentItem) return null;
 
   const item = currentItem;
-  const activeUserState = (item && userStates ? userStates[item.id] : undefined) || userState;
+  const activeUserState =
+    (item && userStates ? resolveStateForMediaItem(item, userStates, candidatePool) : undefined) ||
+    (item && initialItem?.id === item.id ? userState : undefined);
   const rating = activeUserState?.personalRating || item.imdbRating || item.tmdbRating || 0;
 
   return (
@@ -241,8 +474,22 @@ export const RandomModal: React.FC<RandomModalProps> = ({
       {/* Modal Card Window */}
       <div
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-md sm:max-w-lg bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl p-6 sm:p-7 shadow-2xl border border-[var(--border-subtle)] flex flex-col items-center overflow-hidden animate-scale-up"
+        className="relative w-full max-w-md sm:max-w-lg bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl p-6 sm:p-7 shadow-2xl border border-[var(--border-subtle)] flex flex-col items-center overflow-visible animate-scale-up"
       >
+        {/* Floating Feedback Toast Notification */}
+        {toastMessage && (
+          <div
+            className={`absolute top-16 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full text-xs font-black shadow-xl animate-scale-up pointer-events-none flex items-center gap-1.5 border whitespace-nowrap ${
+              toastMessage.includes('Favorite')
+                ? 'bg-[#F5C518] text-[#121212] border-[#DFB00F]'
+                : 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-white/20'
+            }`}
+          >
+            <Check className="w-3.5 h-3.5 stroke-[3]" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
         {/* Top Header Bar */}
         <div className="w-full flex items-center justify-between pb-4 border-b border-[var(--border-subtle)] mb-5">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--accent-primary)] font-sans">
@@ -250,13 +497,166 @@ export const RandomModal: React.FC<RandomModalProps> = ({
             <span>Random Pick</span>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)]/40 active:scale-95 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition focus:outline-none border border-[var(--border-subtle)] shadow-2xs cursor-pointer"
-            aria-label="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {/* Action options beside the cross button */}
+          <div className="flex items-center gap-2 relative">
+            {/* 1. Add to List Option */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsListPickerOpen(prev => !prev);
+                }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition focus:outline-none border shadow-2xs cursor-pointer active:scale-95 ${
+                  isInAnyList
+                    ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
+                    : 'bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                }`}
+                title="Add to Collection List"
+                aria-label="Add to Collection List"
+                aria-expanded={isListPickerOpen}
+              >
+                <FolderPlus className="w-4 h-4 stroke-[2]" />
+              </button>
+
+              {/* List Picker Dropdown / Mobile Sheet */}
+              {isListPickerOpen && (
+                <>
+                  {/* Backdrop for smaller mobile screens */}
+                  <div
+                    className="fixed inset-0 bg-black/55 backdrop-blur-2xs sm:hidden z-40 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsListPickerOpen(false);
+                    }}
+                    aria-hidden="true"
+                  />
+
+                  {/* Popover / Sheet Container */}
+                  <div
+                    ref={listPickerRef}
+                    onClick={(e) => e.stopPropagation()}
+                    className="fixed inset-x-3 bottom-3 sm:bottom-auto sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] p-4 sm:p-3.5 z-50 animate-slide-up sm:animate-scale-up text-left pb-safe"
+                  >
+                    {/* Mobile drag handle affordance */}
+                    <div className="w-10 h-1 bg-[var(--border-subtle)]/70 rounded-full mx-auto mb-2.5 sm:hidden" />
+
+                    {/* Popover Header */}
+                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[var(--border-subtle)]">
+                      <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-secondary)] shrink-0">
+                          Save to Shelf
+                        </span>
+                        {currentItem && (
+                          <span className="text-[10px] text-[var(--text-secondary)]/70 truncate hidden xs:inline sm:hidden">
+                            · {currentItem.title}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsListPickerOpen(false)}
+                        className="p-1.5 sm:p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition cursor-pointer shrink-0"
+                        aria-label="Close shelf picker"
+                      >
+                        <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* List of existing collections */}
+                    <div className="space-y-1.5 sm:space-y-1 max-h-56 sm:max-h-48 overflow-y-auto no-scrollbar py-0.5 overscroll-contain">
+                      {displayedLists.length > 0 ? (
+                        displayedLists.map((list) => {
+                          const inList = Boolean(currentItem && isItemInList(list, currentItem));
+                          return (
+                            <button
+                              key={list.id}
+                              type="button"
+                              onClick={() => handleToggleListItem(list)}
+                              className={`w-full text-left px-3.5 sm:px-3 py-2.5 sm:py-2 rounded-xl text-xs sm:text-xs font-semibold transition flex items-center justify-between border cursor-pointer active:scale-[0.98] ${
+                                inList
+                                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent font-bold shadow-xs'
+                                  : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 sm:gap-2 truncate pr-2 min-w-0">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: list.colorTag || '#4E562F' }}
+                                />
+                                <span className="truncate">{list.title}</span>
+                                <span
+                                  className={`text-[10px] shrink-0 ${
+                                    inList ? 'opacity-80' : 'text-[var(--text-secondary)]'
+                                  }`}
+                                >
+                                  ({list.itemIds.length})
+                                </span>
+                              </div>
+                              {inList && <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="py-4 text-center text-xs text-[var(--text-secondary)]">
+                          No custom collections yet.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Create New Shelf Inline Form */}
+                    <form
+                      onSubmit={handleCreateNewList}
+                      className="mt-3 sm:mt-2.5 pt-3 sm:pt-2.5 border-t border-[var(--border-subtle)] flex items-center gap-2 sm:gap-1.5"
+                    >
+                      <input
+                        type="text"
+                        value={newListName}
+                        onChange={(e) => setNewListName(e.target.value)}
+                        placeholder="New shelf name..."
+                        autoCapitalize="words"
+                        className="flex-1 px-3.5 sm:px-3 py-2 sm:py-1.5 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] text-sm sm:text-xs text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newListName.trim()}
+                        className="px-3.5 sm:px-3 py-2 sm:py-1.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 active:scale-95 transition disabled:opacity-40 cursor-pointer flex items-center gap-1.5 sm:gap-1 shrink-0"
+                      >
+                        <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
+                        <span>Create</span>
+                      </button>
+                    </form>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 2. Add to Favourite / Like Option */}
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition focus:outline-none border shadow-2xs cursor-pointer active:scale-95 ${
+                isFavorite
+                  ? 'bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] border-[#DFB00F] shadow-xs'
+                  : 'bg-[var(--chip-bg)] hover:bg-[#F5C518]/15 text-[var(--text-secondary)] hover:text-[#d4a017] dark:hover:text-[#F5C518] border-[var(--border-subtle)] hover:border-[#DFB00F]/50'
+              }`}
+              title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+              aria-label={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            >
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#121212] text-[#121212]' : ''}`} />
+            </button>
+
+            {/* 3. Close (Cross) Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)]/50 active:scale-95 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition focus:outline-none border border-[var(--border-subtle)] shadow-2xs cursor-pointer flex items-center justify-center"
+              aria-label="Close"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* 3D Flip Container for Title Poster Image */}

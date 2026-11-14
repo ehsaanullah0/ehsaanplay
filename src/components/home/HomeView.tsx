@@ -7,6 +7,7 @@ import {
   AppTweaksConfig,
   UserSettings,
   DEFAULT_APP_TWEAKS,
+  CustomList,
 } from '../../types/movie';
 import { fetchNetflixTop10Movies, fetchNetflixTop10Series } from '../../data/curatedCatalog';
 import { TrendingHeroShowcase } from './TrendingHeroShowcase';
@@ -15,6 +16,8 @@ import { RankingRail } from './RankingRail';
 import { ContinueWatchingRail } from './ContinueWatchingRail';
 import { ExploreSection } from './ExploreSection';
 import { Footer } from '../layout/Footer';
+import { areMediaItemsSame } from '../../hooks/useMediaLibrary';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 
 interface HomeViewProps {
   mediaItems: MediaItem[];
@@ -27,6 +30,9 @@ interface HomeViewProps {
     favoritesCount: number;
     inProgressCount: number;
     totalHours: number;
+    totalMinutes?: number;
+    remainingMinutes?: number;
+    formattedWatchTime?: string;
   };
   onSelectMedia: (item: MediaItem) => void;
   onNavigateTab: (tab: ActiveTab) => void;
@@ -35,13 +41,17 @@ interface HomeViewProps {
   onUpdateHomeSections?: (sections: HomeSectionsConfig) => void;
   onRemoveFromWatchlist?: (id: string) => void;
   onDismissFromWatching?: (id: string) => void;
-  onMarkWatching?: (id: string) => void;
-  onMarkWatched?: (id: string) => void;
-  onToggleWatchlist?: (id: string) => void;
-  onToggleFavorite?: (id: string) => void;
+  onMarkWatching?: (id: string, item?: MediaItem) => void;
+  onMarkWatched?: (id: string, item?: MediaItem) => void;
+  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
+  onToggleFavorite?: (id: string, item?: MediaItem) => void;
   onAddMediaToLibrary?: (item: MediaItem) => void;
+  customLists?: CustomList[];
+  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
   onOpenChangelog?: () => void;
   onOpenLicense?: () => void;
+  onRandomPick?: (items: MediaItem[]) => void;
   tweaks?: AppTweaksConfig;
   settings?: UserSettings;
   onUpdateSettings?: (partial: Partial<UserSettings>) => void;
@@ -63,8 +73,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onToggleWatchlist,
   onToggleFavorite,
   onAddMediaToLibrary,
+  customLists,
+  onAddItemToList,
+  onRemoveItemFromList,
   onOpenChangelog,
   onOpenLicense,
+  onRandomPick,
   tweaks,
   settings,
   onUpdateSettings,
@@ -110,11 +124,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
     };
   }, [settings?.tmdbApiKey]);
 
-  // In-Progress / Continue Watching items
+  // In-Progress / Continue Watching items (Guaranteed zero duplicates)
   const continueWatchingItems = useMemo(() => {
     const list: { item: MediaItem; state: PersonalMediaState }[] = [];
+    const seenTitles = new Set<string>();
+
     for (const item of mediaItems) {
-      const state = userStates[item.id];
+      const state = resolveStateForMediaItem(item, userStates);
       if (
         state &&
         !state.isWatched &&
@@ -122,6 +138,28 @@ export const HomeView: React.FC<HomeViewProps> = ({
         state.progressPercent > 0 &&
         state.progressPercent < 100
       ) {
+        const normTitle = (item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const dedupKey = normTitle ? `${normTitle}_${item.year || ''}` : item.id;
+
+        const existingIdx = list.findIndex(entry => {
+          const entryNorm = (entry.item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          return (normTitle && entryNorm === normTitle) || areMediaItemsSame(entry.item, item);
+        });
+
+        if (existingIdx !== -1) {
+          // If already in list, keep the one with higher episode progress or more recent timestamp
+          const prev = list[existingIdx];
+          const prevScore = (prev.state.tvProgress?.currentSeason || 1) * 1000 + (prev.state.tvProgress?.currentEpisode || 1);
+          const currScore = (state.tvProgress?.currentSeason || 1) * 1000 + (state.tvProgress?.currentEpisode || 1);
+          const prevTime = prev.state.lastWatchedAt || '';
+          const currTime = state.lastWatchedAt || '';
+          if (currScore > prevScore || (currScore === prevScore && currTime > prevTime)) {
+            list[existingIdx] = { item, state };
+          }
+          continue;
+        }
+
+        seenTitles.add(dedupKey);
         list.push({ item, state });
       }
     }
@@ -132,27 +170,56 @@ export const HomeView: React.FC<HomeViewProps> = ({
     });
   }, [mediaItems, userStates]);
 
-  // Recently Watched
+  // Recently Watched (Guaranteed zero duplicates)
   const recentlyWatchedItems = useMemo(() => {
-    return mediaItems
-      .filter(m => userStates[m.id]?.isWatched)
+    const list: MediaItem[] = [];
+    const sorted = [...mediaItems]
+      .filter(m => resolveStateForMediaItem(m, userStates)?.isWatched)
       .sort((a, b) => {
-        const timeA = userStates[a.id]?.lastWatchedAt || userStates[a.id]?.addedAt || '';
-        const timeB = userStates[b.id]?.lastWatchedAt || userStates[b.id]?.addedAt || '';
-        return timeB.localeCompare(timeA);
-      })
-      .slice(0, 10);
-  }, [mediaItems, userStates]);
-
-  // Favorites / Personal Picks (Sorted by latest added/favorited first)
-  const favoriteItems = useMemo(() => {
-    return mediaItems
-      .filter(m => userStates[m.id]?.isFavorite)
-      .sort((a, b) => {
-        const timeA = userStates[a.id]?.favoritedAt || userStates[a.id]?.addedAt || '';
-        const timeB = userStates[b.id]?.favoritedAt || userStates[b.id]?.addedAt || '';
+        const stA = resolveStateForMediaItem(a, userStates);
+        const stB = resolveStateForMediaItem(b, userStates);
+        const timeA = stA?.lastWatchedAt || stA?.addedAt || '';
+        const timeB = stB?.lastWatchedAt || stB?.addedAt || '';
         return timeB.localeCompare(timeA);
       });
+
+    for (const m of sorted) {
+      const normTitle = (m.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isDuplicate = list.some(existing => {
+        const existingNorm = (existing.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (normTitle && existingNorm === normTitle) || areMediaItemsSame(existing, m);
+      });
+      if (!isDuplicate) {
+        list.push(m);
+      }
+    }
+    return list.slice(0, 10);
+  }, [mediaItems, userStates]);
+
+  // Favorites / Personal Picks (Guaranteed zero duplicates)
+  const favoriteItems = useMemo(() => {
+    const list: MediaItem[] = [];
+    const sorted = [...mediaItems]
+      .filter(m => resolveStateForMediaItem(m, userStates)?.isFavorite)
+      .sort((a, b) => {
+        const stA = resolveStateForMediaItem(a, userStates);
+        const stB = resolveStateForMediaItem(b, userStates);
+        const timeA = stA?.favoritedAt || stA?.addedAt || '';
+        const timeB = stB?.favoritedAt || stB?.addedAt || '';
+        return timeB.localeCompare(timeA);
+      });
+
+    for (const m of sorted) {
+      const normTitle = (m.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isDuplicate = list.some(existing => {
+        const existingNorm = (existing.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (normTitle && existingNorm === normTitle) || areMediaItemsSame(existing, m);
+      });
+      if (!isDuplicate) {
+        list.push(m);
+      }
+    }
+    return list;
   }, [mediaItems, userStates]);
 
   // Featured 5 recently added or highlighted titles for top Hero Slideshow
@@ -215,6 +282,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
+          onAddMediaToLibrary={onAddMediaToLibrary}
+          customLists={customLists}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
         />
       )}
 
@@ -233,6 +304,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
+          onAddMediaToLibrary={onAddMediaToLibrary}
+          customLists={customLists}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
         />
       )}
 
@@ -251,8 +326,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
+          onAddMediaToLibrary={onAddMediaToLibrary}
+          customLists={customLists}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
           onExpand={() => onNavigateToWatchlistWithFilter('favorites')}
           expandTooltip="View All in Favorites Watchlist"
+          onRandomPick={onRandomPick}
           layout={tweaks?.favoritesLayout || 'horizontal'}
         />
       )}
@@ -272,6 +352,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onDismissFromWatching={onDismissFromWatching}
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
+          onAddMediaToLibrary={onAddMediaToLibrary}
+          customLists={customLists}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
         />
       )}
 
@@ -288,6 +372,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onToggleWatchlist={onToggleWatchlist}
           onToggleFavorite={onToggleFavorite}
           onAddMediaToLibrary={onAddMediaToLibrary}
+          customLists={customLists}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
           tweaks={tweaks || settings?.tweaks}
           omdbApiKey={settings?.omdbApiKey}
           tmdbApiKey={settings?.tmdbApiKey}

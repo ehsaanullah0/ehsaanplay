@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { MediaItem, PersonalMediaState, MediaType, AppTweaksConfig, UserSettings } from '../../types/movie';
+import { MediaItem, PersonalMediaState, MediaType, AppTweaksConfig, UserSettings, CustomList } from '../../types/movie';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { MoviePoster } from '../common/MoviePoster';
 import { fetchExploreRecommendations } from '../../data/curatedCatalog';
 import { Compass, Sparkles, RefreshCw, Film, Tv, Loader2, Star, LayoutGrid, ChevronDown } from 'lucide-react';
@@ -9,14 +10,17 @@ interface ExploreSectionProps {
   userStates: Record<string, PersonalMediaState>;
   onSelectMedia: (item: MediaItem) => void;
   onRemoveFromWatchlist?: (id: string) => void;
-  onMarkWatching?: (id: string) => void;
-  onMarkWatched?: (id: string) => void;
+  onMarkWatching?: (id: string, item?: MediaItem) => void;
+  onMarkWatched?: (id: string, item?: MediaItem) => void;
   onDismissFromWatching?: (id: string) => void;
-  onToggleWatchlist?: (id: string) => void;
-  onToggleFavorite?: (id: string) => void;
+  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
+  onToggleFavorite?: (id: string, item?: MediaItem) => void;
   omdbApiKey?: string;
   tmdbApiKey?: string;
   onAddMediaToLibrary?: (item: MediaItem) => void;
+  customLists?: CustomList[];
+  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
   tweaks?: AppTweaksConfig;
   recommendationProvider?: 'tmdb' | 'omdb';
   onUpdateSettings?: (partial: Partial<UserSettings>) => void;
@@ -35,17 +39,20 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
   omdbApiKey,
   tmdbApiKey,
   onAddMediaToLibrary,
+  customLists,
+  onAddItemToList,
+  onRemoveItemFromList,
   tweaks,
   recommendationProvider: initialProvider = 'tmdb',
   onUpdateSettings,
 }) => {
   const [provider, setProvider] = useState<'tmdb' | 'omdb'>(initialProvider);
-  const providerCacheRef = useRef<Partial<Record<'tmdb' | 'omdb', MediaItem[]>>>({});
+  const providerCacheRef = useRef<Record<string, MediaItem[]>>({});
   const [extraExploreItems, setExtraExploreItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | MediaType | 'top_rated' | 'new_releases'>('all');
   const [genreFilter, setGenreFilter] = useState<string>('all');
-  const [visibleCount, setVisibleCount] = useState<number>(18);
+  const [visibleCount, setVisibleCount] = useState<number>(24);
 
   // Sync provider if prop changes
   useEffect(() => {
@@ -56,17 +63,17 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
 
   // Load recommendations according to active provider (TMDB or OMDb) with instant cache hit
   const loadExploreData = useCallback(async (prov: 'tmdb' | 'omdb' = provider, forceRefresh = false) => {
-    // If cached and not forced, display cached items immediately
-    if (!forceRefresh && providerCacheRef.current[prov] && providerCacheRef.current[prov]!.length > 0) {
-      setExtraExploreItems(providerCacheRef.current[prov]!);
+    const cacheKey = `${prov}_${tmdbApiKey || ''}_${omdbApiKey || ''}`;
+    if (!forceRefresh && providerCacheRef.current[cacheKey] && providerCacheRef.current[cacheKey].length >= 50) {
+      setExtraExploreItems(providerCacheRef.current[cacheKey]);
       return;
     }
 
     setIsLoading(true);
     try {
-      const items = await fetchExploreRecommendations(prov, tmdbApiKey, omdbApiKey);
+      const items = await fetchExploreRecommendations(prov, tmdbApiKey, omdbApiKey, forceRefresh);
       if (items && items.length > 0) {
-        providerCacheRef.current[prov] = items;
+        providerCacheRef.current[cacheKey] = items;
         setExtraExploreItems(items);
       }
     } catch (err) {
@@ -84,53 +91,71 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
   const handleSwitchProvider = (newProvider: 'tmdb' | 'omdb') => {
     if (newProvider === provider) return;
     setProvider(newProvider);
+    setGenreFilter('all');
+    setVisibleCount(24);
     if (onUpdateSettings) {
       onUpdateSettings({ recommendationProvider: newProvider });
     }
   };
 
-  // STRICT EXCLUSION: Filter out any title that is added to the user's Watchlist, Watched list, or Library
+  // STRICT EXCLUSION: Filter out ONLY titles that have an active user state (Watchlist, Watched, Favorites, In-Progress, Rated, Noted)
+  // Do NOT exclude un-saved discovery/cache entries stored in mediaItems!
   const isExcluded = useMemo(() => {
-    const libraryIds = new Set<string>();
-    const libraryImdbIds = new Set<string>();
-    const libraryTmdbIds = new Set<string>();
-    const libraryNormalizedTitles = new Set<string>();
+    const activeIds = new Set<string>();
+    const activeImdbIds = new Set<string>();
+    const activeTmdbIds = new Set<string>();
+    const activeTitleKeys = new Set<string>();
 
+    const normalizeTitle = (t?: string) => (t || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const mediaById = new Map<string, MediaItem>();
     for (const m of mediaItems) {
-      if (m.id) libraryIds.add(m.id.toLowerCase());
-      if (m.imdbId) libraryImdbIds.add(m.imdbId.toLowerCase());
-      if (m.tmdbId) libraryTmdbIds.add(String(m.tmdbId));
-      if (m.title) libraryNormalizedTitles.add(m.title.trim().toLowerCase());
+      if (m.id) mediaById.set(m.id.toLowerCase(), m);
+      if (m.imdbId) mediaById.set(m.imdbId.toLowerCase(), m);
+      if (m.tmdbId) mediaById.set(`tmdb-${m.type || 'movie'}-${m.tmdbId}`, m);
     }
 
-    // Check personal states for any item marked inWatchlist, isWatched, or in-progress
     for (const [id, state] of Object.entries(userStates)) {
-      if (state.inWatchlist || state.isWatched || (state.progressPercent !== undefined && state.progressPercent > 0)) {
-        libraryIds.add(id.toLowerCase());
+      if (!state) continue;
+      const isInteracted =
+        Boolean(state.inWatchlist) ||
+        Boolean(state.isWatched) ||
+        Boolean(state.isFavorite) ||
+        (state.progressPercent !== undefined && state.progressPercent > 0) ||
+        Boolean(state.personalRating) ||
+        Boolean(state.notes && state.notes.trim().length > 0);
+
+      if (!isInteracted) continue;
+
+      activeIds.add(id.toLowerCase());
+      const matched = mediaById.get(id.toLowerCase());
+      if (matched) {
+        if (matched.id) activeIds.add(matched.id.toLowerCase());
+        if (matched.imdbId) activeImdbIds.add(matched.imdbId.toLowerCase());
+        if (matched.tmdbId) activeTmdbIds.add(`${matched.type || 'movie'}-${matched.tmdbId}`);
+        const nt = normalizeTitle(matched.title);
+        if (nt) activeTitleKeys.add(`${matched.type || 'movie'}-${nt}-${matched.year || ''}`);
       }
     }
 
     return (item: MediaItem) => {
-      // 1. Direct ID match in library or user states
-      if (item.id && libraryIds.has(item.id.toLowerCase())) return true;
-      const directState = userStates[item.id];
-      if (directState?.inWatchlist || directState?.isWatched) return true;
+      if (item.id && activeIds.has(item.id.toLowerCase())) return true;
+      if (item.imdbId && (activeImdbIds.has(item.imdbId.toLowerCase()) || activeIds.has(item.imdbId.toLowerCase()))) return true;
+      if (item.tmdbId) {
+        const tKey = `${item.type || 'movie'}-${item.tmdbId}`;
+        if (activeTmdbIds.has(tKey) || activeIds.has(`tmdb-${tKey}`)) return true;
+      }
 
-      // 2. IMDb ID match (e.g. 'tt1375666')
-      if (item.imdbId && libraryImdbIds.has(item.imdbId.toLowerCase())) return true;
-
-      // 3. TMDB ID match (e.g. 27205)
-      if (item.tmdbId && libraryTmdbIds.has(String(item.tmdbId))) return true;
-
-      // 4. Exact Title match with compatible release year
-      if (item.title && libraryNormalizedTitles.has(item.title.trim().toLowerCase())) {
-        const matchingItem = mediaItems.find(
-          m => m.title.trim().toLowerCase() === item.title.trim().toLowerCase()
-        );
-        if (matchingItem) {
-          const y1 = matchingItem.year || 0;
-          const y2 = item.year || 0;
-          if (!y1 || !y2 || Math.abs(y1 - y2) <= 1) return true;
+      const nt = normalizeTitle(item.title);
+      if (nt) {
+        if (activeTitleKeys.has(`${item.type || 'movie'}-${nt}-${item.year || ''}`)) return true;
+        if (item.year) {
+          if (
+            activeTitleKeys.has(`${item.type || 'movie'}-${nt}-${item.year - 1}`) ||
+            activeTitleKeys.has(`${item.type || 'movie'}-${nt}-${item.year + 1}`)
+          ) {
+            return true;
+          }
         }
       }
 
@@ -138,52 +163,62 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
     };
   }, [mediaItems, userStates]);
 
+  const currentYear = new Date().getFullYear();
+
   // Apply exclusions and type/genre filters to the external recommendation pool
   const exploreRecommendations = useMemo(() => {
-    return extraExploreItems
-      .filter(item => {
-        // Exclude titles added to Watchlist, Watched, or Library
+    const indexed = extraExploreItems
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => {
         if (isExcluded(item)) return false;
 
-        // Filter by type or top rated or new releases
         if (typeFilter === 'movie' && item.type !== 'movie') return false;
         if (typeFilter === 'tv' && item.type !== 'tv') return false;
-        if (typeFilter === 'top_rated' && (item.imdbRating || 0) < 7.5 && (item.tmdbRating || 0) < 7.5) return false;
-        if (typeFilter === 'new_releases' && (item.year || 0) < 2024) return false;
+        if (typeFilter === 'top_rated' && (item.imdbRating || 0) < 7.2 && (item.tmdbRating || 0) < 7.2) return false;
+        if (typeFilter === 'new_releases' && (item.year || 0) < currentYear - 1) return false;
 
-        // Filter by genre
         if (genreFilter !== 'all' && !(item.genres || []).some(g => g.toLowerCase() === genreFilter.toLowerCase())) {
           return false;
         }
 
         return true;
-      })
-      .sort((a, b) => {
-        if (typeFilter === 'top_rated') {
-          const rA = a.imdbRating || a.tmdbRating || 0;
-          const rB = b.imdbRating || b.tmdbRating || 0;
-          return rB - rA;
-        }
-
-        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-
-        if (dateB !== dateA) {
-          return dateB - dateA;
-        }
-        return (b.imdbRating || b.tmdbRating || 0) - (a.imdbRating || a.tmdbRating || 0);
       });
-  }, [extraExploreItems, isExcluded, typeFilter, genreFilter]);
+
+    if (typeFilter === 'top_rated') {
+      indexed.sort((a, b) => {
+        const rA = a.item.imdbRating || a.item.tmdbRating || 0;
+        const rB = b.item.imdbRating || b.item.tmdbRating || 0;
+        if (rB !== rA) return rB - rA;
+        return (b.item.voteCount || 0) - (a.item.voteCount || 0);
+      });
+    } else if (typeFilter === 'new_releases') {
+      indexed.sort((a, b) => {
+        const yA = a.item.year || 0;
+        const yB = b.item.year || 0;
+        if (yB !== yA) return yB - yA;
+        return a.idx - b.idx;
+      });
+    }
+
+    return indexed.map(entry => entry.item);
+  }, [extraExploreItems, isExcluded, typeFilter, genreFilter, currentYear]);
 
   // Extract distinct genres from unadded explore items
   const availableGenres = useMemo(() => {
-    const set = new Set<string>();
+    const counts = new Map<string, number>();
     extraExploreItems.forEach(item => {
       if (!isExcluded(item) && item.genres) {
-        item.genres.forEach(g => set.add(g));
+        item.genres.forEach(g => {
+          if (g && g !== 'Movie' && g !== 'TV Series') {
+            counts.set(g, (counts.get(g) || 0) + 1);
+          }
+        });
       }
     });
-    return Array.from(set).slice(0, 10);
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([genre]) => genre)
+      .slice(0, 12);
   }, [extraExploreItems, isExcluded]);
 
   const displayedItems = exploreRecommendations.slice(0, visibleCount);
@@ -212,7 +247,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
                     ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs font-extrabold'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-75'
                 }`}
-                title="Switch to TMDB trending recommendations"
+                title="Switch to TMDB latest trending recommendations"
               >
                 <span className="w-2 h-2 rounded-full bg-[#EF4444] shrink-0" />
                 <span>TMDB</span>
@@ -224,7 +259,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
                     ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs font-extrabold'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-75'
                 }`}
-                title="Switch to OMDb acclaimed recommendations"
+                title="Switch to OMDb latest trending recommendations"
               >
                 <span className="w-2 h-2 rounded-full bg-[#3B82F6] shrink-0" />
                 <span>OMDb</span>
@@ -236,7 +271,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
             Explore Recommendations
           </h2>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1 font-medium">
-            {exploreRecommendations.length} {provider.toUpperCase()} recommendations not in your watchlist or watched section
+            {exploreRecommendations.length} latest trending {provider.toUpperCase()} recommendations not in your watchlist or watched section
           </p>
         </div>
 
@@ -261,7 +296,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
             </button>
             <button
               onClick={() => setTypeFilter('new_releases')}
-              title="New Releases"
+              title={`New Releases (${currentYear - 1}-${currentYear})`}
               aria-label="New Releases"
               className={`inline-flex items-center gap-1.5 rounded-full text-xs font-bold transition active:scale-95 ${
                 showLabels ? 'px-3 py-1.5' : 'p-2'
@@ -368,7 +403,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
         <div className="py-16 text-center text-[var(--text-secondary)] flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
           <p className="text-xs font-bold tracking-wider uppercase">
-            Fetching recommendations from {provider.toUpperCase()}...
+            Fetching latest trending titles from {provider.toUpperCase()}...
           </p>
         </div>
       )}
@@ -380,15 +415,30 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
             <MoviePoster
               key={item.id}
               item={item}
-              userState={userStates[item.id]}
+              userState={resolveStateForMediaItem(item, userStates)}
               onClick={() => onSelectMedia(item)}
               onRemoveFromWatchlist={onRemoveFromWatchlist}
-              onMarkWatching={onMarkWatching}
-              onMarkWatched={onMarkWatched}
+              onMarkWatching={(id, clickedItem) => {
+                onAddMediaToLibrary?.(clickedItem || item);
+                onMarkWatching?.(id, clickedItem || item);
+              }}
+              onMarkWatched={(id, clickedItem) => {
+                onAddMediaToLibrary?.(clickedItem || item);
+                onMarkWatched?.(id, clickedItem || item);
+              }}
               onDismissFromWatching={onDismissFromWatching}
-              onToggleWatchlist={onToggleWatchlist}
-              onToggleFavorite={onToggleFavorite}
+              onToggleWatchlist={(id, clickedItem) => {
+                onAddMediaToLibrary?.(clickedItem || item);
+                onToggleWatchlist?.(id, clickedItem || item);
+              }}
+              onToggleFavorite={(id, clickedItem) => {
+                onAddMediaToLibrary?.(clickedItem || item);
+                onToggleFavorite?.(id, clickedItem || item);
+              }}
               onAddMediaToLibrary={onAddMediaToLibrary}
+              customLists={customLists}
+              onAddItemToList={onAddItemToList}
+              onRemoveItemFromList={onRemoveItemFromList}
             />
           ))}
         </div>
@@ -427,7 +477,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
       {hasMore && (
         <div className="mt-8 text-center">
           <button
-            onClick={() => setVisibleCount(prev => prev + 18)}
+            onClick={() => setVisibleCount(prev => prev + 24)}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--chip-bg)] hover:opacity-90 text-[var(--text-primary)] text-xs font-bold transition border border-[var(--border-subtle)] shadow-xs active:scale-95"
           >
             <ChevronDown className="w-4 h-4 text-[var(--accent-primary)]" />

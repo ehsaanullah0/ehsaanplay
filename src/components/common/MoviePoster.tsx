@@ -23,14 +23,15 @@ interface MoviePosterProps {
   showRanking?: number;
   compact?: boolean;
   onRemoveFromWatchlist?: (id: string) => void;
-  onMarkWatching?: (id: string) => void;
-  onMarkWatched?: (id: string) => void;
+  onMarkWatching?: (id: string, item?: MediaItem) => void;
+  onMarkWatched?: (id: string, item?: MediaItem) => void;
   onDismissFromWatching?: (id: string) => void;
-  onToggleWatchlist?: (id: string) => void;
-  onToggleFavorite?: (id: string) => void;
+  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
+  onToggleFavorite?: (id: string, item?: MediaItem) => void;
   onAddMediaToLibrary?: (item: MediaItem) => void;
   customLists?: CustomList[];
-  onAddItemToList?: (listId: string, mediaId: string) => void;
+  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
   onLongPress?: () => void;
   isSelected?: boolean;
   isSelectionModeActive?: boolean;
@@ -51,6 +52,7 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
   onAddMediaToLibrary,
   customLists,
   onAddItemToList,
+  onRemoveItemFromList,
   onLongPress,
   isSelected = false,
   isSelectionModeActive = false,
@@ -246,7 +248,8 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
   const handleToggleWatchlistAction = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleWatchlist) {
-      onToggleWatchlist(item.id);
+      onAddMediaToLibrary?.(item);
+      onToggleWatchlist(item.id, item);
     } else if (onRemoveFromWatchlist && inWatchlist) {
       onRemoveFromWatchlist(item.id);
     } else if (onAddMediaToLibrary) {
@@ -262,7 +265,8 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
     if (isWatched) {
       // 1st State (Watched) -> 2nd Click switches to 'Watching'
       if (onMarkWatching) {
-        onMarkWatching(item.id);
+        onAddMediaToLibrary?.(item);
+        onMarkWatching(item.id, item);
       }
     } else if (hasProgress) {
       // 2nd State (Watching) -> 3rd Click resets status
@@ -274,29 +278,60 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
     } else {
       // 3rd State (Reset / Neither) -> 1st Click switches to 'Watched'
       if (onMarkWatched) {
-        onMarkWatched(item.id);
+        onAddMediaToLibrary?.(item);
+        onMarkWatched(item.id, item);
       }
     }
     setIsCardMenuOpen(false);
     setShowListPicker(false);
   };
 
+  const isItemInList = (list: CustomList): boolean => {
+    if (list.itemIds.includes(item.id)) return true;
+    if (item.imdbId && list.itemIds.includes(item.imdbId)) return true;
+    if (item.tmdbId && list.itemIds.includes(`tmdb-${item.type || 'movie'}-${item.tmdbId}`)) return true;
+    return false;
+  };
+
   // Toggle item in custom collection list
   const handleToggleListItem = (listId: string) => {
-    if (onAddItemToList) {
-      onAddItemToList(listId, item.id);
+    const activeLists = customLists || localLists;
+    const targetList = activeLists.find(l => l.id === listId);
+    const alreadyIn = targetList ? isItemInList(targetList) : false;
+
+    if (alreadyIn) {
+      if (onRemoveItemFromList) {
+        onRemoveItemFromList(listId, item.id);
+        return;
+      }
     } else {
-      const lists = loadCustomLists();
-      const updated = lists.map(l => {
-        if (l.id === listId) {
-          const already = l.itemIds.includes(item.id);
-          const itemIds = already ? l.itemIds.filter(id => id !== item.id) : [...l.itemIds, item.id];
-          return { ...l, itemIds, updatedAt: new Date().toISOString() };
-        }
-        return l;
-      });
-      saveCustomLists(updated);
-      setLocalLists(updated);
+      if (onAddItemToList) {
+        onAddMediaToLibrary?.(item);
+        onAddItemToList(listId, item.id, item);
+        return;
+      }
+    }
+
+    const lists = loadCustomLists();
+    const updated = lists.map(l => {
+      if (l.id === listId) {
+        const already = isItemInList(l);
+        const itemIds = already
+          ? l.itemIds.filter(
+              id =>
+                id !== item.id &&
+                id !== item.imdbId &&
+                id !== (item.tmdbId ? `tmdb-${item.type || 'movie'}-${item.tmdbId}` : '')
+            )
+          : [...l.itemIds, item.id];
+        return { ...l, itemIds, updatedAt: new Date().toISOString() };
+      }
+      return l;
+    });
+    saveCustomLists(updated);
+    setLocalLists(updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ehsaan:library-change'));
     }
   };
 
@@ -578,7 +613,7 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
                     <div className="flex-1 overflow-y-auto no-scrollbar py-1 space-y-1">
                       {localLists.length > 0 ? (
                         localLists.map(list => {
-                          const isInList = list.itemIds.includes(item.id);
+                          const isInList = isItemInList(list);
                           return (
                             <button
                               key={list.id}

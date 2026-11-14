@@ -10,6 +10,7 @@ import {
 import { KNOWN_TV_SHOWS_METADATA } from '../../data/curatedCatalog';
 import { fetchDetailsWithFallback } from '../../services/metadataFallback';
 import { loadUserSettings, saveMediaCache, loadMediaCache } from '../../services/storage';
+import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { SafeImage } from '../common/SafeImage';
 import { StarRating } from '../common/StarRating';
 import { StreamingBrandIcon } from '../common/StreamingBrandIcon';
@@ -155,12 +156,13 @@ interface MoviePreviewModalProps {
   onToggleWatchlist: (id: string, item?: MediaItem) => void;
   onToggleWatched: (id: string, item?: MediaItem) => void;
   onToggleFavorite: (id: string, item?: MediaItem) => void;
-  onSetRating: (id: string, rating: number | undefined, ratingTag?: RatingTagId) => void;
-  onSetNotes: (id: string, notes: string) => void;
+  onSetRating: (id: string, rating: number | undefined, ratingTag?: RatingTagId, item?: MediaItem) => void;
+  onSetNotes: (id: string, notes: string, item?: MediaItem) => void;
   onSetProgress: (id: string, progress: number, item?: MediaItem) => void;
   onToggleTVEpisode: (id: string, season: number, episode: number, item?: MediaItem) => void;
   onToggleSeasonEpisodes?: (id: string, season: number, episodeNumbers: number[], forceMarkDone: boolean, item?: MediaItem) => void;
-  onAddItemToList: (listId: string, mediaId: string) => void;
+  onAddItemToList: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
   onOpenImdbPreview?: (imdbIdOrUrl: string) => void;
   mediaItems?: MediaItem[];
   userStates?: Record<string, PersonalMediaState>;
@@ -190,6 +192,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   onToggleTVEpisode,
   onToggleSeasonEpisodes,
   onAddItemToList,
+  onRemoveItemFromList,
   onOpenImdbPreview,
   mediaItems = [],
   userStates = {},
@@ -210,6 +213,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const [selectedPerson, setSelectedPerson] = useState<SelectedPersonInfo | null>(null);
   const [showAllCast, setShowAllCast] = useState(false);
   const modalScrollRef = useRef<HTMLDivElement>(null);
+  const lastOpenedItemIdRef = useRef<string | null>(null);
+  const wasOpenRef = useRef<boolean>(false);
 
   // Navigation History Stack (supports returning back to Actor Profile when credit is opened)
   const [previewHistory, setPreviewHistory] = useState<PreviewHistoryEntry[]>([]);
@@ -505,12 +510,38 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
   // Sync item, screen-size default artOn, and trigger real-time rich details hydration
   useEffect(() => {
-    setItem(initialItem);
-    setNotesDraft(userState?.notes || '');
-    setIsPlayingTrailer(false);
-    setIsOverviewExpanded(false);
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      lastOpenedItemIdRef.current = null;
+      setIsAddingToList(false);
+      setShowCustomizer(false);
+      setShowRearrangeModal(false);
+      setIsPlayingTrailer(false);
+      return;
+    }
 
-    if (isOpen) {
+    const isOpeningFresh = !wasOpenRef.current || initialItem?.id !== lastOpenedItemIdRef.current;
+    wasOpenRef.current = true;
+    lastOpenedItemIdRef.current = initialItem?.id || null;
+
+    if (isOpeningFresh) {
+      setItem(initialItem);
+      const resolvedInitialState = initialItem
+        ? resolveStateForMediaItem(initialItem, userStates, mediaItems) || userState
+        : userState;
+      setNotesDraft(resolvedInitialState?.notes || '');
+      setIsPlayingTrailer(false);
+      setIsOverviewExpanded(false);
+      setSelectedSeason(1);
+      setShowAllCast(false);
+      setIsAddingToList(false);
+      setShowCustomizer(false);
+      setShowRearrangeModal(false);
+
+      if (modalScrollRef.current) {
+        modalScrollRef.current.scrollTop = 0;
+      }
+
       const isMobileOrTablet = typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
       try {
         const saved = localStorage.getItem(HERO_CUSTOMIZER_STORAGE_KEY);
@@ -525,22 +556,35 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       } catch {
         setHeroCustomizer(prev => ({ ...prev, artOn: !isMobileOrTablet }));
       }
+    } else if (initialItem) {
+      setItem(prev => {
+        if (!prev || prev.id !== initialItem.id) return initialItem;
+        return {
+          ...prev,
+          ...initialItem,
+          cast: initialItem.cast?.length ? initialItem.cast : prev.cast,
+          crew: initialItem.crew?.length ? initialItem.crew : prev.crew,
+          providers: initialItem.providers?.length ? initialItem.providers : prev.providers,
+          seasons: initialItem.seasons?.length ? initialItem.seasons : prev.seasons,
+        };
+      });
     }
 
-    if (modalScrollRef.current) {
-      modalScrollRef.current.scrollTop = 0;
-    }
-
+    let isCancelled = false;
     if (initialItem && onHydrateDetails) {
       if (!initialItem.cast?.length || !initialItem.providers?.length || initialItem.type === 'tv') {
         onHydrateDetails(initialItem).then(enriched => {
-          if (enriched) {
+          if (!isCancelled && enriched) {
             setItem(enriched);
           }
         });
       }
     }
-  }, [initialItem, isOpen, userState?.notes, onHydrateDetails]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [initialItem, isOpen, onHydrateDetails]);
 
   // Providers fallback & intelligent deduplication (called unconditionally before early return)
   const cleanedProviders = React.useMemo(() => {
@@ -565,14 +609,29 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     return list.slice(0, 6);
   }, [item?.providers]);
 
+  // Dynamically resolve active user state across alias keys using timestamp priority
+  const activeUserState = React.useMemo(() => {
+    if (!item) return userState;
+    return resolveStateForMediaItem(item, userStates, mediaItems) || userState;
+  }, [item, userStates, mediaItems, userState]);
+
   if (!isOpen || !item) return null;
 
-  const isWatched = !!userState?.isWatched;
-  const inWatchlist = !!userState?.inWatchlist;
-  const isFavorite = !!userState?.isFavorite;
-  const progressPercent = userState?.progressPercent || 0;
+  const isWatched = !!activeUserState?.isWatched;
+  const inWatchlist = !!activeUserState?.inWatchlist;
+  const isFavorite = !!activeUserState?.isFavorite;
+  const progressPercent = activeUserState?.progressPercent || 0;
   const isWatching = !isWatched && progressPercent > 0;
-  const personalRating = userState?.personalRating || 0;
+  const personalRating = activeUserState?.personalRating || 0;
+
+  // Helper for alias-aware list membership
+  const isItemInCustomList = (list: CustomList) =>
+    list.itemIds.some(id => {
+      if (id === item.id || (item.imdbId && id === item.imdbId)) return true;
+      if (item.tmdbId && id === `tmdb-${item.type || 'movie'}-${item.tmdbId}`) return true;
+      const existing = mediaItems.find(m => m.id === id);
+      return Boolean(existing && areMediaItemsSame(existing, item));
+    });
 
   // TV Episode and season calculations (Prioritizes accurate known metadata over outdated cache)
   const knownMeta = item.type === 'tv' && item.id ? KNOWN_TV_SHOWS_METADATA[item.id] : undefined;
@@ -588,6 +647,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         1
       )
     : undefined;
+  const effectiveSeason = item.type === 'tv' ? Math.min(selectedSeason, seasonsCount || 1) : 1;
   const totalEpisodesCount = item.type === 'tv'
     ? Math.max(
         item.episodesCount || 0,
@@ -596,10 +656,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         (seasonsCount || 1) * 8
       )
     : undefined;
-  const currentSeasonInfo = seasonsList.find(s => s.seasonNumber === selectedSeason);
-  const episodesPerSeason = currentSeasonInfo
-    ? currentSeasonInfo.episodeCount
-    : (seasonsCount && totalEpisodesCount ? Math.ceil(totalEpisodesCount / seasonsCount) : 8);
+  const currentSeasonInfo = seasonsList.find(s => s.seasonNumber === effectiveSeason);
+  const episodesPerSeason = Math.max(
+    1,
+    currentSeasonInfo?.episodeCount ||
+      (seasonsCount && totalEpisodesCount ? Math.ceil(totalEpisodesCount / seasonsCount) : 8) ||
+      8
+  );
 
   const getYoutubeEmbedUrl = (url?: string) => {
     if (!url) return '';
@@ -718,23 +781,26 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     </div>
                     <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
                       {customLists.map(list => {
-                        const alreadyIn = list.itemIds.includes(item.id);
+                        const alreadyIn = isItemInCustomList(list);
                         return (
                           <button
                             key={list.id}
-                            disabled={alreadyIn}
                             onClick={() => {
-                              onAddItemToList(list.id, item.id);
+                              if (alreadyIn) {
+                                onRemoveItemFromList?.(list.id, item.id);
+                              } else {
+                                onAddItemToList(list.id, item.id, item);
+                              }
                               setIsAddingToList(false);
                             }}
-                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium transition flex items-center justify-between ${
+                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium transition flex items-center justify-between cursor-pointer ${
                               alreadyIn
-                                ? 'text-[var(--text-secondary)] opacity-60 cursor-not-allowed bg-[var(--chip-bg)]/40'
+                                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-bold hover:bg-[var(--accent-primary)]/20'
                                 : 'hover:bg-[var(--chip-bg)] text-[var(--text-primary)]'
                             }`}
                           >
                             <span className="truncate">{list.title}</span>
-                            {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
+                            {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />}
                           </button>
                         );
                       })}
@@ -1304,10 +1370,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 </div>
               )}
 
-              {/* Rating Row (★ 8.8 / 10 + votes + Trailer button) */}
+              {/* Rating Row */}
               <div className="mt-3.5 flex flex-wrap items-center justify-start gap-2.5">
                 {/* 1. Rating Pill Badge */}
-                {heroCustomizer.showRatingBadge && (
+                {heroCustomizer.showRatingBadge && ((item.imdbRating && item.imdbRating > 0) || (item.tmdbRating && item.tmdbRating > 0)) && (
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-2xs ${
                     heroCustomizer.artOn
                       ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/20'
@@ -1319,37 +1385,24 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                         <span className="tabular-nums font-black">{item.imdbRating.toFixed(1)} / 10</span>
                         <span className="text-[10px] uppercase font-bold opacity-75">IMDb</span>
                       </>
-                    ) : (item.imdbRating || 0) > 0 ? (
-                      <>
-                        <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
-                        <span className="tabular-nums font-black">{(item.imdbRating || 0).toFixed(1)} / 10</span>
-                        <span className="text-[10px] uppercase font-bold opacity-75">OMDb</span>
-                      </>
                     ) : (
                       <>
                         <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
-                        <span className="tabular-nums font-black">8.8 / 10</span>
+                        <span className="tabular-nums font-black">{(item.tmdbRating || 0).toFixed(1)} / 10</span>
+                        <span className="text-[10px] uppercase font-bold opacity-75">TMDB</span>
                       </>
                     )}
                   </span>
                 )}
 
                 {/* Vote Count */}
-                {item.voteCount > 0 ? (
+                {item.voteCount > 0 && (
                   <span className={`text-xs font-medium tabular-nums ${
                     heroCustomizer.artOn
                       ? 'text-[var(--text-secondary)] sm:text-white/70'
                       : 'text-[var(--text-secondary)]'
                   }`}>
                     ({item.voteCount.toLocaleString()} votes)
-                  </span>
-                ) : (
-                  <span className={`text-xs font-medium tabular-nums ${
-                    heroCustomizer.artOn
-                      ? 'text-[var(--text-secondary)] sm:text-white/70'
-                      : 'text-[var(--text-secondary)]'
-                  }`}>
-                    (2,230 votes)
                   </span>
                 )}
 
@@ -1509,23 +1562,26 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                         </div>
                         <div className="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
                           {customLists.map(list => {
-                            const alreadyIn = list.itemIds.includes(item.id);
+                            const alreadyIn = isItemInCustomList(list);
                             return (
                               <button
                                 key={list.id}
-                                disabled={alreadyIn}
                                 onClick={() => {
-                                  onAddItemToList(list.id, item.id);
+                                  if (alreadyIn) {
+                                    onRemoveItemFromList?.(list.id, item.id);
+                                  } else {
+                                    onAddItemToList(list.id, item.id, item);
+                                  }
                                   setIsAddingToList(false);
                                 }}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-between ${
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-between cursor-pointer ${
                                   alreadyIn
-                                    ? 'text-[var(--text-secondary)] opacity-60'
+                                    ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-bold hover:bg-[var(--accent-primary)]/20'
                                     : 'hover:bg-[var(--chip-bg)] text-[var(--text-primary)]'
                                 }`}
                               >
                                 <span className="truncate">{list.title}</span>
-                                {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
+                                {alreadyIn && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />}
                               </button>
                             );
                           })}
@@ -1555,7 +1611,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
           // 1. Personal Rating & Reflections Card (FULL WIDTH)
           if (section.id === 'journal') {
-            const activeRatingTag = resolveRatingTag(userState);
+            const activeRatingTag = resolveRatingTag(activeUserState);
 
             return (
               <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
@@ -1569,7 +1625,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     {activeRatingTag && (
                       <button
                         type="button"
-                        onClick={() => onSetRating(item.id, undefined, undefined)}
+                        onClick={() => onSetRating(item.id, undefined, undefined, item)}
                         className="text-xs font-black text-red-700 dark:text-red-500 hover:underline transition active:scale-95 cursor-pointer"
                       >
                         Reset Rating
@@ -1587,9 +1643,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                           type="button"
                           onClick={() => {
                             if (isSelected) {
-                              onSetRating(item.id, undefined, undefined);
+                              onSetRating(item.id, undefined, undefined, item);
                             } else {
-                              onSetRating(item.id, tag.numericRating, tag.id);
+                              onSetRating(item.id, tag.numericRating, tag.id, item);
                             }
                           }}
                           className={`group relative p-4.5 rounded-2xl text-left transition-all duration-200 border cursor-pointer select-none active:scale-[0.98] flex flex-col justify-between min-h-[110px] ${
@@ -1697,7 +1753,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       value={notesDraft}
                       onChange={e => setNotesDraft(e.target.value)}
                       onBlur={() => {
-                        onSetNotes(item.id, notesDraft);
+                        onSetNotes(item.id, notesDraft, item);
                         if (notesDraft.trim()) {
                           setIsSavedFeedback(true);
                           setTimeout(() => setIsSavedFeedback(false), 2200);
@@ -1720,7 +1776,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                             onClick={() => {
                               if (window.confirm('Clear your personal reflection note for this title?')) {
                                 setNotesDraft('');
-                                onSetNotes(item.id, '');
+                                onSetNotes(item.id, '', item);
                               }
                             }}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-xs transition active:scale-95"
@@ -1734,7 +1790,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            onSetNotes(item.id, notesDraft);
+                            onSetNotes(item.id, notesDraft, item);
                             setIsSavedFeedback(true);
                             setTimeout(() => setIsSavedFeedback(false), 2500);
                           }}
@@ -1756,7 +1812,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             if (item.type !== 'tv') return null;
             
             const eps = Array.from({ length: episodesPerSeason }, (_, i) => i + 1);
-            const isAllCompletedInSeason = eps.every(ep => !!userState?.tvProgress?.completedEpisodes[`s${selectedSeason}e${ep}`]);
+            const isAllCompletedInSeason = eps.every(ep => !!activeUserState?.tvProgress?.completedEpisodes[`s${effectiveSeason}e${ep}`]);
 
             return (
               <div key="episodes" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4">
@@ -1766,13 +1822,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       Episodes & Seasons
                     </h3>
                     <span className="text-[11px] font-bold text-[var(--text-secondary)] bg-[var(--chip-bg)] px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)]">
-                      S{selectedSeason} · {eps.length} Eps
+                      S{effectiveSeason} · {eps.length} Eps
                     </span>
                     {onToggleSeasonEpisodes && (
                       <button
                         type="button"
-                        onClick={() => onToggleSeasonEpisodes(item.id, selectedSeason, eps, !isAllCompletedInSeason, item)}
-                        className={`px-3 py-1 rounded-full text-[10px] uppercase font-black tracking-wider transition-all active:scale-95 shadow-2xs border ${
+                        onClick={() => onToggleSeasonEpisodes(item.id, effectiveSeason, eps, !isAllCompletedInSeason, item)}
+                        className={`px-3 py-1 rounded-full text-[10px] uppercase font-black tracking-wider transition-all cursor-pointer select-none active:scale-95 shadow-2xs border ${
                           isAllCompletedInSeason
                             ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border-[var(--border-subtle)]'
                             : 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent'
@@ -1790,9 +1846,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       return (
                         <button
                           key={s}
+                          type="button"
                           onClick={() => setSelectedSeason(s)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
-                            selectedSeason === s
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap cursor-pointer select-none ${
+                            effectiveSeason === s
                               ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
                               : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                           }`}
@@ -1807,14 +1864,18 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 {/* Grid of episodes */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2.5 pt-2">
                   {Array.from({ length: episodesPerSeason }, (_, i) => i + 1).map(ep => {
-                    const epKey = `s${selectedSeason}e${ep}`;
-                    const isDone = !!userState?.tvProgress?.completedEpisodes[epKey];
+                    const epKey = `s${effectiveSeason}e${ep}`;
+                    const isDone = !!activeUserState?.tvProgress?.completedEpisodes?.[epKey];
 
                     return (
                       <button
                         key={ep}
-                        onClick={() => onToggleTVEpisode(item.id, selectedSeason, ep, item)}
-                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-medium transition border active:scale-95 shadow-2xs ${
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleTVEpisode(item.id, effectiveSeason, ep, item);
+                        }}
+                        className={`flex items-center justify-between p-3 rounded-xl text-xs font-medium transition cursor-pointer select-none active:scale-95 shadow-2xs border ${
                           isDone
                             ? 'bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] border-[var(--border-subtle)] font-bold'
                             : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border-[var(--border-subtle)]'
