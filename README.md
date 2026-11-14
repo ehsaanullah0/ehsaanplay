@@ -8,6 +8,12 @@
     <img src="assets/m3-chips-light.svg" alt="Native Kotlin, Jetpack Compose, Material 3 Expressive, zero trackers, open source" height="100">
   </picture>
 </p>
+<p align="center">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Android/android2.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Kotlin/kotlin1.svg">
+  <img src="https://m3-markdown-badges.vercel.app/stars/1/3/ehsaanullah0/ehsaanplay">
+  <img src="https://m3-markdown-badges.vercel.app/issues/1/2/ehsaanullah0/ehsaanplay">
+</p>
 
 # EHSAAN PLAY
  ## **Your watchlist. Your taste. Your space.**
