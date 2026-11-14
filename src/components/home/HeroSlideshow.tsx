@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MediaItem, PersonalMediaState, AppTweaksConfig } from '../../types/movie';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { SafeImage } from '../common/SafeImage';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
@@ -40,8 +41,9 @@ export const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
 
   if (featuredItems.length === 0) return null;
 
-  const currentItem = featuredItems[currentIndex];
-  const currentState = userStates ? userStates[currentItem.id] : undefined;
+  const safeIndex = currentIndex % featuredItems.length;
+  const currentItem = featuredItems[safeIndex];
+  const currentState = userStates ? resolveStateForMediaItem(currentItem, userStates) : undefined;
   const rating = currentState?.personalRating || currentItem.imdbRating || currentItem.tmdbRating || 0;
   const genres = currentItem.genres && currentItem.genres.length > 0 ? currentItem.genres.slice(0, 3) : [];
 
@@ -105,7 +107,7 @@ export const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
     >
       {/* Background Cinematic Artwork Layers with Crossfade */}
       {featuredItems.map((item, index) => {
-        const isActive = index === currentIndex;
+        const isActive = index === safeIndex;
         return (
           <div
             key={item.id}
@@ -219,7 +221,7 @@ export const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
           className="absolute bottom-3.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5"
         >
           {featuredItems.map((_, index) => {
-            const isActive = index === currentIndex;
+            const isActive = index === safeIndex;
             return (
               <button
                 key={index}

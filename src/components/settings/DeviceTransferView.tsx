@@ -701,7 +701,10 @@ export const DeviceTransferView: React.FC<DeviceTransferViewProps> = ({
       setCodeCopied(false);
       // History is never removed on generating or copying code; only through manual user button
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to generate sync code.');
+      setJsonResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to generate sync code.',
+      });
     }
   };
 

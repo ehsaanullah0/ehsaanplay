@@ -6,6 +6,7 @@ import {
   KeyboardShortcutsConfig,
   DEFAULT_APP_TWEAKS,
   AppFontFamily,
+  AVAILABLE_GEMINI_MODELS,
 } from '../../types/movie';
 import {
   exportLibraryBackup,
@@ -31,12 +32,15 @@ import { usePWAInstall, useOnlineStatus, usePWAUpdate } from '../../hooks/usePWA
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { CHANGELOG_VERSIONS } from '../../data/changelogData';
 import { DeviceTransferView } from './DeviceTransferView';
+import { SupabaseSyncSettingsView } from './SupabaseSyncSettingsView';
+import { ResumeDatabaseView } from './ResumeDatabaseView';
 import {
   Palette,
   HardDrive,
   Download,
   Upload,
   Sparkles,
+  Cloud,
   Key,
   Check,
   X,
@@ -62,6 +66,10 @@ import {
   Contrast,
   Sliders,
   Eye,
+  EyeOff,
+  AlertCircle,
+  Trash2,
+  Brain,
   Heart,
   Bookmark,
   CheckSquare,
@@ -82,15 +90,19 @@ import {
   StretchHorizontal,
   User,
 } from 'lucide-react';
+import { testGeminiConnection } from '../../services/gemini';
 
 export type SettingsTopicId =
   | 'app'
   | 'device-transfer'
+  | 'supabase-sync'
+  | 'resume-database'
   | 'appearance'
   | 'tweaks'
   | 'tips'
   | 'storage'
   | 'OMDb'
+  | 'gemini'
   | 'shortcuts'
   | 'backup'
   | 'about';
@@ -317,6 +329,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [tmdbDiagnosticResult, setTmdbDiagnosticResult] = useState<{ ok: boolean; message: string; source?: string; latencyMs?: number; sampleCount?: number } | null>(null);
   const [isRunningOmdbDiagnostic, setIsRunningOmdbDiagnostic] = useState(false);
   const [omdbDiagnosticResult, setOmdbDiagnosticResult] = useState<DiagnosticResult | null>(null);
+
+  // Gemini AI Integration States
+  const [geminiKeyInput, setGeminiKeyInput] = useState(settings.geminiApiKey || '');
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [isTestingGemini, setIsTestingGemini] = useState(false);
+  const [geminiStatus, setGeminiStatus] = useState<'not_configured' | 'connected' | 'invalid_key' | 'connection_error'>(
+    settings.geminiApiKey ? 'connected' : 'not_configured'
+  );
+  const [geminiMessage, setGeminiMessage] = useState<string>(
+    settings.geminiApiKey ? 'API key saved locally.' : 'Not Configured'
+  );
+  const [geminiSavedToast, setGeminiSavedToast] = useState(false);
+
+  useEffect(() => {
+    setGeminiKeyInput(settings.geminiApiKey || '');
+    if (!settings.geminiApiKey) {
+      setGeminiStatus('not_configured');
+      setGeminiMessage('Not Configured');
+    }
+  }, [settings.geminiApiKey]);
 
   // State for older versions expand/collapse in EHSAAN PLAY section
   const [isOlderVersionsExpanded, setIsOlderVersionsExpanded] = useState(false);
@@ -606,6 +638,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       icon: <Wifi className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
+      id: 'supabase-sync',
+      title: 'Cloud Database & Sync',
+      subtitle: 'Supabase BYOD · Email/Password Account · Live Cross-Device Sync',
+      icon: <Cloud className="w-5 h-5 text-[var(--accent-primary)]" />,
+    },
+    {
       id: 'appearance',
       title: 'Appearance',
       subtitle: `Theme: ${settings.theme === 'dark-olive' ? 'Dark' : settings.theme === 'oled-black' ? 'OLED Black' : 'Warm Cream'} · Color: ${colorSchemes.find(s => s.id === (settings.colorScheme || 'olive'))?.name || 'Default'}`,
@@ -631,9 +669,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     },
     {
       id: 'OMDb',
-      title: 'API & Diagnostics (OMDb / OMDb)',
-      subtitle: `${settings.omdbApiKey ? 'OMDb Custom' : 'OMDb System'} · ${settings.omdbApiKey || isOMDBConfigured() ? 'OMDb Fallback Active' : 'OMDb Fallback Ready'}`,
+      title: 'API & Diagnostics (TMDB / OMDb)',
+      subtitle: `${settings.tmdbApiKey ? 'TMDB Custom' : 'TMDB Primary'} · ${settings.omdbApiKey || isOMDBConfigured() ? 'OMDb Fallback Active' : 'OMDb Fallback Ready'}`,
       icon: <Key className="w-5 h-5 text-[var(--accent-primary)]" />,
+    },
+    {
+      id: 'gemini',
+      title: 'Gemini AI Integration',
+      subtitle: settings.geminiApiKey
+        ? 'Gemini API Key Configured · Trending Genres Ready'
+        : 'Connect personal key to generate Top 50 collections',
+      icon: <Sparkles className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'shortcuts',
@@ -663,6 +709,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     switch (topicId) {
       case 'device-transfer':
         return <DeviceTransferView onRefreshData={onRefreshData} />;
+
+      case 'supabase-sync':
+        return (
+          <SupabaseSyncSettingsView
+            onRefreshData={onRefreshData}
+            onOpenResumePage={() => handleSelectTopic('resume-database')}
+          />
+        );
+
+      case 'resume-database':
+        return (
+          <ResumeDatabaseView
+            onBack={() => handleSelectTopic('supabase-sync')}
+            onConnectionRestored={() => {
+              if (onRefreshData) onRefreshData();
+            }}
+            onRefreshData={onRefreshData}
+            isSubpage={true}
+          />
+        );
 
       case 'appearance':
         return (
@@ -2463,11 +2529,318 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     In single-page browser applications built with Vite, environment variables prefixed with <code className="px-1.5 py-0.5 rounded bg-[var(--bg-surface-card)] text-[var(--text-primary)] font-mono text-[11px]">VITE_</code> are embedded into the client JavaScript bundle delivered to the web browser. Consequently, they are visible upon client inspection and are not confidential server-side secrets.
                   </p>
                   <p className="leading-relaxed">
-                    OMDb operates as a secondary read-only metadata fallback. If no key is provided, the application continues to operate smoothly using OMDb as the primary source.
+                    OMDb operates as a secondary read-only metadata fallback. If no key is provided, the application continues to operate smoothly using TMDB as the primary source.
                   </p>
                 </div>
               </div>
             )}
+          </div>
+        );
+      }
+
+      case 'gemini': {
+        const isConfigured = Boolean(settings.geminiApiKey || geminiKeyInput.trim());
+        const selectedModelId = settings.geminiModel || 'gemini-3.8-flash';
+
+        const handleSaveKey = async () => {
+          const cleanKey = geminiKeyInput.trim();
+          onUpdateSettings({ geminiApiKey: cleanKey || undefined });
+          setGeminiSavedToast(true);
+          setTimeout(() => setGeminiSavedToast(false), 2500);
+
+          if (!cleanKey) {
+            setGeminiStatus('not_configured');
+            setGeminiMessage('API key removed.');
+          } else {
+            setIsTestingGemini(true);
+            const res = await testGeminiConnection(cleanKey, selectedModelId);
+            setGeminiStatus(res.state);
+            setGeminiMessage(res.message);
+            setIsTestingGemini(false);
+          }
+        };
+
+        const handleTestKey = async () => {
+          const keyToTest = geminiKeyInput.trim() || settings.geminiApiKey;
+          if (!keyToTest) {
+            setGeminiStatus('not_configured');
+            setGeminiMessage('Please enter an API key to test.');
+            return;
+          }
+          setIsTestingGemini(true);
+          const res = await testGeminiConnection(keyToTest, selectedModelId);
+          setGeminiStatus(res.state);
+          setGeminiMessage(res.message);
+          setIsTestingGemini(false);
+        };
+
+        const handleRemoveKey = () => {
+          setGeminiKeyInput('');
+          onUpdateSettings({ geminiApiKey: undefined });
+          setGeminiStatus('not_configured');
+          setGeminiMessage('API key removed from local storage.');
+        };
+
+        return (
+          <div className="space-y-5 animate-fade-in">
+            {/* Header Description Card */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-2xl bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 fill-current" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-[var(--text-primary)] tracking-tight">
+                    Gemini AI Integration
+                  </h2>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Configure your API key and choose your preferred Gemini model
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed mt-2">
+                Connect your own Gemini API key to generate intelligent, genre-based movie and TV show collections.
+              </p>
+            </div>
+
+            {/* Connection Status Card */}
+            <div
+              className={`p-4 sm:p-5 rounded-3xl border transition-all duration-200 flex items-center gap-3.5 ${
+                geminiStatus === 'connected'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100'
+                  : geminiStatus === 'invalid_key'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100'
+                  : geminiStatus === 'connection_error'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-100'
+                  : 'bg-[var(--chip-bg)] border-[var(--border-subtle)] text-[var(--text-secondary)]'
+              }`}
+            >
+              <div className="shrink-0">
+                {geminiStatus === 'connected' ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                ) : geminiStatus === 'invalid_key' ? (
+                  <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                ) : geminiStatus === 'connection_error' ? (
+                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                ) : (
+                  <Info className="w-6 h-6 text-[var(--text-secondary)]" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    Connection State:
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black ${
+                      geminiStatus === 'connected'
+                        ? 'bg-emerald-600 text-white'
+                        : geminiStatus === 'invalid_key'
+                        ? 'bg-rose-600 text-white'
+                        : geminiStatus === 'connection_error'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    {geminiStatus === 'connected'
+                      ? 'Connected'
+                      : geminiStatus === 'invalid_key'
+                      ? 'Invalid Key'
+                      : geminiStatus === 'connection_error'
+                      ? 'Connection Error'
+                      : 'Not Configured'}
+                  </span>
+                </div>
+                <p className="text-xs mt-1 text-[var(--text-secondary)] truncate">
+                  {geminiMessage}
+                </p>
+              </div>
+            </div>
+
+            {/* API Key Configuration Form */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
+                  Personal Google Gemini API Key
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showGeminiKey ? 'text' : 'password'}
+                    value={geminiKeyInput}
+                    onChange={e => setGeminiKeyInput(e.target.value)}
+                    placeholder="Paste your Gemini API key (e.g. AIzaSy...)"
+                    className="w-full pr-12 pl-4 py-3 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] text-xs sm:text-sm font-mono text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/40 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGeminiKey(prev => !prev)}
+                    className="absolute right-3 p-1.5 rounded-xl hover:bg-[var(--border-subtle)]/40 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
+                    title={showGeminiKey ? 'Hide API Key' : 'Show API Key'}
+                    aria-label={showGeminiKey ? 'Hide API Key' : 'Show API Key'}
+                  >
+                    {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-1.5">
+                  Your key is never hardcoded, never exposed in client logs, and securely saved in local storage.
+                </p>
+              </div>
+
+              {/* Action Buttons: Save Key, Test Connection, Remove Key */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-[var(--border-subtle)]">
+                {/* Save API Key */}
+                <button
+                  type="button"
+                  onClick={handleSaveKey}
+                  className="px-4 py-2.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 active:scale-95 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{geminiSavedToast ? 'Saved!' : 'Save API Key'}</span>
+                </button>
+
+                {/* Test Connection */}
+                <button
+                  type="button"
+                  onClick={handleTestKey}
+                  disabled={isTestingGemini || !isConfigured}
+                  className="px-4 py-2.5 rounded-xl bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)]/50 text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs font-bold active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isTestingGemini ? 'animate-spin' : ''}`} />
+                  <span>{isTestingGemini ? 'Testing Connection...' : 'Test Connection'}</span>
+                </button>
+
+                {/* Remove Key */}
+                {(settings.geminiApiKey || geminiKeyInput) && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveKey}
+                    className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold active:scale-95 transition flex items-center gap-1.5 cursor-pointer ml-auto"
+                    title="Remove API Key"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove Key</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Dedicated Gemini Model Selection Section */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                      Gemini Model
+                    </label>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Choose which Gemini model to power your AI-curated Top 50 collections
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--accent-primary)] border border-[var(--border-subtle)] font-bold">
+                    {selectedModelId}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {AVAILABLE_GEMINI_MODELS.map(model => {
+                  const isSelected = selectedModelId === model.id;
+                  return (
+                    <div
+                      key={model.id}
+                      onClick={() => onUpdateSettings({ geminiModel: model.id })}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onUpdateSettings({ geminiModel: model.id });
+                        }
+                      }}
+                      className={`group relative p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-left flex flex-col justify-between ${
+                        isSelected
+                          ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)] shadow-xs'
+                          : 'bg-[var(--chip-bg)] border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/50 hover:bg-[var(--border-subtle)]/30'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            {model.name}
+                          </span>
+                          {model.isRecommended ? (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)]">
+                              Recommended
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                              {model.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                          {model.description}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]/60 text-[11px]">
+                        <span className="font-mono text-[var(--text-secondary)]/80 text-[10px]">
+                          {model.id}
+                        </span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition ${
+                            isSelected
+                              ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--bg-primary)]'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* How to Get a Gemini Key Card */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-3">
+              <div className="flex items-center gap-2 font-bold text-sm text-[var(--text-primary)]">
+                <Brain className="w-4 h-4 text-[var(--accent-primary)]" />
+                <span>How to Get a Free Google Gemini API Key</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1.5 text-xs text-[var(--text-secondary)] leading-relaxed pl-1">
+                <li>Visit Google AI Studio with your Google Account.</li>
+                <li>Click <strong className="text-[var(--text-primary)]">"Get API key"</strong> or <strong className="text-[var(--text-primary)]">"Create API key"</strong>.</li>
+                <li>Copy your generated key string (starts with <code className="font-mono text-[11px] bg-[var(--chip-bg)] px-1 rounded">AIzaSy...</code>).</li>
+                <li>Paste it in the field above and tap <strong className="text-[var(--text-primary)]">Save API Key</strong>.</li>
+              </ol>
+              <div className="pt-2">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)]/40 text-[var(--accent-primary)] text-xs font-bold border border-[var(--border-subtle)] transition active:scale-95"
+                >
+                  <span>Open Google AI Studio</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Feature Usage Overview */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-[var(--chip-bg)]/60 border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] space-y-2">
+              <div className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Info className="w-4 h-4 text-[var(--accent-primary)]" />
+                <span>On-Demand Trending Genres Discovery</span>
+              </div>
+              <p className="leading-relaxed">
+                When you explore a genre in the <strong className="text-[var(--text-primary)]">Lists &gt; Trending Genres</strong> view, EHSAAN PLAY calls Gemini on-demand to curate an authentic Top 50 collection. Titles are verified through live TMDB &amp; OMDb metadata.
+              </p>
+              <p className="leading-relaxed">
+                Collections are cached on this device so opening them later uses zero API quota. You can tap "Refresh" inside any collection whenever you want updated picks.
+              </p>
+            </div>
           </div>
         );
       }
@@ -2795,7 +3168,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <History className="w-5 h-5 text-[var(--accent-primary)] group-hover:rotate-12 transition-transform shrink-0" />
                   <div>
                     <div className="font-bold text-sm text-[var(--text-primary)]">Changelog & Version Notes</div>
-                    <div className="text-xs text-[var(--text-secondary)]">View latest v2.3.6 updates & historical archive</div>
+                    <div className="text-xs text-[var(--text-secondary)]">View latest {CHANGELOG_VERSIONS[0]?.version || 'v2.4.1'} updates & historical archive</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 transition-transform" />
