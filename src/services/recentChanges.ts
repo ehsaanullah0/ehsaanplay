@@ -13,8 +13,6 @@ import {
 } from './storage';
 import LZString from 'lz-string';
 import QRCode from 'qrcode';
-import { forwardChangeToSupabaseSync } from './supabase/syncService';
-import { areMediaItemsSame } from '../utils/mediaDedup';
 
 export type ChangeOperation =
   | 'add'
@@ -177,8 +175,6 @@ export function recordLibraryChange(
       mediaItem: {
         id: m.id,
         title: m.title,
-        originalTitle: m.originalTitle,
-        releaseDate: m.releaseDate,
         type: m.type,
         year: m.year,
         genres: m.genres,
@@ -186,14 +182,6 @@ export function recordLibraryChange(
         overview: m.overview ? m.overview.slice(0, 200) : undefined,
         tagline: m.tagline,
         voteCount: m.voteCount,
-        imdbId: m.imdbId,
-        tmdbId: m.tmdbId,
-        imdbRating: m.imdbRating,
-        tmdbRating: m.tmdbRating,
-        metadataSource: m.metadataSource,
-        seasonsCount: m.seasonsCount,
-        episodesCount: m.episodesCount,
-        seasons: m.seasons,
         posterUrl: cleanPoster,
         backdropUrl: cleanBackdrop,
       },
@@ -211,13 +199,6 @@ export function recordLibraryChange(
   const current = loadChangeLogEntries();
   current.push(entry);
   saveChangeLogEntries(current);
-
-  // Forward change to connected Supabase cloud database if configured
-  try {
-    forwardChangeToSupabaseSync(entry);
-  } catch (err) {
-    console.error('Failed to forward change to Supabase sync:', err);
-  }
 
   return entry;
 }
@@ -561,30 +542,17 @@ export function applyRecentChanges(pkg: RecentChangesPackage): ApplyChangesResul
       case 'add': {
         if (data?.mediaItem && data.mediaItem.id) {
           const incomingItem = data.mediaItem as MediaItem;
-          let targetId = entityId;
-          let existingMatch = mediaMap.get(entityId);
+          if (!mediaMap.has(entityId)) {
+            const resolvedPoster = incomingItem.posterUrl?.startsWith('/')
+              ? `${incomingItem.posterUrl}`
+              : incomingItem.posterUrl;
+            const resolvedBackdrop = incomingItem.backdropUrl?.startsWith('/')
+              ? `${incomingItem.backdropUrl}`
+              : incomingItem.backdropUrl;
 
-          if (!existingMatch) {
-            for (const existing of mediaMap.values()) {
-              if (areMediaItemsSame(existing, incomingItem)) {
-                existingMatch = existing;
-                targetId = existing.id;
-                break;
-              }
-            }
-          }
-
-          const resolvedPoster = incomingItem.posterUrl?.startsWith('/')
-            ? `${incomingItem.posterUrl}`
-            : incomingItem.posterUrl;
-          const resolvedBackdrop = incomingItem.backdropUrl?.startsWith('/')
-            ? `${incomingItem.backdropUrl}`
-            : incomingItem.backdropUrl;
-
-          if (!existingMatch) {
             // New item to add
-            mediaMap.set(targetId, {
-              id: targetId,
+            mediaMap.set(entityId, {
+              id: entityId,
               title: incomingItem.title || 'Untitled',
               originalTitle: incomingItem.originalTitle || incomingItem.title || 'Untitled',
               releaseDate: incomingItem.releaseDate || (incomingItem.year ? `${incomingItem.year}-01-01` : ''),
@@ -595,46 +563,23 @@ export function applyRecentChanges(pkg: RecentChangesPackage): ApplyChangesResul
               overview: incomingItem.overview || '',
               tagline: incomingItem.tagline,
               voteCount: incomingItem.voteCount || 0,
-              imdbId: incomingItem.imdbId,
-              tmdbId: incomingItem.tmdbId,
-              imdbRating: incomingItem.imdbRating,
-              tmdbRating: incomingItem.tmdbRating,
-              metadataSource: incomingItem.metadataSource,
-              seasonsCount: incomingItem.seasonsCount,
-              episodesCount: incomingItem.episodesCount,
-              seasons: incomingItem.seasons,
               cast: incomingItem.cast || [],
               crew: incomingItem.crew || [],
               posterUrl: resolvedPoster || '',
               backdropUrl: resolvedBackdrop || '',
             });
             newItemsCount++;
-          } else {
-            mediaMap.set(targetId, {
-              ...existingMatch,
-              imdbId: existingMatch.imdbId || incomingItem.imdbId,
-              tmdbId: existingMatch.tmdbId || incomingItem.tmdbId,
-              imdbRating: existingMatch.imdbRating || incomingItem.imdbRating,
-              tmdbRating: existingMatch.tmdbRating || incomingItem.tmdbRating,
-              metadataSource: existingMatch.metadataSource || incomingItem.metadataSource,
-              seasonsCount: Math.max(existingMatch.seasonsCount || 0, incomingItem.seasonsCount || 0) || undefined,
-              episodesCount: Math.max(existingMatch.episodesCount || 0, incomingItem.episodesCount || 0) || undefined,
-              seasons: (existingMatch.seasons && existingMatch.seasons.length > 0) ? existingMatch.seasons : incomingItem.seasons,
-              posterUrl: existingMatch.posterUrl || resolvedPoster || '',
-              backdropUrl: existingMatch.backdropUrl || resolvedBackdrop || '',
-            });
           }
-
-          // Merge incoming personal state if provided under canonical targetId
+          // Merge incoming personal state if provided
           if (data.state) {
-            const existingState = statesMap.get(targetId) || statesMap.get(entityId) || {
-              mediaId: targetId,
+            const existingState = statesMap.get(entityId) || {
+              mediaId: entityId,
               inWatchlist: true,
               isWatched: false,
               isFavorite: false,
               addedAt: new Date(change.timestamp).toISOString(),
             };
-            statesMap.set(targetId, { ...existingState, ...data.state, mediaId: targetId });
+            statesMap.set(entityId, { ...existingState, ...data.state });
           }
         }
         break;

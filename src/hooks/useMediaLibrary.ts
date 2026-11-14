@@ -36,30 +36,106 @@ import {
   RecentChangesPackage,
 } from '../services/recentChanges';
 import { clearImageCache } from '../services/imageStorage';
-import {
-  initializeRealtimeSubscription,
-  initGlobalSyncListeners,
-  executeFullSync,
-  syncMediaItemToCloud,
-} from '../services/supabase/syncService';
-import { loadSupabaseConfig } from '../services/supabase/config';
-import { getCloudSession, getCloudUser, subscribeToAuthChanges } from '../services/supabase/auth';
-import { normalizeDurationToSeconds } from '../services/supabase/durationUtils';
-import {
-  normalizeMediaTitle,
-  areMediaItemsSame,
-  getCanonicalKeyForItem,
-  deduplicateMediaItemsAndStates,
-  hasStateInteraction,
-  resolveStateForMediaItem,
-} from '../utils/mediaDedup';
 
-export {
-  normalizeMediaTitle,
-  areMediaItemsSame,
-  getCanonicalKeyForItem,
-  deduplicateMediaItemsAndStates,
-};
+export function getCanonicalKeyForItem(item: MediaItem): string {
+  if (item.imdbId && item.imdbId.startsWith('tt')) {
+    return item.imdbId;
+  }
+  if (item.tmdbId) {
+    return `tmdb-${item.type || 'movie'}-${item.tmdbId}`;
+  }
+  if (item.id && (item.id.startsWith('tt') || item.id.startsWith('tmdb-'))) {
+    return item.id;
+  }
+  const cleanTitle = (item.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  if (cleanTitle && item.year) {
+    return `${item.type || 'movie'}-${cleanTitle}-${item.year}`;
+  }
+  return item.id || `unknown-${Math.random()}`;
+}
+
+export function deduplicateMediaItemsAndStates(
+  rawMedia: MediaItem[],
+  rawStates: Record<string, PersonalMediaState>,
+  rawLists: CustomList[] = []
+): { cleanMedia: MediaItem[]; cleanStates: Record<string, PersonalMediaState>; cleanLists: CustomList[] } {
+  const canonicalMap = new Map<string, MediaItem>();
+  const idToCanonical = new Map<string, string>();
+
+  // 1. Group and merge media items into canonical entries
+  for (const item of rawMedia) {
+    if (!item) continue;
+    const canonicalKey = getCanonicalKeyForItem(item);
+    idToCanonical.set(item.id, canonicalKey);
+    if (item.imdbId) idToCanonical.set(item.imdbId, canonicalKey);
+    if (item.tmdbId) idToCanonical.set(`tmdb-${item.type || 'movie'}-${item.tmdbId}`, canonicalKey);
+    const titleKey = `${item.type || 'movie'}-${(item.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '')}-${item.year}`;
+    idToCanonical.set(titleKey, canonicalKey);
+
+    const existing = canonicalMap.get(canonicalKey);
+    if (!existing) {
+      canonicalMap.set(canonicalKey, { ...item, id: canonicalKey });
+    } else {
+      // Merge rich properties from duplicate item
+      const merged: MediaItem = {
+        ...existing,
+        id: canonicalKey,
+        imdbId: existing.imdbId || item.imdbId,
+        tmdbId: existing.tmdbId || item.tmdbId,
+        posterUrl: existing.posterUrl || item.posterUrl,
+        fallbackPosterUrl: existing.fallbackPosterUrl || item.fallbackPosterUrl,
+        backdropUrl: existing.backdropUrl || item.backdropUrl,
+        overview: existing.overview && existing.overview.length > 20 ? existing.overview : (item.overview || existing.overview),
+        genres: Array.from(new Set([...(existing.genres || []), ...(item.genres || [])])),
+        cast: existing.cast && existing.cast.length > 0 ? existing.cast : (item.cast || []),
+        crew: existing.crew && existing.crew.length > 0 ? existing.crew : (item.crew || []),
+        providers: existing.providers && existing.providers.length > 0 ? existing.providers : (item.providers || []),
+        seasonsCount: Math.max(existing.seasonsCount || 0, item.seasonsCount || 0) || undefined,
+        episodesCount: Math.max(existing.episodesCount || 0, item.episodesCount || 0) || undefined,
+        seasons: existing.seasons && existing.seasons.length > 0 ? existing.seasons : item.seasons,
+      };
+      canonicalMap.set(canonicalKey, merged);
+    }
+  }
+
+  const cleanMedia = Array.from(canonicalMap.values());
+
+  // 2. Consolidate PersonalMediaStates for all duplicate alias keys
+  const cleanStates: Record<string, PersonalMediaState> = {};
+  for (const [id, st] of Object.entries(rawStates)) {
+    if (!st) continue;
+    const itemInMedia = rawMedia.find(m => m.id === id);
+    const canonicalKey = idToCanonical.get(id) || (itemInMedia ? getCanonicalKeyForItem(itemInMedia) : id);
+
+    const prevSt = cleanStates[canonicalKey];
+    if (!prevSt) {
+      cleanStates[canonicalKey] = { ...st, mediaId: canonicalKey };
+    } else {
+      cleanStates[canonicalKey] = {
+        mediaId: canonicalKey,
+        inWatchlist: prevSt.inWatchlist || st.inWatchlist,
+        isWatched: prevSt.isWatched || st.isWatched,
+        isFavorite: prevSt.isFavorite || st.isFavorite,
+        progressPercent: Math.max(prevSt.progressPercent || 0, st.progressPercent || 0),
+        personalRating: prevSt.personalRating || st.personalRating,
+        notes: [prevSt.notes, st.notes].filter(Boolean).join('\n') || undefined,
+        addedAt: prevSt.addedAt || st.addedAt,
+        favoritedAt: prevSt.favoritedAt || st.favoritedAt,
+        lastWatchedAt: prevSt.lastWatchedAt || st.lastWatchedAt,
+        tvProgress: prevSt.tvProgress || st.tvProgress,
+      };
+    }
+  }
+
+  // 3. Remap item IDs in Custom Lists
+  const cleanLists = rawLists.map(list => {
+    const remappedIds = list.itemIds.map(id => idToCanonical.get(id) || id);
+    const uniqueIds = Array.from(new Set(remappedIds));
+    return { ...list, itemIds: uniqueIds };
+  });
+
+  return { cleanMedia, cleanStates, cleanLists };
+}
 
 export function useMediaLibrary() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -83,17 +159,15 @@ export function useMediaLibrary() {
       saveUserStates({});
       saveCustomLists([]);
       try {
-        localStorage.removeItem('ehsaan_change_log_entries_v1');
-        localStorage.removeItem('ehsaan_change_log_counter_v1');
-        localStorage.removeItem('ehsaan_change_log_checkpoint_v1');
-        localStorage.removeItem('ehsaan_changelog_explicitly_cleared');
+        localStorage.removeItem('ehsaan_recent_changes_entries');
+        localStorage.removeItem('ehsaan_recent_changes_counter');
+        localStorage.removeItem('ehsaan_recent_changes_checkpoint');
       } catch {
         // ignore
       }
       localStorage.setItem('ehsaan_clean_start_v8', 'true');
     }
 
-    setMediaItems(loadedMedia);
     setUserStates(cleanStates);
     setCustomLists(loadedLists);
     setSettings(loadedSettings);
@@ -102,47 +176,49 @@ export function useMediaLibrary() {
     document.documentElement.setAttribute('data-font', loadedSettings.tweaks?.fontFamily || 'google-sans-flex');
 
     const initCatalog = async () => {
-      let fetchedCatalog: MediaItem[] = [];
-      const hasLegacyMockItems = loadedMedia.some(m => m.id === 'm-dune-2' || m.id === 'm-oppenheimer' || m.id === 'm-interstellar');
+      let currentMedia = loadedMedia;
+      const hasLegacyMockItems = currentMedia.some(m => m.id === 'm-dune-2' || m.id === 'm-oppenheimer' || m.id === 'm-interstellar');
 
       // Fetch top Netflix titles and 50+ Explore titles if catalog has fewer than 40 items or legacy mocks
-      if (!loadedMedia || loadedMedia.length < 40 || hasLegacyMockItems) {
+      if (!currentMedia || currentMedia.length < 40 || hasLegacyMockItems) {
         try {
           const [netflixMovies, netflixSeries, exploreItems] = await Promise.all([
-            fetchNetflixTop10Movies(loadedSettings.tmdbApiKey),
-            fetchNetflixTop10Series(loadedSettings.tmdbApiKey),
+            fetchNetflixTop10Movies(loadedSettings.omdbApiKey),
+            fetchNetflixTop10Series(loadedSettings.omdbApiKey),
             fetchExploreRecommendations(
               loadedSettings.recommendationProvider || 'tmdb',
               loadedSettings.tmdbApiKey,
               loadedSettings.omdbApiKey
             ),
           ]);
-          fetchedCatalog = [...netflixMovies, ...netflixSeries, ...exploreItems];
+          
+          const combined = [...netflixMovies, ...netflixSeries, ...exploreItems];
+          const uniqueMap = new Map<string, MediaItem>();
+          
+          // Preserve any existing items
+          for (const item of (currentMedia || [])) {
+            if (!item.id.includes('m-dune-2') && !item.id.includes('m-oppenheimer') && !item.id.includes('m-interstellar')) {
+              uniqueMap.set(item.id, item);
+            }
+          }
+          
+          for (const item of combined) {
+            if (!uniqueMap.has(item.id)) {
+              uniqueMap.set(item.id, item);
+            }
+          }
+          
+          currentMedia = Array.from(uniqueMap.values());
+          if (currentMedia.length > 0) {
+            saveMediaCache(currentMedia);
+          }
         } catch (err) {
           console.error('Failed to fetch live titles:', err);
         }
       }
 
-      // CRITICAL: Re-read latest storage AFTER async network await so we NEVER overwrite
-      // watchlist items/states that executeFullSync() or Realtime synced while catalog was loading!
-      const latestMedia = loadMediaCache();
-      const latestStates = loadUserStates();
-      const latestLists = loadCustomLists();
-
-      const uniqueMap = new Map<string, MediaItem>();
-      for (const item of (latestMedia || [])) {
-        if (!item.id.includes('m-dune-2') && !item.id.includes('m-oppenheimer') && !item.id.includes('m-interstellar')) {
-          uniqueMap.set(item.id, item);
-        }
-      }
-      for (const item of fetchedCatalog) {
-        if (!uniqueMap.has(item.id)) {
-          uniqueMap.set(item.id, item);
-        }
-      }
-
       // Auto-repair any TV series with outdated seasons metadata (e.g. Breaking Bad with 1 season)
-      const repairedMedia = Array.from(uniqueMap.values()).map(item => {
+      const repairedMedia = (currentMedia || []).map(item => {
         if (item.type === 'tv' && item.id) {
           const meta = getTVShowInitialMetadata(item.id);
           if (meta && (!item.seasonsCount || item.seasonsCount < meta.seasonsCount || !item.seasons)) {
@@ -160,7 +236,7 @@ export function useMediaLibrary() {
       // Ensure all items in user states that have progress or are in watchlist exist in mediaItems
       const exploreFallbackItems = getCuratedExploreMediaItems();
       const existingIds = new Set(repairedMedia.map(m => m.id));
-      for (const [stateId, st] of Object.entries(latestStates)) {
+      for (const [stateId, st] of Object.entries(cleanStates)) {
         if (!existingIds.has(stateId) && (st.inWatchlist || (st.progressPercent && st.progressPercent > 0))) {
           const found = exploreFallbackItems.find(m => m.id === stateId);
           if (found) {
@@ -170,11 +246,8 @@ export function useMediaLibrary() {
         }
       }
 
-      const { cleanMedia, cleanStates: dedupedStates, cleanLists } = deduplicateMediaItemsAndStates(
-        repairedMedia,
-        latestStates,
-        latestLists
-      );
+      const finalMedia = repairedMedia;
+      const { cleanMedia, cleanStates: dedupedStates, cleanLists } = deduplicateMediaItemsAndStates(finalMedia, cleanStates, loadedLists);
       saveMediaCache(cleanMedia);
       saveUserStates(dedupedStates);
       saveCustomLists(cleanLists);
@@ -187,82 +260,16 @@ export function useMediaLibrary() {
     initCatalog();
   }, []);
 
-  // Force refresh in-memory state from storage (used after delta merge or Supabase sync)
+  // Force refresh in-memory state from storage (used after delta merge)
   const refreshLibrary = useCallback(() => {
     const rawMedia = loadMediaCache();
     const rawStates = loadUserStates();
     const rawLists = loadCustomLists();
     const { cleanMedia, cleanStates: dedupedStates, cleanLists } = deduplicateMediaItemsAndStates(rawMedia, rawStates, rawLists);
-    if (
-      cleanMedia.length !== rawMedia.length ||
-      Object.keys(dedupedStates).length !== Object.keys(rawStates).length
-    ) {
-      saveMediaCache(cleanMedia);
-      saveUserStates(dedupedStates);
-      saveCustomLists(cleanLists);
-    }
     setMediaItems(cleanMedia);
     setUserStates(dedupedStates);
     setCustomLists(cleanLists);
   }, []);
-
-  // Listen for Supabase Realtime & cloud sync events to refresh local in-memory state
-  useEffect(() => {
-    const handleLibraryChange = () => {
-      refreshLibrary();
-    };
-
-    window.addEventListener('ehsaan:library-change', handleLibraryChange);
-
-    // Initialize Supabase cross-device sync if user has connected their database
-    const cleanupGlobalListeners = initGlobalSyncListeners();
-    let cleanupRealtime = () => {};
-    let cleanupAuth = () => {};
-
-    const activateCloudSync = () => {
-      const config = loadSupabaseConfig();
-      if (!config) return;
-      getCloudSession().then(async session => {
-        const user = session?.user || (await getCloudUser());
-        if (user) {
-          cleanupRealtime();
-          cleanupRealtime = initializeRealtimeSubscription();
-          executeFullSync();
-        }
-      });
-    };
-
-    const attachAuthListener = () => {
-      cleanupAuth();
-      cleanupAuth = subscribeToAuthChanges(user => {
-        if (user) {
-          cleanupRealtime();
-          cleanupRealtime = initializeRealtimeSubscription();
-          executeFullSync();
-        } else {
-          cleanupRealtime();
-          cleanupRealtime = () => {};
-        }
-      });
-    };
-
-    const handleConfigChange = () => {
-      attachAuthListener();
-      activateCloudSync();
-    };
-
-    window.addEventListener('ehsaan:supabase-config-change', handleConfigChange);
-    attachAuthListener();
-    activateCloudSync();
-
-    return () => {
-      window.removeEventListener('ehsaan:library-change', handleLibraryChange);
-      window.removeEventListener('ehsaan:supabase-config-change', handleConfigChange);
-      cleanupGlobalListeners();
-      cleanupAuth();
-      cleanupRealtime();
-    };
-  }, [refreshLibrary]);
 
   // Update theme, color scheme & font on settings change
   const updateSettings = useCallback((partial: Partial<UserSettings>) => {
@@ -285,42 +292,20 @@ export function useMediaLibrary() {
   // Helper to ensure a personal state exists
   const getOrCreateState = useCallback(
     (mediaId: string, existingStates: Record<string, PersonalMediaState>): PersonalMediaState => {
-      const nowIso = new Date().toISOString();
       return (
         existingStates[mediaId] || {
           mediaId,
           inWatchlist: false,
           isWatched: false,
           isFavorite: false,
-          addedAt: nowIso,
-          updatedAt: nowIso,
+          addedAt: new Date().toISOString(),
         }
       );
     },
     []
   );
 
-  // Synchronously persist a MediaItem into local cache + React state so subsequent state calls always see it
-  const upsertMediaCacheSync = useCallback((item: MediaItem): MediaItem => {
-    const currentMedia = loadMediaCache();
-    const match = currentMedia.find(m => areMediaItemsSame(m, item));
-    let savedItem: MediaItem;
-    let nextList: MediaItem[];
-
-    if (match) {
-      savedItem = { ...match, ...item, id: match.id };
-      nextList = currentMedia.map(m => (m.id === match.id ? savedItem : m));
-    } else {
-      savedItem = item;
-      nextList = [item, ...currentMedia];
-    }
-
-    saveMediaCache(nextList);
-    setMediaItems(nextList);
-    return savedItem;
-  }, []);
-
-  // Hydrate item with rich details using TMDB with automatic OMDb fallback
+  // Hydrate item with rich details using OMDb with automatic OMDb fallback
   const hydrateMediaDetails = useCallback(async (item: MediaItem) => {
     try {
       const { details } = await fetchDetailsWithFallback(item, settings.tmdbApiKey, settings.omdbApiKey);
@@ -338,9 +323,6 @@ export function useMediaLibrary() {
       const enriched: MediaItem = {
         ...item,
         ...details,
-        id: item.id, // Strictly preserve original item.id to prevent key shifting and duplicate states
-        imdbId: details.imdbId || item.imdbId,
-        tmdbId: details.tmdbId || item.tmdbId,
         genres: details.genres || item.genres || [],
         cast: details.cast && details.cast.length > 0 ? details.cast : item.cast,
         crew: details.crew && details.crew.length > 0 ? details.crew : item.crew,
@@ -350,21 +332,16 @@ export function useMediaLibrary() {
         seasons,
       };
 
-      const latestMedia = loadMediaCache();
-      const matched = latestMedia.find(m => m.id === item.id || areMediaItemsSame(m, item));
-      const finalEnriched = matched ? { ...enriched, id: matched.id } : enriched;
-      const next = matched
-        ? latestMedia.map(m => (m.id === matched.id ? finalEnriched : m))
-        : [...latestMedia, finalEnriched];
-      saveMediaCache(next);
-      setMediaItems(next);
+      setMediaItems(prev => {
+        const next = prev.map(m => (m.id === item.id ? enriched : m));
+        if (!next.some(m => m.id === item.id)) {
+          next.push(enriched);
+        }
+        saveMediaCache(next);
+        return next;
+      });
 
-      const latestStates = loadUserStates();
-      if (hasStateInteraction(latestStates[finalEnriched.id])) {
-        syncMediaItemToCloud(finalEnriched);
-      }
-
-      return finalEnriched;
+      return enriched;
     } catch {
       const meta = item.type === 'tv' && item.id ? getTVShowInitialMetadata(item.id) : undefined;
       if (meta && item.type === 'tv') {
@@ -378,641 +355,613 @@ export function useMediaLibrary() {
       }
       return item;
     }
-  }, [settings.omdbApiKey, settings.tmdbApiKey]);
+  }, [settings.omdbApiKey, settings.omdbApiKey]);
 
-  // Helper to resolve target MediaItem & canonicalId using both React state and localStorage cache
-  const resolveTargetMediaAndId = useCallback(
-    (mediaId: string, optionalItem?: MediaItem): { canonicalId: string; mediaItem?: MediaItem } => {
-      const cache = loadMediaCache();
-      const target =
-        optionalItem ||
-        mediaItems.find(m => m.id === mediaId) ||
-        cache.find(m => m.id === mediaId);
-      const matched = target
-        ? (cache.find(m => areMediaItemsSame(m, target)) || mediaItems.find(m => areMediaItemsSame(m, target)))
-        : undefined;
-      const canonicalId = matched ? matched.id : mediaId;
-      let mediaItem = matched || target;
-      if (optionalItem && !matched) {
-        mediaItem = upsertMediaCacheSync(optionalItem);
-      } else if (mediaItem && !cache.some(m => m.id === mediaItem!.id)) {
-        mediaItem = upsertMediaCacheSync(mediaItem);
-      }
-      return { canonicalId, mediaItem };
-    },
-    [mediaItems, upsertMediaCacheSync]
-  );
-
-  // Toggle Watchlist with comprehensive deduplication & guaranteed media-item + state cloud sync
+  // Toggle Watchlist
   const toggleWatchlist = useCallback((mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nextWatchlist = !current.inWatchlist;
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      inWatchlist: nextWatchlist,
-      updatedAt: nowIso,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-
-    if (mediaId !== canonicalId) {
-      updated[mediaId] = {
-        ...getOrCreateState(mediaId, prev),
-        mediaId,
-        inWatchlist: nextWatchlist,
-        updatedAt: nowIso,
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const nextWatchlist = !current.inWatchlist;
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          inWatchlist: nextWatchlist,
+        },
       };
-    }
+      saveUserStates(updated);
+      const mediaItem = optionalItem || mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, {
+        state: { inWatchlist: nextWatchlist },
+        mediaItem,
+      });
 
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
+      if (mediaItem && nextWatchlist) {
+        setMediaItems(prevItems => {
+          if (!prevItems.some(m => m.id === mediaItem.id)) {
+            const nextList = [mediaItem, ...prevItems];
+            saveMediaCache(nextList);
+            return nextList;
+          }
+          return prevItems;
+        });
+      }
+
+      return updated;
     });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
+  }, [getOrCreateState, mediaItems]);
 
   // Quick action: Remove from Watchlist
   const removeFromWatchlist = useCallback((mediaId: string) => {
-    const cache = loadMediaCache();
-    const allMedia = cache.length > 0 ? cache : mediaItems;
-    const target = allMedia.find(m => m.id === mediaId);
+    const target = mediaItems.find(m => m.id === mediaId);
     const targetImdbId = target?.imdbId;
     const targetTmdbId = target?.tmdbId;
-    const targetTitleKey = target
-      ? `${target.type || 'movie'}-${normalizeMediaTitle(target.title)}-${target.year}`
-      : null;
+    const targetTitleKey = target ? `${target.type || 'movie'}-${(target.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '')}-${target.year}` : null;
 
-    const prev = loadUserStates();
-    const updated = { ...prev };
-    const nowIso = new Date().toISOString();
-    const touchedIds: string[] = [];
+    setUserStates(prev => {
+      const updated = { ...prev };
+      for (const key of Object.keys(updated)) {
+        const item = mediaItems.find(m => m.id === key);
+        const matchesId = key === mediaId;
+        const matchesImdb = !!(targetImdbId && item?.imdbId === targetImdbId);
+        const matchesTmdb = !!(targetTmdbId && item?.tmdbId === targetTmdbId);
+        const matchesTitle = !!(targetTitleKey && item && `${item.type || 'movie'}-${(item.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '')}-${item.year}` === targetTitleKey);
 
-    for (const key of Object.keys(updated)) {
-      const item = allMedia.find(m => m.id === key);
-      const matchesId = key === mediaId;
-      const matchesImdb = !!(targetImdbId && item?.imdbId === targetImdbId);
-      const matchesTmdb = !!(targetTmdbId && item?.tmdbId === targetTmdbId);
-      const matchesTitle = !!(
-        targetTitleKey &&
-        item &&
-        `${item.type || 'movie'}-${normalizeMediaTitle(item.title)}-${item.year}` === targetTitleKey
-      );
-
-      if (matchesId || matchesImdb || matchesTmdb || matchesTitle) {
-        updated[key] = {
-          ...updated[key],
-          inWatchlist: false,
-          isWatched: false,
-          progressPercent: 0,
-          updatedAt: nowIso,
-        };
-        touchedIds.push(key);
+        if (matchesId || matchesImdb || matchesTmdb || matchesTitle) {
+          updated[key] = {
+            ...updated[key],
+            inWatchlist: false,
+            isWatched: false,
+            progressPercent: 0,
+          };
+        }
       }
-    }
-
-    saveUserStates(updated);
-    setUserStates(updated);
-
-    const idsToSync = touchedIds.length > 0 ? touchedIds : [mediaId];
-    for (const id of idsToSync) {
-      recordLibraryChange('update_state', id, {
-        state: { inWatchlist: false, isWatched: false, progressPercent: 0, updatedAt: nowIso },
+      saveUserStates(updated);
+      recordLibraryChange('update_state', mediaId, {
+        state: { inWatchlist: false, isWatched: false, progressPercent: 0 },
         mediaItem: target,
       });
-    }
+      return updated;
+    });
   }, [mediaItems]);
 
   // Quick action: Dismiss from Continue Watching
   const dismissFromWatching = useCallback((mediaId: string) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      progressPercent: 0,
-      updatedAt: nowIso,
-      tvProgress: current.tvProgress
-        ? {
-            ...current.tvProgress,
-            completedEpisodes: {},
-          }
-        : undefined,
-    };
-
-    const updated = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: { progressPercent: 0, updatedAt: nowIso },
-      mediaItem,
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          progressPercent: 0,
+          tvProgress: current.tvProgress
+            ? {
+                ...current.tvProgress,
+                completedEpisodes: {},
+              }
+            : undefined,
+        },
+      };
+      saveUserStates(updated);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, { state: { progressPercent: 0 }, mediaItem });
+      return updated;
     });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
-
-  // Build complete episode map consistently across markWatched & toggleWatched
-  const buildCompletedTVProgress = useCallback((mediaItem?: MediaItem) => {
-    if (!mediaItem || mediaItem.type !== 'tv') return undefined;
-    const knownMeta = mediaItem.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
-    const seasonsList = mediaItem.seasons && mediaItem.seasons.length > 0 ? mediaItem.seasons : knownMeta?.seasons;
-    const seasons = Math.max(mediaItem.seasonsCount || 0, knownMeta?.seasonsCount || 0, seasonsList?.length || 0, 1);
-    const totalEp = Math.max(
-      mediaItem.episodesCount || 0,
-      knownMeta?.episodesCount || 0,
-      seasonsList?.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0) || 0,
-      seasons * 8
-    );
-    const epPerSeason = Math.ceil(totalEp / seasons);
-    const completedEpisodes: Record<string, boolean> = {};
-    let lastSeasonEpCount = epPerSeason;
-
-    for (let s = 1; s <= seasons; s++) {
-      const sCount = seasonsList?.find((sn: SeasonInfo) => sn.seasonNumber === s)?.episodeCount || epPerSeason;
-      if (s === seasons) lastSeasonEpCount = sCount;
-      for (let e = 1; e <= sCount; e++) {
-        completedEpisodes[`s${s}e${e}`] = true;
-      }
-    }
-
-    return {
-      currentSeason: seasons,
-      currentEpisode: lastSeasonEpCount,
-      completedEpisodes,
-    };
-  }, []);
+  }, [getOrCreateState, mediaItems]);
 
   // Quick action: Mark Watching / In Progress
-  const markWatching = useCallback((mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nextProgress = (current.progressPercent && current.progressPercent > 0 && current.progressPercent < 100)
-      ? current.progressPercent
-      : 50;
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      inWatchlist: true,
-      isWatched: false,
-      progressPercent: nextProgress,
-      lastWatchedAt: nowIso,
-      updatedAt: nowIso,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
+  const markWatching = useCallback((mediaId: string) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const nextProgress = (current.progressPercent && current.progressPercent > 0 && current.progressPercent < 100)
+        ? current.progressPercent
+        : 50;
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          inWatchlist: true,
+          isWatched: false,
+          progressPercent: nextProgress,
+          lastWatchedAt: new Date().toISOString(),
+        },
+      };
+      saveUserStates(updated);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, {
+        state: { inWatchlist: true, isWatched: false, progressPercent: nextProgress },
+        mediaItem,
+      });
+      return updated;
     });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
+  }, [getOrCreateState, mediaItems]);
 
   // Quick action: Mark Watched (100%)
-  const markWatched = useCallback((mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nextTvProgress = mediaItem?.type === 'tv'
-      ? buildCompletedTVProgress(mediaItem)
-      : current.tvProgress;
+  const markWatched = useCallback((mediaId: string) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      let nextTvProgress = current.tvProgress;
 
-    const nowIso = new Date().toISOString();
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      isWatched: true,
-      progressPercent: 100,
-      lastWatchedAt: nowIso,
-      updatedAt: nowIso,
-      tvProgress: nextTvProgress,
-    };
+      if (mediaItem && mediaItem.type === 'tv') {
+        const seasons = mediaItem.seasonsCount || 1;
+        const totalEp = mediaItem.episodesCount || seasons * 8;
+        const epPerSeason = Math.ceil(totalEp / seasons);
+        const allCompleted: Record<string, boolean> = {};
+        for (let s = 1; s <= seasons; s++) {
+          for (let e = 1; e <= epPerSeason; e++) {
+            allCompleted[`s${s}e${e}`] = true;
+          }
+        }
+        nextTvProgress = {
+          currentSeason: seasons,
+          currentEpisode: epPerSeason,
+          completedEpisodes: allCompleted,
+        };
+      }
 
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          isWatched: true,
+          progressPercent: 100,
+          lastWatchedAt: new Date().toISOString(),
+          tvProgress: nextTvProgress,
+        },
+      };
+      saveUserStates(updated);
+      recordLibraryChange('update_state', mediaId, {
+        state: { isWatched: true, progressPercent: 100, tvProgress: nextTvProgress },
+        mediaItem,
+      });
+      return updated;
     });
-  }, [buildCompletedTVProgress, getOrCreateState, resolveTargetMediaAndId]);
+  }, [getOrCreateState, mediaItems]);
 
   // Toggle Watched - Unwatched -> Watched (100%), Watching -> Watched (100%), Watched -> Unwatched (0%)
   const toggleWatched = useCallback((mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const isWatched = !!current.isWatched;
-    const isWatching = !isWatched && (current.progressPercent || 0) > 0;
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const isWatched = !!current.isWatched;
+      const isWatching = !isWatched && (current.progressPercent || 0) > 0;
+      const mediaItem = optionalItem || mediaItems.find(m => m.id === mediaId);
 
-    let nextIsWatched = false;
-    let nextProgressPercent = 0;
-    let nextTvProgress = current.tvProgress;
+      let nextIsWatched = false;
+      let nextProgressPercent = 0;
+      let nextTvProgress = current.tvProgress;
 
-    if (!isWatched || isWatching) {
-      nextIsWatched = true;
-      nextProgressPercent = 100;
-      if (mediaItem?.type === 'tv') {
-        nextTvProgress = buildCompletedTVProgress(mediaItem);
-      }
-    } else {
-      nextIsWatched = false;
-      nextProgressPercent = 0;
-      if (mediaItem?.type === 'tv') {
-        nextTvProgress = {
-          currentSeason: 1,
-          currentEpisode: 1,
-          completedEpisodes: {},
-        };
-      }
-    }
+      if (!isWatched && !isWatching) {
+        // State 1 (Unwatched) -> State 2 (Watched 100%)
+        nextIsWatched = true;
+        nextProgressPercent = 100;
 
-    const nowIso = new Date().toISOString();
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      isWatched: nextIsWatched,
-      progressPercent: nextProgressPercent,
-      lastWatchedAt: nowIso,
-      updatedAt: nowIso,
-      tvProgress: nextTvProgress,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
-    });
-  }, [buildCompletedTVProgress, getOrCreateState, resolveTargetMediaAndId]);
-
-  // Toggle Favorite
-  const toggleFavorite = useCallback((mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nextFavorite = !current.isFavorite;
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      isFavorite: nextFavorite,
-      favoritedAt: nextFavorite ? nowIso : undefined,
-      updatedAt: nowIso,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
-    });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
-
-  // Set Personal Rating & Rating Tag
-  const setPersonalRating = useCallback((mediaId: string, rating: number | undefined, ratingTag?: RatingTagId, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      personalRating: rating,
-      ratingTag: ratingTag,
-      updatedAt: nowIso,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
-    });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
-
-  // Set Personal Notes
-  const setNotes = useCallback((mediaId: string, notes: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const nowIso = new Date().toISOString();
-
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      notes,
-      updatedAt: nowIso,
-    };
-
-    const updated: Record<string, PersonalMediaState> = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    if (mediaId !== canonicalId && prev[mediaId]) {
-      updated[mediaId] = { ...updatedState, mediaId };
-    }
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
-    });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
-
-  // Set Progress (0 - 100%)
-  const setProgress = useCallback((mediaId: string, progressPercent: number, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadUserStates();
-    const current = getOrCreateState(canonicalId, prev);
-    const isComplete = progressPercent >= 95;
-    let nextTvProgress = current.tvProgress;
-
-    if (mediaItem && mediaItem.type === 'tv') {
-      const knownMeta = mediaItem.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
-      const seasons = Math.max(mediaItem.seasonsCount || 0, knownMeta?.seasonsCount || 0, 1);
-      const seasonsList = mediaItem.seasons || knownMeta?.seasons;
-      const totalEp = seasonsList && seasonsList.length > 0
-        ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
-        : Math.max(mediaItem.episodesCount || 0, knownMeta?.episodesCount || 0, seasons * 8);
-
-      const epPerSeason = Math.ceil(totalEp / seasons);
-      const targetCompletedCount = Math.round((progressPercent / 100) * totalEp);
-      const newCompleted: Record<string, boolean> = {};
-
-      let count = 0;
-      let lastSeason = 1;
-      let lastEp = 1;
-      for (let s = 1; s <= seasons; s++) {
-        const sCount = seasonsList?.find((sn: SeasonInfo) => sn.seasonNumber === s)?.episodeCount || epPerSeason;
-        for (let e = 1; e <= sCount; e++) {
-          if (count < targetCompletedCount) {
-            newCompleted[`s${s}e${e}`] = true;
-            lastSeason = s;
-            lastEp = e;
-            count++;
+        if (mediaItem && mediaItem.type === 'tv') {
+          const knownMeta = mediaItem.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
+          const seasons = Math.max(mediaItem.seasonsCount || 0, knownMeta?.seasonsCount || 0, 1);
+          const totalEp = Math.max(
+            mediaItem.episodesCount || 0,
+            knownMeta?.episodesCount || 0,
+            (mediaItem.seasons || knownMeta?.seasons)?.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0) || 0,
+            seasons * 8
+          );
+          const epPerSeason = Math.ceil(totalEp / seasons);
+          const newCompleted: Record<string, boolean> = {};
+          for (let s = 1; s <= seasons; s++) {
+            const sCount = (mediaItem.seasons || knownMeta?.seasons)?.find((sn: SeasonInfo) => sn.seasonNumber === s)?.episodeCount || epPerSeason;
+            for (let e = 1; e <= sCount; e++) {
+              newCompleted[`s${s}e${e}`] = true;
+            }
           }
+          nextTvProgress = {
+            currentSeason: seasons,
+            currentEpisode: epPerSeason,
+            completedEpisodes: newCompleted,
+          };
+        }
+      } else if (isWatching) {
+        // State 2 (Watching) -> Mark fully Watched (100%)
+        nextIsWatched = true;
+        nextProgressPercent = 100;
+
+        if (mediaItem && mediaItem.type === 'tv') {
+          const knownMeta = mediaItem.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
+          const seasons = Math.max(mediaItem.seasonsCount || 0, knownMeta?.seasonsCount || 0, 1);
+          const totalEp = Math.max(
+            mediaItem.episodesCount || 0,
+            knownMeta?.episodesCount || 0,
+            (mediaItem.seasons || knownMeta?.seasons)?.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0) || 0,
+            seasons * 8
+          );
+          const epPerSeason = Math.ceil(totalEp / seasons);
+          const newCompleted: Record<string, boolean> = {};
+          for (let s = 1; s <= seasons; s++) {
+            const sCount = (mediaItem.seasons || knownMeta?.seasons)?.find((sn: SeasonInfo) => sn.seasonNumber === s)?.episodeCount || epPerSeason;
+            for (let e = 1; e <= sCount; e++) {
+              newCompleted[`s${s}e${e}`] = true;
+            }
+          }
+          nextTvProgress = {
+            currentSeason: seasons,
+            currentEpisode: epPerSeason,
+            completedEpisodes: newCompleted,
+          };
+        }
+      } else {
+        // State 3 (Watched) -> Reset to Unwatched (0%)
+        nextIsWatched = false;
+        nextProgressPercent = 0;
+
+        if (mediaItem && mediaItem.type === 'tv') {
+          nextTvProgress = {
+            currentSeason: 1,
+            currentEpisode: 1,
+            completedEpisodes: {},
+          };
         }
       }
 
-      nextTvProgress = {
-        currentSeason: lastSeason,
-        currentEpisode: lastEp,
-        completedEpisodes: newCompleted,
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          isWatched: nextIsWatched,
+          progressPercent: nextProgressPercent,
+          lastWatchedAt: new Date().toISOString(),
+          tvProgress: nextTvProgress,
+        },
       };
-    }
+      saveUserStates(updated);
+      recordLibraryChange('update_state', mediaId, {
+        state: { isWatched: nextIsWatched, progressPercent: nextProgressPercent, tvProgress: nextTvProgress },
+        mediaItem,
+      });
 
-    const nextWatched = isComplete ? true : false;
-    const inWatchlist = progressPercent > 0 ? true : current.inWatchlist;
-    const nowIso = new Date().toISOString();
+      if (mediaItem) {
+        setMediaItems(prevItems => {
+          if (!prevItems.some(m => m.id === mediaItem.id)) {
+            const nextList = [mediaItem, ...prevItems];
+            saveMediaCache(nextList);
+            return nextList;
+          }
+          return prevItems;
+        });
+      }
 
-    const updatedState: PersonalMediaState = {
-      ...current,
-      mediaId: canonicalId,
-      progressPercent,
-      isWatched: nextWatched,
-      inWatchlist,
-      lastWatchedAt: nowIso,
-      updatedAt: nowIso,
-      tvProgress: nextTvProgress,
-    };
-
-    const updated = {
-      ...prev,
-      [canonicalId]: updatedState,
-    };
-    saveUserStates(updated);
-    setUserStates(updated);
-    recordLibraryChange('update_state', canonicalId, {
-      state: updatedState,
-      mediaItem,
+      return updated;
     });
-  }, [getOrCreateState, resolveTargetMediaAndId]);
+  }, [getOrCreateState, mediaItems]);
+
+  // Toggle Favorite
+  const toggleFavorite = useCallback((mediaId: string) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const nextFavorite = !current.isFavorite;
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          isFavorite: nextFavorite,
+          favoritedAt: nextFavorite ? new Date().toISOString() : undefined,
+        },
+      };
+      saveUserStates(updated);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, { state: { isFavorite: nextFavorite }, mediaItem });
+      return updated;
+    });
+  }, [getOrCreateState, mediaItems]);
+
+  // Set Personal Rating & Rating Tag
+  const setPersonalRating = useCallback((mediaId: string, rating: number | undefined, ratingTag?: RatingTagId) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          personalRating: rating,
+          ratingTag: ratingTag,
+        },
+      };
+      saveUserStates(updated);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, { state: { personalRating: rating, ratingTag }, mediaItem });
+      return updated;
+    });
+  }, [getOrCreateState, mediaItems]);
+
+  // Set Personal Notes
+  const setNotes = useCallback((mediaId: string, notes: string) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          notes,
+        },
+      };
+      saveUserStates(updated);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('update_state', mediaId, { state: { notes }, mediaItem });
+      return updated;
+    });
+  }, [getOrCreateState, mediaItems]);
+
+  // Set Progress (0 - 100%)
+  const setProgress = useCallback((mediaId: string, progressPercent: number, optionalItem?: MediaItem) => {
+    setUserStates(prev => {
+      const current = getOrCreateState(mediaId, prev);
+      const isComplete = progressPercent >= 95;
+      const mediaItem = optionalItem || mediaItems.find(m => m.id === mediaId);
+      let nextTvProgress = current.tvProgress;
+
+      if (mediaItem && mediaItem.type === 'tv') {
+        const knownMeta = mediaItem.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
+        const seasons = Math.max(mediaItem.seasonsCount || 0, knownMeta?.seasonsCount || 0, 1);
+        const seasonsList = mediaItem.seasons || knownMeta?.seasons;
+        const totalEp = seasonsList && seasonsList.length > 0
+          ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
+          : Math.max(mediaItem.episodesCount || 0, knownMeta?.episodesCount || 0, seasons * 8);
+
+        const epPerSeason = Math.ceil(totalEp / seasons);
+        const targetCompletedCount = Math.round((progressPercent / 100) * totalEp);
+        const newCompleted: Record<string, boolean> = {};
+
+        let count = 0;
+        let lastSeason = 1;
+        let lastEp = 1;
+        for (let s = 1; s <= seasons; s++) {
+          const sCount = seasonsList?.find((sn: SeasonInfo) => sn.seasonNumber === s)?.episodeCount || epPerSeason;
+          for (let e = 1; e <= sCount; e++) {
+            if (count < targetCompletedCount) {
+              newCompleted[`s${s}e${e}`] = true;
+              lastSeason = s;
+              lastEp = e;
+              count++;
+            }
+          }
+        }
+
+        nextTvProgress = {
+          currentSeason: lastSeason,
+          currentEpisode: lastEp,
+          completedEpisodes: newCompleted,
+        };
+      }
+
+      // CRITICAL FIX: In-progress between 1% and 94% is strictly NOT watched.
+      // Automatically keep in watchlist while actively watching.
+      const nextWatched = isComplete ? true : false;
+      const inWatchlist = progressPercent > 0 ? true : current.inWatchlist;
+
+      const updated = {
+        ...prev,
+        [mediaId]: {
+          ...current,
+          progressPercent,
+          isWatched: nextWatched,
+          inWatchlist,
+          lastWatchedAt: new Date().toISOString(),
+          tvProgress: nextTvProgress,
+        },
+      };
+      saveUserStates(updated);
+      recordLibraryChange('update_state', mediaId, {
+        state: { progressPercent, isWatched: nextWatched, inWatchlist, tvProgress: nextTvProgress },
+        mediaItem,
+      });
+
+      if (mediaItem) {
+        setMediaItems(prevItems => {
+          if (!prevItems.some(m => m.id === mediaItem.id)) {
+            const nextList = [mediaItem, ...prevItems];
+            saveMediaCache(nextList);
+            return nextList;
+          }
+          return prevItems;
+        });
+      }
+
+      return updated;
+    });
+  }, [getOrCreateState, mediaItems]);
 
   // Toggle Episode for TV series - Calculates overall series progress directly from episode checks
   const toggleTVEpisode = useCallback(
     (mediaId: string, season: number, episode: number, optionalItem?: MediaItem) => {
-      const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-      const prev = loadUserStates();
-      const current = getOrCreateState(canonicalId, prev);
-      const epKey = `s${season}e${episode}`;
-      const tvProgress = current.tvProgress || {
-        currentSeason: season,
-        currentEpisode: episode,
-        completedEpisodes: {},
-      };
-
-      const currentlyDone = !tvProgress.completedEpisodes[epKey];
-      const nextCompleted = {
-        ...tvProgress.completedEpisodes,
-        [epKey]: currentlyDone,
-      };
-
-      const knownMeta = mediaItem?.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
-      const seasonsList = mediaItem?.seasons || knownMeta?.seasons;
-      const totalSeasons = Math.max(mediaItem?.seasonsCount || 0, knownMeta?.seasonsCount || 0, seasonsList?.length || 0, 1);
-      const totalEpisodes = seasonsList && seasonsList.length > 0
-        ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
-        : Math.max(mediaItem?.episodesCount || 0, knownMeta?.episodesCount || 0, totalSeasons * 8);
-
-      const completedCount = Object.values(nextCompleted).filter(Boolean).length;
-      const calculatedProgress = Math.min(100, Math.round((completedCount / Math.max(1, totalEpisodes)) * 100));
-
-      const isAllDone = totalEpisodes > 1
-        ? completedCount >= totalEpisodes
-        : (completedCount > 0 && totalEpisodes === 1 && totalSeasons === 1);
-
-      const nextProgress = isAllDone ? 100 : Math.min(99, Math.max(calculatedProgress, completedCount > 0 ? 5 : 0));
-      const inWatchlist = completedCount > 0 ? true : current.inWatchlist;
-      const nowIso = new Date().toISOString();
-
-      const updatedState: PersonalMediaState = {
-        ...current,
-        mediaId: canonicalId,
-        progressPercent: nextProgress,
-        isWatched: isAllDone,
-        inWatchlist,
-        lastWatchedAt: nowIso,
-        updatedAt: nowIso,
-        tvProgress: {
+      setUserStates(prev => {
+        const current = getOrCreateState(mediaId, prev);
+        const epKey = `s${season}e${episode}`;
+        const tvProgress = current.tvProgress || {
           currentSeason: season,
           currentEpisode: episode,
-          completedEpisodes: nextCompleted,
-        },
-      };
-
-      const updated: Record<string, PersonalMediaState> = {
-        ...prev,
-        [canonicalId]: updatedState,
-      };
-
-      if (mediaId !== canonicalId) {
-        updated[mediaId] = {
-          ...getOrCreateState(mediaId, prev),
-          ...updatedState,
-          mediaId,
+          completedEpisodes: {},
         };
-      }
 
-      saveUserStates(updated);
-      setUserStates(updated);
-      recordLibraryChange('update_state', canonicalId, {
-        state: updatedState,
-        mediaItem,
+        const currentlyDone = !tvProgress.completedEpisodes[epKey];
+        const nextCompleted = {
+          ...tvProgress.completedEpisodes,
+          [epKey]: currentlyDone,
+        };
+
+        const mediaItem = optionalItem || mediaItems.find(m => m.id === mediaId);
+        const knownMeta = mediaItem?.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
+        const seasonsList = mediaItem?.seasons || knownMeta?.seasons;
+        const totalSeasons = Math.max(mediaItem?.seasonsCount || 0, knownMeta?.seasonsCount || 0, seasonsList?.length || 0, 1);
+        const totalEpisodes = seasonsList && seasonsList.length > 0
+          ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
+          : Math.max(mediaItem?.episodesCount || 0, knownMeta?.episodesCount || 0, totalSeasons * 8);
+
+        const completedCount = Object.values(nextCompleted).filter(Boolean).length;
+        const calculatedProgress = Math.min(100, Math.round((completedCount / Math.max(1, totalEpisodes)) * 100));
+
+        // Series is completed ONLY if all episodes are checked
+        const isAllDone = totalEpisodes > 1
+          ? completedCount >= totalEpisodes
+          : (completedCount > 0 && totalEpisodes === 1 && totalSeasons === 1);
+
+        // Cap in-progress progress to 99% while incomplete, so it stays in Continue Watching!
+        const nextProgress = isAllDone ? 100 : Math.min(99, Math.max(calculatedProgress, completedCount > 0 ? 5 : 0));
+        const inWatchlist = completedCount > 0 ? true : current.inWatchlist;
+
+        const updated = {
+          ...prev,
+          [mediaId]: {
+            ...current,
+            progressPercent: nextProgress,
+            isWatched: isAllDone,
+            inWatchlist,
+            lastWatchedAt: new Date().toISOString(),
+            tvProgress: {
+              currentSeason: season,
+              currentEpisode: episode,
+              completedEpisodes: nextCompleted,
+            },
+          },
+        };
+        saveUserStates(updated);
+        recordLibraryChange('update_state', mediaId, {
+          state: {
+            progressPercent: nextProgress,
+            isWatched: isAllDone,
+            inWatchlist,
+            tvProgress: {
+              currentSeason: season,
+              currentEpisode: episode,
+              completedEpisodes: nextCompleted,
+            },
+          },
+          mediaItem,
+        });
+
+        if (mediaItem) {
+          setMediaItems(prevItems => {
+            if (!prevItems.some(m => m.id === mediaItem.id)) {
+              const nextList = [mediaItem, ...prevItems];
+              saveMediaCache(nextList);
+              return nextList;
+            }
+            return prevItems;
+          });
+        }
+
+        return updated;
       });
     },
-    [getOrCreateState, resolveTargetMediaAndId]
+    [getOrCreateState, mediaItems]
   );
 
   // Toggle All Season Episodes for TV Series
   const toggleSeasonEpisodes = useCallback(
     (mediaId: string, season: number, episodeNumbers: number[], forceMarkDone: boolean, optionalItem?: MediaItem) => {
-      const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-      const prev = loadUserStates();
-      const current = getOrCreateState(canonicalId, prev);
-      const knownMeta = mediaItem?.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
-      const seasonsList = mediaItem?.seasons || knownMeta?.seasons;
-      const totalSeasons = Math.max(mediaItem?.seasonsCount || 0, knownMeta?.seasonsCount || 0, seasonsList?.length || 0, 1);
-      const totalEpisodes = seasonsList && seasonsList.length > 0
-        ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
-        : Math.max(mediaItem?.episodesCount || 0, knownMeta?.episodesCount || 0, totalSeasons * 8);
-
-      const tvProgress = current.tvProgress || {
-        currentSeason: season,
-        currentEpisode: 1,
-        completedEpisodes: {},
-      };
-
-      const nextCompleted = {
-        ...tvProgress.completedEpisodes,
-      };
-
-      for (const ep of episodeNumbers) {
-        const epKey = `s${season}e${ep}`;
-        if (forceMarkDone) {
-          nextCompleted[epKey] = true;
-        } else {
-          delete nextCompleted[epKey];
-        }
-      }
-
-      const completedCount = Object.values(nextCompleted).filter(Boolean).length;
-      const calculatedProgress = Math.min(100, Math.round((completedCount / Math.max(1, totalEpisodes)) * 100));
-
-      const isAllDone = totalEpisodes > 1
-        ? completedCount >= totalEpisodes
-        : (completedCount > 0 && totalEpisodes === 1 && totalSeasons === 1);
-
-      const nextProgress = isAllDone ? 100 : Math.min(99, Math.max(calculatedProgress, completedCount > 0 ? 5 : 0));
-      const inWatchlist = completedCount > 0 ? true : current.inWatchlist;
-      const nowIso = new Date().toISOString();
-
-      const updatedState: PersonalMediaState = {
-        ...current,
-        mediaId: canonicalId,
-        progressPercent: nextProgress,
-        isWatched: isAllDone,
-        inWatchlist,
-        lastWatchedAt: nowIso,
-        updatedAt: nowIso,
-        tvProgress: {
+      setUserStates(prev => {
+        const current = getOrCreateState(mediaId, prev);
+        const mediaItem = optionalItem || mediaItems.find(m => m.id === mediaId);
+        const knownMeta = mediaItem?.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
+        const seasonsList = mediaItem?.seasons || knownMeta?.seasons;
+        const totalSeasons = Math.max(mediaItem?.seasonsCount || 0, knownMeta?.seasonsCount || 0, seasonsList?.length || 0, 1);
+        const totalEpisodes = seasonsList && seasonsList.length > 0
+          ? seasonsList.reduce((acc: number, s: SeasonInfo) => acc + (s.episodeCount || 0), 0)
+          : Math.max(mediaItem?.episodesCount || 0, knownMeta?.episodesCount || 0, totalSeasons * 8);
+        
+        const tvProgress = current.tvProgress || {
           currentSeason: season,
-          currentEpisode: episodeNumbers[episodeNumbers.length - 1] || 1,
-          completedEpisodes: nextCompleted,
-        },
-      };
-
-      const updated: Record<string, PersonalMediaState> = {
-        ...prev,
-        [canonicalId]: updatedState,
-      };
-
-      if (mediaId !== canonicalId) {
-        updated[mediaId] = {
-          ...getOrCreateState(mediaId, prev),
-          ...updatedState,
-          mediaId,
+          currentEpisode: 1,
+          completedEpisodes: {},
         };
-      }
 
-      saveUserStates(updated);
-      setUserStates(updated);
-      recordLibraryChange('update_state', canonicalId, {
-        state: updatedState,
-        mediaItem,
+        const nextCompleted = {
+          ...tvProgress.completedEpisodes,
+        };
+
+        for (const ep of episodeNumbers) {
+          const epKey = `s${season}e${ep}`;
+          if (forceMarkDone) {
+            nextCompleted[epKey] = true;
+          } else {
+            delete nextCompleted[epKey];
+          }
+        }
+
+        const completedCount = Object.values(nextCompleted).filter(Boolean).length;
+        const calculatedProgress = Math.min(100, Math.round((completedCount / Math.max(1, totalEpisodes)) * 100));
+
+        // Series is completed ONLY if all episodes are checked
+        const isAllDone = totalEpisodes > 1
+          ? completedCount >= totalEpisodes
+          : (completedCount > 0 && totalEpisodes === 1 && totalSeasons === 1);
+
+        // Cap in-progress progress to 99% while incomplete, so it stays in Continue Watching!
+        const nextProgress = isAllDone ? 100 : Math.min(99, Math.max(calculatedProgress, completedCount > 0 ? 5 : 0));
+        const inWatchlist = completedCount > 0 ? true : current.inWatchlist;
+
+        const updated = {
+          ...prev,
+          [mediaId]: {
+            ...current,
+            progressPercent: nextProgress,
+            isWatched: isAllDone,
+            inWatchlist,
+            lastWatchedAt: new Date().toISOString(),
+            tvProgress: {
+              currentSeason: season,
+              currentEpisode: episodeNumbers[episodeNumbers.length - 1] || 1,
+              completedEpisodes: nextCompleted,
+            },
+          },
+        };
+        saveUserStates(updated);
+        recordLibraryChange('update_state', mediaId, {
+          state: {
+            progressPercent: nextProgress,
+            isWatched: isAllDone,
+            inWatchlist,
+            tvProgress: {
+              currentSeason: season,
+              currentEpisode: episodeNumbers[episodeNumbers.length - 1] || 1,
+              completedEpisodes: nextCompleted,
+            },
+          },
+          mediaItem,
+        });
+
+        if (mediaItem) {
+          setMediaItems(prevItems => {
+            if (!prevItems.some(m => m.id === mediaItem.id)) {
+              const nextList = [mediaItem, ...prevItems];
+              saveMediaCache(nextList);
+              return nextList;
+            }
+            return prevItems;
+          });
+        }
+
+        return updated;
       });
     },
-    [getOrCreateState, resolveTargetMediaAndId]
+    [getOrCreateState, mediaItems]
   );
 
-  // Custom Lists Management (synchronous storage & change-log updates outside React state updaters)
+  // Custom Lists Management
   const createCustomList = useCallback(
     (title: string, description?: string, colorTag?: string) => {
-      const nowIso = new Date().toISOString();
       const newList: CustomList = {
         id: `list-${Date.now()}`,
         title: title.trim(),
         description: description?.trim(),
-        createdAt: nowIso,
-        updatedAt: nowIso,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         itemIds: [],
         colorTag: colorTag || '#4E562F',
       };
-      const prev = loadCustomLists();
-      const next = [newList, ...prev];
-      saveCustomLists(next);
-      setCustomLists(next);
-      recordLibraryChange('list_create', newList.id, { list: newList });
+      setCustomLists(prev => {
+        const next = [newList, ...prev];
+        saveCustomLists(next);
+        recordLibraryChange('list_create', newList.id, { list: newList });
+        return next;
+      });
       return newList;
     },
     []
@@ -1020,141 +969,121 @@ export function useMediaLibrary() {
 
   const updateCustomList = useCallback(
     (id: string, title: string, description?: string, colorTag?: string) => {
-      const prev = loadCustomLists();
-      const nowIso = new Date().toISOString();
-      const next = prev.map(list => {
-        if (list.id !== id) return list;
-        return {
-          ...list,
-          title: title.trim(),
-          description: description?.trim(),
-          colorTag: colorTag || list.colorTag,
-          updatedAt: nowIso,
-          isAiGenerated: false,
-          aiLabel: undefined,
-        };
-      });
-      saveCustomLists(next);
-      setCustomLists(next);
-      recordLibraryChange('list_update', id, {
-        list: { title: title.trim(), description: description?.trim(), colorTag },
+      setCustomLists(prev => {
+        const next = prev.map(list => {
+          if (list.id !== id) return list;
+          return {
+            ...list,
+            title: title.trim(),
+            description: description?.trim(),
+            colorTag: colorTag || list.colorTag,
+            updatedAt: new Date().toISOString(),
+          };
+        });
+        saveCustomLists(next);
+        recordLibraryChange('list_update', id, {
+          list: { title: title.trim(), description: description?.trim(), colorTag },
+        });
+        return next;
       });
     },
     []
   );
 
   const deleteCustomList = useCallback((id: string) => {
-    const prev = loadCustomLists();
-    const next = prev.filter(l => l.id !== id);
-    saveCustomLists(next);
-    setCustomLists(next);
-    recordLibraryChange('list_delete', id);
+    setCustomLists(prev => {
+      const next = prev.filter(l => l.id !== id);
+      saveCustomLists(next);
+      recordLibraryChange('list_delete', id);
+      return next;
+    });
   }, []);
 
-  const addItemToList = useCallback((listId: string, mediaId: string, optionalItem?: MediaItem) => {
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
-    const prev = loadCustomLists();
-    const nowIso = new Date().toISOString();
-    let changed = false;
-
-    const next = prev.map(list => {
-      if (list.id !== listId) return list;
-      if (list.itemIds.includes(canonicalId) || list.itemIds.includes(mediaId)) return list;
-      changed = true;
-      return {
-        ...list,
-        itemIds: [...list.itemIds, canonicalId],
-        updatedAt: nowIso,
-      };
-    });
-
-    if (changed) {
+  const addItemToList = useCallback((listId: string, mediaId: string) => {
+    setCustomLists(prev => {
+      const next = prev.map(list => {
+        if (list.id !== listId) return list;
+        if (list.itemIds.includes(mediaId)) return list;
+        return {
+          ...list,
+          itemIds: [...list.itemIds, mediaId],
+          updatedAt: new Date().toISOString(),
+        };
+      });
       saveCustomLists(next);
-      setCustomLists(next);
-      recordLibraryChange('list_item_add', listId, { listItemId: canonicalId, mediaItem });
-    }
-  }, [resolveTargetMediaAndId]);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('list_item_add', listId, { listItemId: mediaId, mediaItem });
+      return next;
+    });
+  }, [mediaItems]);
 
   const removeItemFromList = useCallback((listId: string, mediaId: string) => {
-    const currentMedia = loadMediaCache();
-    const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId);
-    const matchedItem = mediaItem || currentMedia.find(m => m.id === mediaId);
-    const aliasIds = new Set<string>([mediaId, canonicalId]);
-    if (matchedItem) {
-      aliasIds.add(matchedItem.id);
-      if (matchedItem.imdbId) aliasIds.add(matchedItem.imdbId);
-      if (matchedItem.tmdbId) aliasIds.add(`tmdb-${matchedItem.type || 'movie'}-${matchedItem.tmdbId}`);
-    }
-
-    const prev = loadCustomLists();
-    const nowIso = new Date().toISOString();
-    let changed = false;
-
-    const next = prev.map(list => {
-      if (list.id !== listId) return list;
-      const filteredIds = list.itemIds.filter(id => !aliasIds.has(id));
-      if (filteredIds.length !== list.itemIds.length) {
-        changed = true;
-      }
-      return {
-        ...list,
-        itemIds: filteredIds,
-        updatedAt: nowIso,
-      };
-    });
-
-    if (changed) {
+    setCustomLists(prev => {
+      const next = prev.map(list => {
+        if (list.id !== listId) return list;
+        return {
+          ...list,
+          itemIds: list.itemIds.filter(id => id !== mediaId),
+          updatedAt: new Date().toISOString(),
+        };
+      });
       saveCustomLists(next);
-      setCustomLists(next);
-      recordLibraryChange('list_item_remove', listId, { listItemId: canonicalId, mediaItem: matchedItem });
-    }
-  }, [resolveTargetMediaAndId]);
+      const mediaItem = mediaItems.find(m => m.id === mediaId);
+      recordLibraryChange('list_item_remove', listId, { listItemId: mediaId, mediaItem });
+      return next;
+    });
+  }, [mediaItems]);
 
-  // Add new media to cache synchronously (e.g. from search or exploration) without creating duplicates
+  // Add new media to cache (e.g. from search or exploration)
   const addMediaToLibrary = useCallback((item: MediaItem) => {
-    const savedItem = upsertMediaCacheSync(item);
-    const latestStates = loadUserStates();
-    if (hasStateInteraction(latestStates[savedItem.id])) {
-      syncMediaItemToCloud(savedItem);
-    }
-  }, [upsertMediaCacheSync]);
+    setMediaItems(prev => {
+      if (prev.some(m => m.id === item.id)) return prev;
+      const next = [item, ...prev];
+      saveMediaCache(next);
+      return next;
+    });
+  }, []);
 
   // Delete media entity from library
   const deleteMediaItem = useCallback((mediaId: string) => {
-    const currentMedia = loadMediaCache();
-    const currentStates = loadUserStates();
-    const currentLists = loadCustomLists();
-    const target = currentMedia.find(m => m.id === mediaId) || mediaItems.find(m => m.id === mediaId);
+    const target = mediaItems.find(m => m.id === mediaId);
+    const targetImdbId = target?.imdbId;
+    const targetTmdbId = target?.tmdbId;
+    const targetTitleKey = target ? `${target.type || 'movie'}-${(target.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '')}-${target.year}` : null;
 
-    const isMatch = (m: MediaItem) => m.id === mediaId || (target ? areMediaItemsSame(m, target) : false);
-    const matchedIds = new Set<string>([mediaId]);
-    for (const m of currentMedia) {
-      if (isMatch(m)) {
-        matchedIds.add(m.id);
-        if (m.imdbId) matchedIds.add(m.imdbId);
-        if (m.tmdbId) matchedIds.add(`tmdb-${m.type || 'movie'}-${m.tmdbId}`);
+    const isMatch = (m: MediaItem) => {
+      if (m.id === mediaId) return true;
+      if (targetImdbId && m.imdbId === targetImdbId) return true;
+      if (targetTmdbId && m.tmdbId === targetTmdbId) return true;
+      if (targetTitleKey && `${m.type || 'movie'}-${(m.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '')}-${m.year}` === targetTitleKey) return true;
+      return false;
+    };
+
+    setMediaItems(prev => {
+      const next = prev.filter(m => !isMatch(m));
+      saveMediaCache(next);
+      return next;
+    });
+    setUserStates(prev => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        const item = mediaItems.find(m => m.id === key);
+        if (key === mediaId || (item && isMatch(item))) {
+          delete next[key];
+        }
       }
-    }
-
-    const nextMedia = currentMedia.filter(m => !matchedIds.has(m.id) && !isMatch(m));
-    const nextStates = { ...currentStates };
-    for (const key of Object.keys(nextStates)) {
-      if (matchedIds.has(key)) {
-        delete nextStates[key];
-      }
-    }
-    const nextLists = currentLists.map(l => ({
-      ...l,
-      itemIds: l.itemIds.filter(id => !matchedIds.has(id)),
-    }));
-
-    saveMediaCache(nextMedia);
-    saveUserStates(nextStates);
-    saveCustomLists(nextLists);
-    setMediaItems(nextMedia);
-    setUserStates(nextStates);
-    setCustomLists(nextLists);
-    recordLibraryChange('delete', target?.id || mediaId);
+      saveUserStates(next);
+      return next;
+    });
+    setCustomLists(prev => {
+      const next = prev.map(l => ({
+        ...l,
+        itemIds: l.itemIds.filter(id => id !== mediaId),
+      }));
+      saveCustomLists(next);
+      return next;
+    });
+    recordLibraryChange('delete', mediaId);
   }, [mediaItems]);
 
   // Import Recent Changes (Non-destructive MERGE into current library)
@@ -1168,7 +1097,7 @@ export function useMediaLibrary() {
     return result;
   }, []);
 
-  // Calculate Statistics cleanly and accurately
+  // Calculate Statistics cleanly
   const stats = useMemo(() => {
     let moviesCount = 0;
     let seriesCount = 0;
@@ -1177,23 +1106,23 @@ export function useMediaLibrary() {
     let favoritesCount = 0;
     let inProgressCount = 0;
     let totalMinutes = 0;
-    const seenTitles = new Set<string>();
 
     for (const item of mediaItems) {
-      const normTitle = (item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const dedupKey = normTitle ? `${normTitle}_${item.year || ''}` : item.id;
-      if (seenTitles.has(dedupKey)) continue;
-      seenTitles.add(dedupKey);
-
       if (item.type === 'movie') moviesCount++;
       if (item.type === 'tv') seriesCount++;
 
-      const state = resolveStateForMediaItem(item, userStates) || userStates[item.id];
+      const state = userStates[item.id];
       if (state) {
+        if (state.isWatched) {
+          watchedCount++;
+          if (item.type === 'movie' && item.runtime) {
+            totalMinutes += item.runtime;
+          } else if (item.type === 'tv' && item.seasonsCount) {
+            totalMinutes += (item.episodesCount || 8) * 45;
+          }
+        }
         if (state.inWatchlist) watchlistCount++;
         if (state.isFavorite) favoritesCount++;
-
-        // In-progress counter
         if (
           !state.isWatched &&
           state.progressPercent !== undefined &&
@@ -1202,79 +1131,7 @@ export function useMediaLibrary() {
         ) {
           inProgressCount++;
         }
-
-        // Determine item's baseline runtime in minutes safely
-        let itemRuntimeMinutes = 0;
-        if (item.runtime !== undefined && item.runtime !== null) {
-          if (typeof item.runtime === 'number' && !isNaN(item.runtime) && item.runtime > 0) {
-            // Values > 600 are stored in seconds (e.g. 5400 = 90 min)
-            itemRuntimeMinutes = item.runtime > 600 ? Math.round(item.runtime / 60) : Math.round(item.runtime);
-          } else if (typeof item.runtime === 'string') {
-            const parsedSeconds = normalizeDurationToSeconds(item.runtime);
-            if (parsedSeconds && parsedSeconds > 0) {
-              itemRuntimeMinutes = Math.round(parsedSeconds / 60);
-            } else {
-              const match = (item.runtime as string).match(/(\d+)/);
-              if (match) {
-                const val = parseInt(match[1], 10);
-                if (!isNaN(val) && val > 0) {
-                  itemRuntimeMinutes = val > 600 ? Math.round(val / 60) : val;
-                }
-              }
-            }
-          }
-        }
-
-        if (item.type === 'movie') {
-          // Standard movie duration fallback if metadata lacked runtime: 100 minutes
-          const movieMinutes = itemRuntimeMinutes > 0 ? itemRuntimeMinutes : 100;
-
-          if (state.isWatched) {
-            watchedCount++;
-            totalMinutes += movieMinutes;
-          } else if (state.progressPercent && state.progressPercent > 0) {
-            // Include watch time for in-progress movies
-            totalMinutes += Math.round((movieMinutes * Math.min(100, state.progressPercent)) / 100);
-          }
-        } else {
-          // TV Series / Multi-episode media
-          const avgEpisodeMinutes = itemRuntimeMinutes > 0 ? itemRuntimeMinutes : 45;
-          const totalEpisodes =
-            item.episodesCount ||
-            (item.seasons ? item.seasons.reduce((acc, s) => acc + (s.episodeCount || 0), 0) : 0) ||
-            (item.seasonsCount ? item.seasonsCount * 10 : 0) ||
-            8;
-
-          if (state.isWatched) {
-            watchedCount++;
-            totalMinutes += totalEpisodes * avgEpisodeMinutes;
-          } else {
-            // Count completed episodes if user tracked individual episodes
-            const completedEpisodesCount = state.tvProgress?.completedEpisodes
-              ? Object.values(state.tvProgress.completedEpisodes).filter(Boolean).length
-              : 0;
-
-            if (completedEpisodesCount > 0) {
-              totalMinutes += completedEpisodesCount * avgEpisodeMinutes;
-            } else if (state.progressPercent && state.progressPercent > 0) {
-              // Fallback for TV series with general progress percentage
-              const totalSeriesMinutes = totalEpisodes * avgEpisodeMinutes;
-              totalMinutes += Math.round((totalSeriesMinutes * Math.min(100, state.progressPercent)) / 100);
-            }
-          }
-        }
       }
-    }
-
-    const safeTotalMinutes = Math.max(0, Math.round(totalMinutes));
-    const totalHours = Math.floor(safeTotalMinutes / 60);
-    const remainingMinutes = safeTotalMinutes % 60;
-
-    let formattedWatchTime = '';
-    if (totalHours > 0) {
-      formattedWatchTime = remainingMinutes > 0 ? `${totalHours}h ${remainingMinutes}m` : `${totalHours} ${totalHours === 1 ? 'hr' : 'hrs'}`;
-    } else if (safeTotalMinutes > 0) {
-      formattedWatchTime = `${safeTotalMinutes} min`;
     }
 
     return {
@@ -1284,10 +1141,7 @@ export function useMediaLibrary() {
       watchlistCount,
       favoritesCount,
       inProgressCount,
-      totalMinutes: safeTotalMinutes,
-      totalHours,
-      remainingMinutes,
-      formattedWatchTime,
+      totalHours: Math.round(totalMinutes / 60),
     };
   }, [mediaItems, userStates]);
 
@@ -1296,7 +1150,7 @@ export function useMediaLibrary() {
     (predicate?: (item: MediaItem) => boolean): MediaItem | null => {
       const basePool = predicate ? mediaItems.filter(predicate) : mediaItems;
       if (basePool.length === 0) return null;
-      const unwatched = basePool.filter(i => !resolveStateForMediaItem(i, userStates)?.isWatched);
+      const unwatched = basePool.filter(i => !userStates[i.id]?.isWatched);
       const pool = unwatched.length > 0 ? unwatched : basePool;
       const index = Math.floor(Math.random() * pool.length);
       return pool[index];
@@ -1313,10 +1167,9 @@ export function useMediaLibrary() {
     saveMediaCache([]);
     await clearImageCache();
     try {
-      localStorage.removeItem('ehsaan_change_log_entries_v1');
-      localStorage.removeItem('ehsaan_change_log_counter_v1');
-      localStorage.removeItem('ehsaan_change_log_checkpoint_v1');
-      localStorage.removeItem('ehsaan_changelog_explicitly_cleared');
+      localStorage.removeItem('ehsaan_recent_changes_entries');
+      localStorage.removeItem('ehsaan_recent_changes_counter');
+      localStorage.removeItem('ehsaan_recent_changes_checkpoint');
     } catch {
       // ignore
     }
@@ -1325,20 +1178,16 @@ export function useMediaLibrary() {
   // Safely clears image cache and all un-saved discovery titles from media cache
   const clearCachedTitlesAndImages = useCallback(async () => {
     await clearImageCache();
-    // Keep only titles that the user actively has in their personal states or custom lists
+    // Keep only titles that the user actively has in their personal states / lists
     const currentStates = loadUserStates();
     const currentMedia = loadMediaCache();
-    const currentLists = loadCustomLists();
-    const listItemIdSet = new Set(currentLists.flatMap(l => l.itemIds || []));
-
-    const keptMedia = currentMedia.filter(m => {
-      const st = resolveStateForMediaItem(m, currentStates);
-      if (hasStateInteraction(st)) return true;
-      if (listItemIdSet.has(m.id)) return true;
-      if (m.imdbId && listItemIdSet.has(m.imdbId)) return true;
-      if (m.tmdbId && listItemIdSet.has(`tmdb-${m.type || 'movie'}-${m.tmdbId}`)) return true;
-      return false;
-    });
+    const userMediaIds = new Set(
+      Object.keys(currentStates).filter(id => {
+        const s = currentStates[id];
+        return s.inWatchlist || s.isWatched || s.isFavorite || (s.progressPercent && s.progressPercent > 0) || s.personalRating || s.notes;
+      })
+    );
+    const keptMedia = currentMedia.filter(m => userMediaIds.has(m.id));
     saveMediaCache(keptMedia);
     setMediaItems(keptMedia);
     return true;
@@ -1348,8 +1197,8 @@ export function useMediaLibrary() {
   const resetAll = useCallback(async () => {
     resetLibraryToDefault();
     const [netflixMovies, netflixSeries] = await Promise.all([
-      fetchNetflixTop10Movies(settings.tmdbApiKey),
-      fetchNetflixTop10Series(settings.tmdbApiKey),
+      fetchNetflixTop10Movies(settings.omdbApiKey),
+      fetchNetflixTop10Series(settings.omdbApiKey),
     ]);
     const liveMedia = [...netflixMovies, ...netflixSeries];
     setMediaItems(liveMedia);
@@ -1357,7 +1206,7 @@ export function useMediaLibrary() {
     setUserStates({});
     setCustomLists([]);
     setSettings(loadUserSettings());
-  }, [settings.tmdbApiKey]);
+  }, [settings.omdbApiKey]);
 
   const restoreBackup = useCallback((jsonStr: string) => {
     const result = importLibraryBackup(jsonStr);

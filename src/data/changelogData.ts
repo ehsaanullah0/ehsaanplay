@@ -13,62 +13,8 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.4.1',
-    isLatest: true,
-    tagline: 'BYOD Supabase Cloud Database & Sync, Resume Paused Projects & 500 MB Storage Analytics',
-    points: [
-      {
-        title: 'BYOD Supabase Cloud Database & Realtime Sync',
-        description: 'Connect your personal, user-owned Supabase project to synchronize your entire EhsaanPlay media library, watch progress, personal verdict ratings, notes, and custom collections across desktop, mobile, and tablet browsers with complete privacy and zero vendor lock-in.',
-      },
-      {
-        title: 'Resume Paused Database Workflow & Auto-Recheck',
-        description: 'Intelligent detection for free-tier Supabase projects paused after 7 days of inactivity. Features a dedicated "Resume Database" guide with 1-click navigation to your Supabase project console, step-by-step restoration instructions, and automated background connection re-verification upon returning to EhsaanPlay.',
-      },
-      {
-        title: '500 MB Free Plan Storage Visual & Usage Analytics',
-        description: 'Clean, minimal progress-bar storage indicator tracking your 500 MB Supabase free tier allowance. Displays real-time synchronized payload metrics, remaining storage calculations, 80% and 90% threshold warnings, clear limit notices, and direct links to the official Supabase usage dashboard.',
-      },
-      {
-        title: 'Comprehensive 7-Step Setup Guide & Verified RLS Security',
-        description: 'Includes an embedded step-by-step Supabase setup guide with 1-click copyable SQL migration scripts, PostgreSQL Row Level Security (RLS) policies guaranteeing that each user can strictly access only their own data, and multi-device account pairing.',
-      },
-      {
-        title: 'Resilient Cloud Migration & Canonical Duration Normalization',
-        description: 'One-click safe upload of existing local data with canonical integer-second duration normalization (handling formatted duration strings like "29 min"), 50-item resilient batching, and isolated individual fallback to ensure zero data loss.',
-      },
-    ],
-  },
-  {
-    version: 'v2.4.0',
-    isLatest: false,
-    tagline: 'Gemini-Powered Trending Genres & AI-Curated Top 50 Collections with Verified Metadata',
-    points: [
-      {
-        title: 'Gemini AI Integration in Settings',
-        description: 'Added a dedicated Gemini AI Integration section in Settings allowing users to connect and verify their personal Google Gemini API key. Features real-time connection status checks, show/hide password toggle, and secure storage in browser local storage.',
-      },
-      {
-        title: 'Trending Genres in Lists Tab',
-        description: 'Introduced an ergonomic "Trending Genres" button directly beside "Create New Shelf" with smooth horizontal slide transitions, transforming the Lists tab into an intelligent entertainment discovery hub.',
-      },
-      {
-        title: 'On-Demand Genre Discovery (Zero Background Waste)',
-        description: 'Presents 20 clean, curated genre category tiles (Thriller, Psychological Thriller, Mystery, Crime, Sci-Fi, Anime, etc.) without pre-generating or exhausting API quota. Generation occurs exclusively upon selecting a specific genre.',
-      },
-      {
-        title: 'Authentic TMDB & OMDb Metadata Verification',
-        description: 'Gemini curates the top 50 titles while the app automatically verifies every recommendation against live TMDB and OMDb metadata sources, ensuring 100% genuine titles, high-resolution poster artwork, and verified ratings.',
-      },
-      {
-        title: 'Intelligent Local Caching & Instant Re-entry',
-        description: 'Generated Top 50 collections are saved locally on your device with last-updated timestamps for instant zero-quota reloads, complete with on-demand "Refresh" controls.',
-      },
-    ],
-  },
-  {
     version: 'v2.3.6',
-    isLatest: false,
+    isLatest: true,
     tagline: 'Next-Gen 3D Coverflow Trending Showcase, Clean & Polished Random Pick Window & Cinematic Artwork',
     points: [
       {

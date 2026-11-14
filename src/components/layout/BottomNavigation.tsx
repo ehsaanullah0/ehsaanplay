@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActiveTab, GenreMixBottomBarAction } from '../../types/movie';
-import { Film, Bookmark, Layers, Settings, Search, Sparkles, X, Shuffle } from 'lucide-react';
+import { ActiveTab } from '../../types/movie';
+import { Film, Bookmark, Layers, Settings, Search } from 'lucide-react';
 import { useFullscreen } from '../../hooks/useFullscreen';
 
 interface BottomNavigationProps {
@@ -9,7 +9,6 @@ interface BottomNavigationProps {
   swapSearchAndLists?: boolean;
   onOpenSearch?: () => void;
   onTriggerSwapConfirm?: () => void;
-  genreMixAction?: GenreMixBottomBarAction | null;
 }
 
 /**
@@ -39,14 +38,11 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   swapSearchAndLists = false,
   onOpenSearch,
   onTriggerSwapConfirm,
-  genreMixAction,
 }) => {
   const { isFullscreen } = useFullscreen();
   const [isVisible, setIsVisible] = useState(true);
   const [optimisticTab, setOptimisticTab] = useState<ActiveTab>(activeTab);
   const lastScrollY = useRef(0);
-
-  const isMixing = Boolean(genreMixAction && genreMixAction.genreCount > 0);
 
   // Keep optimistic tab in sync whenever parent activeTab updates
   useEffect(() => {
@@ -85,17 +81,12 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     }
   };
 
-  // Directional scroll detection
+  // Robust directional scroll detection that cleanly hides while reading/scrolling down
+  // and stays hidden until the user scrolls upwards or reaches near the top/bottom.
   useEffect(() => {
     let accumulatedDelta = 0;
 
     const handleScroll = () => {
-      // While mixing genres, always keep the bar visible so the user never loses the Generate button
-      if (isMixing) {
-        setIsVisible(true);
-        return;
-      }
-
       const currentScrollY = window.scrollY;
       const delta = currentScrollY - lastScrollY.current;
 
@@ -136,7 +127,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [isMixing]);
+  }, []);
 
   // Define tabs dynamically based on swapSearchAndLists
   const tabs: {
@@ -179,168 +170,107 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           ? 'calc(1.1rem + env(safe-area-inset-bottom, 0px))'
           : 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
       }}
-      className={`fixed left-0 right-0 z-40 flex justify-center px-4 transition-all duration-300 ease-out will-change-transform ${
-        isMixing ? 'flex' : 'md:hidden'
-      } ${
-        isVisible || isMixing ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
+      className={`md:hidden fixed left-0 right-0 z-40 flex justify-center px-4 transition-all duration-300 ease-out will-change-transform ${
+        isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
       }`}
     >
-      {/* Morphing Liquid Nav Dock Container */}
+      {/* Floating Conjoined Scalloped Organic Dock Container */}
       <nav
-        aria-label="Navigation & Actions"
-        style={{
-          width: isMixing ? 'min(390px, calc(100vw - 32px))' : '248px',
-          height: '64px',
-          transition: 'width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
-        className="relative select-none touch-manipulation flex items-center justify-center"
+        aria-label="Mobile Navigation"
+        className="relative w-[248px] h-[64px] select-none touch-manipulation"
       >
-        {/* State A: Normal 4-Pod Scalloped Dock (Liquid morphs out when mixing) */}
-        {!isMixing && (
-          <div className="absolute inset-0 w-full h-full animate-fade-in">
-            {/* SVG Fluid Conjoined Organic Hull */}
-            <svg
-              viewBox="0 0 248 64"
-              className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
-              style={{
-                filter:
-                  'drop-shadow(0 14px 28px rgba(0, 0, 0, 0.25)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.12))',
-              }}
-            >
-              <path
-                d={SCALLOPED_DOCK_PATH}
-                className="fill-[var(--bg-nav-container)] transition-colors duration-300"
-                style={{
-                  stroke: 'var(--nav-dock-border, rgba(255, 255, 255, 0.95))',
-                  strokeWidth: 2.75,
-                  strokeLinejoin: 'round',
-                }}
-              />
-            </svg>
+        {/* SVG Fluid Conjoined Organic Hull with Crisp Outline & Floating Ambient Shadow */}
+        <svg
+          viewBox="0 0 248 64"
+          className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+          style={{
+            filter:
+              'drop-shadow(0 14px 28px rgba(0, 0, 0, 0.25)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.12))',
+          }}
+        >
+          <path
+            d={SCALLOPED_DOCK_PATH}
+            className="fill-[var(--bg-nav-container)] transition-colors duration-300"
+            style={{
+              stroke: 'var(--nav-dock-border, rgba(255, 255, 255, 0.95))',
+              strokeWidth: 2.75,
+              strokeLinejoin: 'round',
+            }}
+          />
+        </svg>
 
-            {/* Sliding Active Circular Highlight with Spring Physics */}
-            {activeIndex >= 0 && (
-              <div
-                className="absolute top-[8px] left-[7px] w-[48px] h-[48px] rounded-full bg-[var(--bg-nav-active)] pointer-events-none transition-transform duration-250 ease-[cubic-bezier(0.2,0.8,0.2,1)] z-10 will-change-transform"
-                style={{
-                  transform: `translateX(${activeIndex * 62}px)`,
-                  boxShadow: '0 4px 14px -1px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.14)',
-                }}
-              />
-            )}
-
-            {/* 4 Interactive Tab Buttons Layer */}
-            <div className="relative z-20 w-full h-full flex items-center">
-              {tabs.map((tab) => {
-                const isActive = !tab.isSpecialAction && currentTab === tab.id;
-                const Icon = tab.icon;
-
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
-                    onTouchStart={() => startPress(tab.id)}
-                    onTouchMove={cancelPress}
-                    onTouchEnd={cancelPress}
-                    onTouchCancel={cancelPress}
-                    onMouseDown={() => startPress(tab.id)}
-                    onMouseUp={cancelPress}
-                    onMouseLeave={cancelPress}
-                    onContextMenu={e => {
-                      if (tab.id === 'lists' || tab.id === 'search') {
-                        e.preventDefault();
-                        if (onTriggerSwapConfirm) onTriggerSwapConfirm();
-                      }
-                    }}
-                    aria-label={tab.label}
-                    aria-current={isActive ? 'page' : undefined}
-                    title={
-                      tab.id === 'lists' || tab.id === 'search'
-                        ? `${tab.label} (Hold to swap layout)`
-                        : tab.label
-                    }
-                    style={{ touchAction: 'manipulation' }}
-                    className="w-[62px] h-[64px] flex items-center justify-center relative cursor-pointer focus:outline-none active:scale-95 transition-transform duration-150"
-                  >
-                    <div
-                      className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-all duration-200 ${
-                        isActive
-                          ? 'opacity-0 scale-90'
-                          : 'opacity-100 scale-100 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1]'
-                      }`}
-                    >
-                      <Icon
-                        className={`w-5 h-5 transition-all duration-200 ${
-                          isActive
-                            ? 'text-[var(--text-nav-active)] stroke-[2.5] scale-110'
-                            : 'text-[var(--text-nav-inactive)] stroke-[2] opacity-85 hover:opacity-100'
-                        }`}
-                      />
-                    </div>
-
-                    {isActive && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <Icon className="w-5 h-5 text-[var(--text-nav-active)] stroke-[2.5] scale-110 animate-scale-up" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {/* Sliding Active Circular Highlight with Spring Physics */}
+        {activeIndex >= 0 && (
+          <div
+            className="absolute top-[8px] left-[7px] w-[48px] h-[48px] rounded-full bg-[var(--bg-nav-active)] pointer-events-none transition-transform duration-250 ease-[cubic-bezier(0.2,0.8,0.2,1)] z-10 will-change-transform"
+            style={{
+              transform: `translateX(${activeIndex * 62}px)`,
+              boxShadow: '0 4px 14px -1px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.14)',
+            }}
+          />
         )}
 
-        {/* State B: Liquid Morph Generate Button (Transitions in when selecting genres) */}
-        {isMixing && genreMixAction && (
-          <div className="absolute inset-0 w-full h-full flex items-center justify-between px-2.5 py-1.5 rounded-full bg-[var(--bg-nav-container)] border-[2.75px] border-[var(--nav-dock-border)] shadow-2xl animate-liquid-morph z-30 overflow-hidden">
-            {/* Subtle Liquid Shimmer Aura */}
-            <div
-              className="absolute inset-0 opacity-20 pointer-events-none animate-liquid-flow"
-              style={{
-                background:
-                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-              }}
-            />
+        {/* 4 Interactive Tab Buttons Layer */}
+        <div className="relative z-20 w-full h-full flex items-center">
+          {tabs.map((tab) => {
+            const isActive = !tab.isSpecialAction && currentTab === tab.id;
+            const Icon = tab.icon;
 
-            {/* Left Section: Cancel/Clear & Count Indicator */}
-            <div className="flex items-center gap-2 pl-1 z-10 min-w-0">
+            return (
               <button
+                key={tab.id}
                 type="button"
-                onClick={genreMixAction.onClear}
-                className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/10 hover:bg-rose-500 hover:text-white text-[var(--text-nav-inactive)] flex items-center justify-center transition-all active:scale-90 cursor-pointer shrink-0"
-                title="Clear selected genres"
-                aria-label="Clear selected genres"
+                onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
+                onTouchStart={() => startPress(tab.id)}
+                onTouchMove={cancelPress}
+                onTouchEnd={cancelPress}
+                onTouchCancel={cancelPress}
+                onMouseDown={() => startPress(tab.id)}
+                onMouseUp={cancelPress}
+                onMouseLeave={cancelPress}
+                onContextMenu={e => {
+                  if (tab.id === 'lists' || tab.id === 'search') {
+                    e.preventDefault();
+                    if (onTriggerSwapConfirm) onTriggerSwapConfirm();
+                  }
+                }}
+                aria-label={tab.label}
+                aria-current={isActive ? 'page' : undefined}
+                title={
+                  tab.id === 'lists' || tab.id === 'search'
+                    ? `${tab.label} (Hold to swap layout)`
+                    : tab.label
+                }
+                style={{ touchAction: 'manipulation' }}
+                className="w-[62px] h-[64px] flex items-center justify-center relative cursor-pointer focus:outline-none active:scale-95 transition-transform duration-150"
               >
-                <X className="w-4 h-4 stroke-[2.5]" />
+                {/* Subtle Inactive Circular Pod Background (matches reference image pod disc) */}
+                <div
+                  className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-all duration-200 ${
+                    isActive
+                      ? 'opacity-0 scale-90'
+                      : 'opacity-100 scale-100 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1]'
+                  }`}
+                >
+                  <Icon
+                    className={`w-5 h-5 transition-all duration-200 ${
+                      isActive
+                        ? 'text-[var(--text-nav-active)] stroke-[2.5] scale-110'
+                        : 'text-[var(--text-nav-inactive)] stroke-[2] opacity-85 hover:opacity-100'
+                    }`}
+                  />
+                </div>
+
+                {/* Overlaid Active Icon in center of the sliding bubble */}
+                {isActive && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <Icon className="w-5 h-5 text-[var(--text-nav-active)] stroke-[2.5] scale-110 animate-scale-up" />
+                  </div>
+                )}
               </button>
-
-              <div className="flex flex-col min-w-0 pr-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-[var(--text-nav-inactive)] opacity-75 leading-none">
-                  Mix Mode
-                </span>
-                <span className="text-xs font-bold text-[var(--text-nav-inactive)] truncate max-w-[110px] sm:max-w-[140px] leading-tight mt-0.5">
-                  {genreMixAction.genreCount} Genres
-                </span>
-              </div>
-            </div>
-
-            {/* Right Section: Liquid Animated Generate Action Button */}
-            <button
-              type="button"
-              onClick={genreMixAction.onGenerate}
-              className="relative px-5 py-2.5 rounded-full bg-[var(--bg-nav-active)] text-[var(--text-nav-active)] font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all duration-200 cursor-pointer overflow-hidden group shrink-0"
-            >
-              {/* Internal Liquid Glow Shimmer */}
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 via-transparent to-amber-400/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-              <Sparkles className="w-4 h-4 text-amber-300 fill-current animate-pulse shrink-0" />
-              <span className="tracking-tight whitespace-nowrap">
-                Generate Top {genreMixAction.selectedCount}
-              </span>
-            </button>
-          </div>
-        )}
+            );
+          })}
+        </div>
       </nav>
     </div>
   );

@@ -140,11 +140,11 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
   }, [category]);
 
   const goToPrev = useCallback(() => {
-    setActiveIndex(prev => (items.length === 0 ? 0 : prev === 0 ? items.length - 1 : prev - 1));
+    setActiveIndex(prev => (prev === 0 ? items.length - 1 : prev - 1));
   }, [items.length]);
 
   const goToNext = useCallback(() => {
-    setActiveIndex(prev => (items.length === 0 ? 0 : (prev + 1) % items.length));
+    setActiveIndex(prev => (prev + 1) % items.length);
   }, [items.length]);
 
   // Auto-advance coverflow every 6.5s when user is not hovering or dragging
@@ -220,24 +220,11 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
     }
   };
 
-  useEffect(() => {
-    const handleWindowMouseUp = () => {
-      if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        setDragOffset(0);
-      }
-    };
-    window.addEventListener('mouseup', handleWindowMouseUp);
-    return () => window.removeEventListener('mouseup', handleWindowMouseUp);
-  }, []);
-
-  const safeActiveIndex = items.length > 0 ? activeIndex % items.length : 0;
-
   const handleCardClick = (index: number, item: MediaItem) => {
     // If the user was dragging/swiping, do not trigger click
     if (hasMovedRef.current) return;
 
-    if (index === safeActiveIndex) {
+    if (index === activeIndex) {
       onSelectMedia(item);
     } else {
       setActiveIndex(index);
@@ -374,7 +361,7 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
           >
             {items.map((item, index) => {
               const total = items.length;
-              let offset = (index - safeActiveIndex) % total;
+              let offset = (index - activeIndex) % total;
               if (offset > total / 2) offset -= total;
               if (offset < -total / 2) offset += total;
 
@@ -401,7 +388,7 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
               const popTranslateY = isCenterHovered ? -8 : 0;
               const popScale = isCenterHovered ? scale * 1.04 : scale;
 
-              const rating = item.imdbRating || item.tmdbRating || 0;
+              const rating = item.imdbRating || item.tmdbRating || 7.5;
 
               return (
                 <div
@@ -446,12 +433,8 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
                       </p>
                       <div className="flex items-center gap-2 text-xs text-neutral-300 font-medium mt-0.5">
                         <span>{item.year || '2026'}</span>
-                        {rating > 0 && (
-                          <>
-                            <span>·</span>
-                            <span className="text-[#EBB04D] font-bold">★ {rating.toFixed(1)}/10</span>
-                          </>
-                        )}
+                        <span>·</span>
+                        <span className="text-[#EBB04D] font-bold">★ {rating.toFixed(1)}/10</span>
                         {item.type === 'tv' && (
                           <>
                             <span>·</span>

@@ -73,7 +73,7 @@ export interface MediaItem {
   imdbId?: string;
   imdbRating?: number; // Preserves source of rating
   popularity?: number; // Popularity score for clean ranking
-  metadataSource?: 'tmdb' | 'omdb' | 'cache' | 'ai_curated';
+  metadataSource?: 'tmdb' | 'omdb' | 'cache';
   fallbackPosterUrl?: string; // Poster fallback
 }
 
@@ -168,7 +168,6 @@ export interface PersonalMediaState {
   progressPercent?: number; // 0 to 100
   lastWatchedAt?: string;
   addedAt: string;
-  updatedAt?: string;
   tvProgress?: TVProgress;
 }
 
@@ -180,8 +179,6 @@ export interface CustomList {
   updatedAt: string;
   itemIds: string[];
   colorTag?: string;
-  isAiGenerated?: boolean;
-  aiLabel?: string;
 }
 
 export interface HomeSectionsConfig {
@@ -274,8 +271,6 @@ export interface UserSettings {
   backdropOpacity: number; // 0.0 to 1.0 (default 0.40)
   tmdbApiKey?: string;
   omdbApiKey?: string;
-  geminiApiKey?: string;
-  geminiModel?: string;
   recommendationProvider?: 'tmdb' | 'omdb'; // Default: 'tmdb' (Active recommendation catalog provider)
   viewMode: 'grid' | 'cards';
   posterQuality: 'standard' | 'high';
@@ -284,64 +279,6 @@ export interface UserSettings {
   keyboardShortcuts?: KeyboardShortcutsConfig;
   tweaks?: AppTweaksConfig;
   swapSearchAndLists?: boolean;
-}
-
-export interface GeminiModelOption {
-  id: string;
-  name: string;
-  badge: string;
-  description: string;
-  isRecommended?: boolean;
-}
-
-export const AVAILABLE_GEMINI_MODELS: GeminiModelOption[] = [
-  {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash Lite',
-    badge: 'Ultra Fast (<2s)',
-    description: 'Lightweight and fastest model for sub-second genre curation and high quota.',
-    isRecommended: true,
-  },
-  {
-    id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
-    badge: 'Balanced',
-    description: 'Intelligent curation with balanced critical reasoning and deep film knowledge.',
-  },
-  {
-    id: 'gemini-flash-latest',
-    name: 'Gemini Flash Latest',
-    badge: 'Latest Release',
-    description: 'Continuously updated with the latest Google Gemini Flash model release.',
-  },
-  {
-    id: 'gemini-4-argon',
-    name: 'Gemini 4 Argon',
-    badge: 'Deep Reasoning',
-    description: 'Advanced reasoning for nuanced genre analysis and deep critical picks.',
-  },
-];
-
-export interface GenreCategoryItem {
-  id: string;
-  name: string;
-  subtitle: string;
-  tagline: string;
-  backdropUrl: string;
-  accentColor: string;
-  iconName?: string;
-  mixedGenreNames?: string[];
-}
-
-export interface CachedGenreCollection {
-  genreId: string;
-  genreName: string;
-  items: MediaItem[];
-  generatedAt: string; // ISO date string
-  source: 'gemini';
-  requestedCount?: number;
-  mixedGenreNames?: string[];
-  curationReasonings?: Record<string, string>; // mediaId -> reasoning
 }
 
 export type SortOption = 'recent' | 'rating_desc' | 'rating_asc' | 'year_desc' | 'year_asc' | 'title_asc';
@@ -359,11 +296,3 @@ export interface FilterState {
 }
 
 export type ActiveTab = 'home' | 'watchlist' | 'lists' | 'settings';
-
-export interface GenreMixBottomBarAction {
-  selectedCount: number;
-  genreNames: string[];
-  genreCount: number;
-  onGenerate: () => void;
-  onClear: () => void;
-}

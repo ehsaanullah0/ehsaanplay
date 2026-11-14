@@ -11,9 +11,6 @@ interface LibraryStatsProps {
     favoritesCount: number;
     inProgressCount: number;
     totalHours: number;
-    totalMinutes?: number;
-    remainingMinutes?: number;
-    formattedWatchTime?: string;
   };
   onNavigateToWatchlist: (statusFilter?: string) => void;
   onNavigateTab: (tab: ActiveTab) => void;
@@ -38,9 +35,6 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
     favoritesCount: 0,
     inProgressCount: 0,
     totalHours: 0,
-    totalMinutes: 0,
-    remainingMinutes: 0,
-    formattedWatchTime: '',
   };
 
   const sections = homeSections || {
@@ -87,12 +81,9 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
           </div>
         </div>
         <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-          {safeStats.formattedWatchTime || safeStats.totalHours > 0 || (safeStats.totalMinutes !== undefined && safeStats.totalMinutes > 0) ? (
+          {safeStats.totalHours > 0 ? (
             <span>
-              <strong className="text-[var(--text-primary)] tabular-nums font-semibold">
-                {safeStats.formattedWatchTime || (safeStats.totalHours > 0 ? `${safeStats.totalHours} ${safeStats.totalHours === 1 ? 'hr' : 'hrs'}` : `${safeStats.totalMinutes} min`)}
-              </strong>{' '}
-              total watch time
+              <strong className="text-[var(--text-primary)] tabular-nums font-semibold">{safeStats.totalHours} hrs</strong> total watch time
             </span>
           ) : (
             'Track your collection and watch history.'

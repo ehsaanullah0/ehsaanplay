@@ -1,8 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { MediaItem, PersonalMediaState, CustomList } from '../../types/movie';
-import { resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { MediaItem, PersonalMediaState } from '../../types/movie';
 import { MoviePoster } from '../common/MoviePoster';
-import { ChevronLeft, ChevronRight, Maximize2, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 
 interface RankingRailProps {
   title: string;
@@ -12,18 +11,13 @@ interface RankingRailProps {
   onSelectMedia: (item: MediaItem) => void;
   showRankingNumbers?: boolean;
   onRemoveFromWatchlist?: (id: string) => void;
-  onMarkWatching?: (id: string, item?: MediaItem) => void;
-  onMarkWatched?: (id: string, item?: MediaItem) => void;
+  onMarkWatching?: (id: string) => void;
+  onMarkWatched?: (id: string) => void;
   onDismissFromWatching?: (id: string) => void;
-  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
-  onToggleFavorite?: (id: string, item?: MediaItem) => void;
-  onAddMediaToLibrary?: (item: MediaItem) => void;
-  customLists?: CustomList[];
-  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
-  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
+  onToggleWatchlist?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
   onExpand?: () => void;
   expandTooltip?: string;
-  onRandomPick?: (items: MediaItem[]) => void;
   layout?: 'horizontal' | 'vertical';
 }
 
@@ -40,13 +34,8 @@ export const RankingRail: React.FC<RankingRailProps> = ({
   onDismissFromWatching,
   onToggleWatchlist,
   onToggleFavorite,
-  onAddMediaToLibrary,
-  customLists,
-  onAddItemToList,
-  onRemoveItemFromList,
   onExpand,
   expandTooltip,
-  onRandomPick,
   layout = 'horizontal',
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -97,7 +86,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
     <section className="mb-12 sm:mb-16">
       {/* Section Header */}
       <div className="flex items-end justify-between mb-4">
-        <div className="min-w-0 pr-2">
+        <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight">
             {title}
           </h2>
@@ -106,65 +95,22 @@ export const RankingRail: React.FC<RankingRailProps> = ({
           )}
         </div>
 
-        {/* Rail Scroll / Expand / Random Pick Controls */}
+        {/* Rail Scroll / Expand Controls */}
         {layout === 'vertical' ? (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onRandomPick && items.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onRandomPick(items)}
-                aria-label="Random Pick: Pick a random title from your favorites"
-                title="Pick a random title from your favorites"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span className="text-xs font-black">Random Pick</span>
-              </button>
-            )}
-
-            {onExpand && (
-              <button
-                type="button"
-                onClick={onExpand}
-                aria-label={expandTooltip || "Expand: Open favorites in Watchlist"}
-                title={expandTooltip || "Expand: Open favorites in Watchlist"}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition-all duration-200 focus:outline-none shadow-xs border border-[#991B1B] active:scale-95 cursor-pointer"
-              >
-                <Maximize2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span className="text-xs font-black">Expand</span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onRandomPick && items.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onRandomPick(items)}
-                aria-label="Random Pick: Pick a random title from your favorites"
-                title="Pick a random title from your favorites"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span className="text-xs font-black">Random Pick</span>
-              </button>
-            )}
-
-            {onExpand && (
-              <button
-                type="button"
-                onClick={onExpand}
-                aria-label={expandTooltip || "Expand: Open favorites in Watchlist"}
-                title={expandTooltip || "Expand: Open favorites in Watchlist"}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition-all duration-200 focus:outline-none shadow-xs border border-[#991B1B] active:scale-95 cursor-pointer"
-              >
-                <Maximize2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span className="text-xs font-black">Expand</span>
-              </button>
-            )}
-
+          onExpand && (
             <button
-              type="button"
+              onClick={onExpand}
+              aria-label={expandTooltip || "Expand: Open favorites in Watchlist"}
+              title={expandTooltip || "Expand: Open favorites in Watchlist"}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition-all duration-200 focus:outline-none shadow-xs border border-[#991B1B] active:scale-95 cursor-pointer"
+            >
+              <Maximize2 className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="text-xs font-black">Expand</span>
+            </button>
+          )
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <button
               onClick={() => handleScroll('left')}
               disabled={isAtStart}
               aria-label="Scroll left"
@@ -177,14 +123,27 @@ export const RankingRail: React.FC<RankingRailProps> = ({
               <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleScroll('right')}
-              aria-label="Scroll right"
-              className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-3xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-            </button>
+            {isAtEnd && onExpand ? (
+              /* Expand Button in Deep Blood Red (Matching Delete Colour #7F1D1D) */
+              <button
+                onClick={onExpand}
+                aria-label={expandTooltip || "Expand: Open favorites in Watchlist"}
+                title={expandTooltip || "Expand: Open favorites in Watchlist"}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7F1D1D] hover:bg-[#991B1B] text-white transition-all duration-200 focus:outline-none shadow-xs border border-[#991B1B] active:scale-95 cursor-pointer animate-scale-up"
+              >
+                <Maximize2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span className="text-xs font-black">Expand</span>
+              </button>
+            ) : (
+              /* Standard Right Arrow Button */
+              <button
+                onClick={() => handleScroll('right')}
+                aria-label="Scroll right"
+                className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-3xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -196,7 +155,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
             <div key={item.id} className="w-full">
               <MoviePoster
                 item={item}
-                userState={resolveStateForMediaItem(item, userStates)}
+                userState={userStates[item.id]}
                 onClick={() => onSelectMedia(item)}
                 showRanking={showRankingNumbers ? index + 1 : undefined}
                 onRemoveFromWatchlist={onRemoveFromWatchlist}
@@ -205,10 +164,6 @@ export const RankingRail: React.FC<RankingRailProps> = ({
                 onDismissFromWatching={onDismissFromWatching}
                 onToggleWatchlist={onToggleWatchlist}
                 onToggleFavorite={onToggleFavorite}
-                onAddMediaToLibrary={onAddMediaToLibrary}
-                customLists={customLists}
-                onAddItemToList={onAddItemToList}
-                onRemoveItemFromList={onRemoveItemFromList}
               />
             </div>
           ))}
@@ -225,7 +180,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
             >
               <MoviePoster
                 item={item}
-                userState={resolveStateForMediaItem(item, userStates)}
+                userState={userStates[item.id]}
                 onClick={() => onSelectMedia(item)}
                 showRanking={showRankingNumbers ? index + 1 : undefined}
                 onRemoveFromWatchlist={onRemoveFromWatchlist}
@@ -234,10 +189,6 @@ export const RankingRail: React.FC<RankingRailProps> = ({
                 onDismissFromWatching={onDismissFromWatching}
                 onToggleWatchlist={onToggleWatchlist}
                 onToggleFavorite={onToggleFavorite}
-                onAddMediaToLibrary={onAddMediaToLibrary}
-                customLists={customLists}
-                onAddItemToList={onAddItemToList}
-                onRemoveItemFromList={onRemoveItemFromList}
               />
             </div>
           ))}

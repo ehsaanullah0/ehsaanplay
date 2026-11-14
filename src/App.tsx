@@ -4,9 +4,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ActiveTab, MediaItem, DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_APP_TWEAKS, GenreMixBottomBarAction, CustomList } from './types/movie';
+import { ActiveTab, MediaItem, DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_APP_TWEAKS } from './types/movie';
 import { useMediaLibrary } from './hooks/useMediaLibrary';
-import { loadCustomLists, saveCustomLists } from './services/storage';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
 import { OfflineToast } from './components/layout/OfflineToast';
@@ -26,8 +25,6 @@ import { usePWAUpdate } from './hooks/usePWAInstall';
 import { reassertFullscreen } from './hooks/useFullscreen';
 import { deviceTransferService, IncomingTransferEvent } from './services/deviceTransfer';
 import { applyRecentChanges } from './services/recentChanges';
-import { triggerBackgroundSync } from './services/supabase/syncService';
-import { resolveStateForMediaItem } from './utils/mediaDedup';
 import { Wifi, Check } from 'lucide-react';
 
 export default function App() {
@@ -80,7 +77,6 @@ export default function App() {
   const [settingsTopic, setSettingsTopic] = useState<SettingsTopicId | null>(null);
   const [isSwapNavConfirmOpen, setIsSwapNavConfirmOpen] = useState(false);
   const [globalIncomingTransfer, setGlobalIncomingTransfer] = useState<IncomingTransferEvent | null>(null);
-  const [genreMixAction, setGenreMixAction] = useState<GenreMixBottomBarAction | null>(null);
 
   const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
@@ -390,13 +386,12 @@ export default function App() {
   const handleNavigateToWatchlistWithFilter = useCallback((status: string = 'all') => {
     setWatchlistInitialFilter(status);
     setActiveTab('watchlist');
-    triggerBackgroundSync();
     window.scrollTo(0, 0);
   }, []);
 
   // Quick Random Pick trigger from top bar or home (strictly excludes watched titles)
   const handleTriggerRandomGlobal = useCallback(() => {
-    const unwatched = mediaItems.filter(i => !resolveStateForMediaItem(i, userStates)?.isWatched);
+    const unwatched = mediaItems.filter(i => !userStates[i.id]?.isWatched);
     const targetPool = unwatched.length > 0 ? unwatched : mediaItems;
     const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
     const pool = validPool.length > 0 ? validPool : targetPool;
@@ -406,129 +401,6 @@ export default function App() {
       setRandomModalItem(picked);
     }
   }, [mediaItems, userStates]);
-
-  // Pick random item from a specific pool of items (e.g. Personal Favorites or Custom List)
-  const handleRandomPickFromItems = useCallback(
-    (items: MediaItem[]) => {
-      if (!items || items.length === 0) return;
-      const unwatched = items.filter(i => !resolveStateForMediaItem(i, userStates)?.isWatched);
-      const targetPool = unwatched.length > 0 ? unwatched : items;
-      const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
-      const pool = validPool.length > 0 ? validPool : targetPool;
-      const picked = pool[Math.floor(Math.random() * pool.length)];
-      setRandomModalPool(items);
-      setRandomModalItem(picked);
-    },
-    [userStates]
-  );
-
-  // Auto-save generated AI list to Custom Collections with AI badge
-  const handleSaveAiList = useCallback(
-    (title: string, description: string, items: MediaItem[]) => {
-      // 1. Add all items to library cache
-      items.forEach(item => addMediaToLibrary(item));
-
-      // 2. Persist custom list with isAiGenerated: true
-      const cleanKey = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const listId = `list-ai-${cleanKey}`;
-      const itemIds = items.map(i => i.id);
-
-      const currentLists = loadCustomLists();
-      const existingIdx = currentLists.findIndex(l => l.id === listId);
-
-      let updatedLists: CustomList[] = [];
-      if (existingIdx >= 0) {
-        updatedLists = currentLists.map(l => {
-          if (l.id === listId) {
-            return {
-              ...l,
-              title,
-              description,
-              itemIds,
-              updatedAt: new Date().toISOString(),
-              isAiGenerated: true,
-              aiLabel: 'AI',
-            };
-          }
-          return l;
-        });
-      } else {
-        const newList: CustomList = {
-          id: listId,
-          title,
-          description,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemIds,
-          colorTag: '#F59E0B',
-          isAiGenerated: true,
-          aiLabel: 'AI',
-        };
-        updatedLists = [newList, ...currentLists];
-      }
-
-      saveCustomLists(updatedLists);
-      refreshLibrary();
-    },
-    [addMediaToLibrary, refreshLibrary]
-  );
-
-  // Manual save or rename generated list (removes AI label when renamed/saved manually)
-  const handleManualSaveList = useCallback(
-    (
-      title: string,
-      description: string,
-      items: MediaItem[],
-      isRenamedOrManual: boolean,
-      existingListId?: string
-    ) => {
-      // 1. Add all items to library cache
-      items.forEach(item => addMediaToLibrary(item));
-
-      // 2. Determine if AI label should be retained or removed
-      const isAiGenerated = !isRenamedOrManual;
-      const listId = existingListId || `list-user-${Date.now()}`;
-      const itemIds = items.map(i => i.id);
-
-      const currentLists = loadCustomLists();
-      const existingIdx = currentLists.findIndex(l => l.id === listId);
-
-      let updatedLists: CustomList[] = [];
-      if (existingIdx >= 0) {
-        updatedLists = currentLists.map(l => {
-          if (l.id === listId) {
-            return {
-              ...l,
-              title: title.trim(),
-              description: description.trim(),
-              itemIds: Array.from(new Set([...l.itemIds, ...itemIds])),
-              updatedAt: new Date().toISOString(),
-              isAiGenerated,
-              aiLabel: isAiGenerated ? 'AI' : undefined,
-            };
-          }
-          return l;
-        });
-      } else {
-        const newList: CustomList = {
-          id: listId,
-          title: title.trim(),
-          description: description.trim(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          itemIds,
-          colorTag: isAiGenerated ? '#F59E0B' : '#4E562F',
-          isAiGenerated,
-          aiLabel: isAiGenerated ? 'AI' : undefined,
-        };
-        updatedLists = [newList, ...currentLists];
-      }
-
-      saveCustomLists(updatedLists);
-      refreshLibrary();
-    },
-    [addMediaToLibrary, refreshLibrary]
-  );
 
   // Navigate directly to Changelog inside Settings > EHSAAN PLAY
   const handleOpenChangelog = useCallback(() => {
@@ -545,9 +417,6 @@ export default function App() {
         onSelectTab={tab => {
           if (tab === 'settings') {
             setSettingsTopic(null);
-          }
-          if (tab === 'watchlist') {
-            triggerBackgroundSync();
           }
           setActiveTab(tab);
           window.scrollTo(0, 0);
@@ -579,12 +448,8 @@ export default function App() {
             onToggleWatchlist={toggleWatchlist}
             onToggleFavorite={toggleFavorite}
             onAddMediaToLibrary={addMediaToLibrary}
-            customLists={customLists}
-            onAddItemToList={addItemToList}
-            onRemoveItemFromList={removeItemFromList}
             onOpenChangelog={handleOpenChangelog}
             onOpenLicense={() => setIsLicenseModalOpen(true)}
-            onRandomPick={handleRandomPickFromItems}
             tweaks={settings.tweaks}
             settings={settings}
             onUpdateSettings={updateSettings}
@@ -605,10 +470,6 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
             onNavigateToDiscover={() => setActiveTab('home')}
             settings={settings}
-            customLists={customLists}
-            onAddItemToList={addItemToList}
-            onRemoveItemFromList={removeItemFromList}
-            onCreateList={createCustomList}
           />
         )}
 
@@ -623,23 +484,21 @@ export default function App() {
             onDeleteList={deleteCustomList}
             onAddItemToList={addItemToList}
             onRemoveItemFromList={removeItemFromList}
-            onRandomPick={handleRandomPickFromItems}
+            onRandomPick={items => {
+              if (items.length > 0) {
+                const unwatched = items.filter(i => !userStates[i.id]?.isWatched);
+                const targetPool = unwatched.length > 0 ? unwatched : items;
+                const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
+                const pool = validPool.length > 0 ? validPool : targetPool;
+                const picked = pool[Math.floor(Math.random() * pool.length)];
+                setRandomModalPool(targetPool);
+                setRandomModalItem(picked);
+              }
+            }}
             onRemoveFromWatchlist={removeFromWatchlist}
             onMarkWatching={markWatching}
             onMarkWatched={markWatched}
             onDismissFromWatching={dismissFromWatching}
-            onToggleWatchlist={toggleWatchlist}
-            onToggleFavorite={toggleFavorite}
-            onAddMediaToLibrary={addMediaToLibrary}
-            settings={settings}
-            onUpdateSettings={updateSettings}
-            onGenreMixActionChange={setGenreMixAction}
-            onAutoSaveAiList={handleSaveAiList}
-            onManualSaveList={handleManualSaveList}
-            onNavigateToSettingsTopic={topic => {
-              setSettingsTopic(topic);
-              setActiveTab('settings');
-            }}
           />
         )}
 
@@ -662,15 +521,12 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating Pill Bottom Navigation / Liquid Morph Generate Bar */}
+      {/* Mobile Floating Pill Bottom Navigation */}
       <BottomNavigation
         activeTab={activeTab}
         onSelectTab={tab => {
           if (tab === 'settings') {
             setSettingsTopic(null);
-          }
-          if (tab === 'watchlist') {
-            triggerBackgroundSync();
           }
           setActiveTab(tab);
           window.scrollTo(0, 0);
@@ -678,7 +534,6 @@ export default function App() {
         swapSearchAndLists={isSwappedNav}
         onOpenSearch={() => setIsSearchOpen(true)}
         onTriggerSwapConfirm={() => setIsSwapNavConfirmOpen(true)}
-        genreMixAction={activeTab === 'lists' ? genreMixAction : null}
       />
 
       {/* Swap Navigation Layout Confirmation Modal */}
@@ -712,7 +567,7 @@ export default function App() {
         item={selectedMedia}
         isOpen={selectedMedia !== null}
         onClose={() => setSelectedMedia(null)}
-        userState={selectedMedia ? resolveStateForMediaItem(selectedMedia, userStates) : undefined}
+        userState={selectedMedia ? userStates[selectedMedia.id] : undefined}
         customLists={customLists}
         backdropOpacity={settings.backdropOpacity}
         onHydrateDetails={hydrateMediaDetails}
@@ -725,7 +580,6 @@ export default function App() {
         onToggleTVEpisode={toggleTVEpisode}
         onToggleSeasonEpisodes={toggleSeasonEpisodes}
         onAddItemToList={addItemToList}
-        onRemoveItemFromList={removeItemFromList}
         onOpenImdbPreview={handleOpenImdbPreview}
         mediaItems={mediaItems}
         userStates={userStates}
@@ -770,14 +624,9 @@ export default function App() {
         onClose={() => setRandomModalItem(null)}
         onSelectMedia={setSelectedMedia}
         onPickAnother={handleTriggerRandomGlobal}
-        userState={randomModalItem ? resolveStateForMediaItem(randomModalItem, userStates) : undefined}
+        userState={randomModalItem ? userStates[randomModalItem.id] : undefined}
         userStates={userStates}
         candidatePool={randomModalPool.length > 0 ? randomModalPool : mediaItems}
-        customLists={customLists}
-        onAddItemToList={addItemToList}
-        onRemoveItemFromList={removeItemFromList}
-        onCreateList={createCustomList}
-        onToggleFavorite={toggleFavorite}
       />
 
       {/* Global In-App Incoming Transfer Alert (LocalSend Style) */}

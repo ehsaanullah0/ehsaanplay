@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CustomList, MediaItem, PersonalMediaState } from '../../types/movie';
-import { findMediaItemByIdOrAlias, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { ListCoverCollage } from '../common/ListCoverCollage';
 import { MoviePoster } from '../common/MoviePoster';
 import { CreateListModal } from './CreateListModal';
@@ -18,27 +17,23 @@ interface ListDetailViewProps {
   list: CustomList;
   allItems: MediaItem[];
   userStates: Record<string, PersonalMediaState>;
-  customLists?: CustomList[];
   onBack: () => void;
   onSelectMedia: (item: MediaItem) => void;
   onUpdateList: (id: string, title: string, description?: string, colorTag?: string) => void;
   onDeleteList: (id: string) => void;
-  onAddItemToList: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onAddItemToList: (listId: string, mediaId: string) => void;
   onRemoveItemFromList: (listId: string, mediaId: string) => void;
   onRandomPickFromList: (items: MediaItem[]) => void;
   onRemoveFromWatchlist?: (id: string) => void;
-  onMarkWatching?: (id: string, item?: MediaItem) => void;
-  onMarkWatched?: (id: string, item?: MediaItem) => void;
+  onMarkWatching?: (id: string) => void;
+  onMarkWatched?: (id: string) => void;
   onDismissFromWatching?: (id: string) => void;
-  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
-  onToggleFavorite?: (id: string, item?: MediaItem) => void;
 }
 
 export const ListDetailView: React.FC<ListDetailViewProps> = ({
   list,
   allItems,
   userStates,
-  customLists,
   onBack,
   onSelectMedia,
   onUpdateList,
@@ -50,28 +45,19 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
   onMarkWatching,
   onMarkWatched,
   onDismissFromWatching,
-  onToggleWatchlist,
-  onToggleFavorite,
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddMediaOpen, setIsAddMediaOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState('');
 
-  // Get items belonging to this list (with alias resolution)
-  const seenListIds = new Set<string>();
-  const listItems: MediaItem[] = [];
-  for (const id of list.itemIds) {
-    const resolved = findMediaItemByIdOrAlias(id, allItems);
-    if (resolved && !seenListIds.has(resolved.id)) {
-      seenListIds.add(resolved.id);
-      listItems.push(resolved);
-    }
-  }
+  // Get items belonging to this list
+  const listItems = list.itemIds
+    .map(id => allItems.find(item => item.id === id))
+    .filter((item): item is MediaItem => item !== undefined);
 
   // Available items not yet in this list
   const availableToAdd = allItems.filter(
     item =>
-      !seenListIds.has(item.id) &&
       !list.itemIds.includes(item.id) &&
       (addSearchQuery.trim() === '' ||
         item.title.toLowerCase().includes(addSearchQuery.toLowerCase()))
@@ -170,17 +156,12 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
               <div key={item.id} className="relative group">
                 <MoviePoster
                   item={item}
-                  userState={resolveStateForMediaItem(item, userStates)}
+                  userState={userStates[item.id]}
                   onClick={() => onSelectMedia(item)}
                   onRemoveFromWatchlist={onRemoveFromWatchlist}
                   onMarkWatching={onMarkWatching}
                   onMarkWatched={onMarkWatched}
                   onDismissFromWatching={onDismissFromWatching}
-                  onToggleWatchlist={onToggleWatchlist}
-                  onToggleFavorite={onToggleFavorite}
-                  customLists={customLists}
-                  onAddItemToList={onAddItemToList}
-                  onRemoveItemFromList={onRemoveItemFromList}
                 />
                 {/* Remove from list quick trigger */}
                 <button
