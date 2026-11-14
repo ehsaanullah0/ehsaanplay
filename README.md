@@ -34,7 +34,7 @@
   calm, and enjoyable way.
 </p>
 <a href="https://github.com/ehsaanullah0/ehsaanplay/stargazers">
-  <img src="https://img.shields.io/badge/⭐_GIVE_US_A_STAR-If_you_love_EHSAANPLAY,_support_the_project_on_GitHub!-000000?style=for-the-badge&logo=github&logoColor=white&labelColor=000000" alt="Star WatchWave on GitHub" width="550" />
+  <img src="https://img.shields.io/badge/⭐_GIVE_US_A_STAR-If_you_love_EHSAANPLAY,_support_the_project_on_GitHub!-000000?style=for-the-badge&logo=github&logoColor=white&labelColor=000000" alt="Star WatchWave on GitHub" width="700" />
   
 ---
 
