@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MediaItem, PersonalMediaState, CastMember, CrewMember } from '../../types/movie';
-import { fetchTMDBPersonDetails, TMDBPersonDetails, fetchTMDBDetails, TMDBPersonCredit } from '../../services/tmdb';
+import { fetchTMDBPersonDetails, TMDBPersonDetails, TMDBPersonCredit } from '../../services/tmdb';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { SafeImage } from './SafeImage';
 import {
   X,
@@ -145,23 +146,11 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
         crew: [],
       };
 
-      // Open movie/series preview with history preserved in parent
+      // Open movie/series preview with history preserved in parent (parent handles background hydration)
       if (onSelectMedia) {
         onSelectMedia(initialMedia);
       } else {
         onClose();
-      }
-
-      // 3. Concurrently fetch and hydrate full details from TMDB (synopsis, trailer, watch providers, crew, seasons, episodes)
-      if (rawId > 0) {
-        try {
-          const fullDetails = await fetchTMDBDetails(rawId, cr.type, tmdbApiKey);
-          if (fullDetails && onSelectMedia) {
-            onSelectMedia(fullDetails);
-          }
-        } catch (err) {
-          console.warn('Background TMDB hydration for credit completed with fallback:', err);
-        }
       }
     } catch (err) {
       console.error('Error selecting filmography credit:', err);
@@ -219,6 +208,10 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
   };
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Sync internal state when person prop changes
   useEffect(() => {
@@ -249,26 +242,25 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
     };
   }, []);
 
-  // Close on Escape key press & handle Android back navigation
+  // Close on Escape key press & handle Android back navigation (push history once while modal is open)
+  const isPersonModalActive = Boolean(activePerson);
   useEffect(() => {
-    if (!activePerson) return;
+    if (!isPersonModalActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // Push state for Android back button preservation
-    const stateObj = { modal: 'cast-crew-detail', name: activePerson.name };
-    window.history.pushState(stateObj, '');
+    window.history.pushState({ modal: 'cast-crew-detail' }, '');
 
     const handlePopState = () => {
-      onClose();
+      onCloseRef.current();
     };
     window.addEventListener('popstate', handlePopState);
 
@@ -276,7 +268,7 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [activePerson, onClose]);
+  }, [isPersonModalActive]);
 
   // Fetch full details & credits from TMDB whenever activePerson changes
   useEffect(() => {
@@ -440,8 +432,25 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
             m.id === `tmdb-${cr.type}-${cr.id}` ||
             (m.title.toLowerCase() === cr.title.toLowerCase() && (!yearNum || m.year === yearNum))
         );
-        const targetId = existingMedia ? existingMedia.id : `tmdb-${cr.type}-${rawId || cr.id}`;
-        const state = userStates[targetId];
+        const creditCandidate: MediaItem = existingMedia || {
+          id: `tmdb-${cr.type}-${rawId || cr.id}`,
+          title: cr.title,
+          originalTitle: cr.title,
+          type: cr.type,
+          year: yearNum,
+          releaseDate: cr.releaseDate || '',
+          posterUrl: cr.posterUrl || '',
+          backdropUrl: cr.backdropUrl || cr.posterUrl || '',
+          overview: cr.overview || '',
+          genres: [],
+          imdbRating: cr.rating || 0,
+          tmdbRating: cr.rating || 0,
+          voteCount: cr.voteCount || 0,
+          tmdbId: rawId > 0 ? rawId : undefined,
+          cast: [],
+          crew: [],
+        };
+        const state = resolveStateForMediaItem(creditCandidate, userStates, mediaItems);
         return Boolean(state?.inWatchlist || state?.isFavorite || state?.isWatched);
       });
     }
@@ -725,42 +734,48 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
               </div>
 
               {/* Sub-filter tabs (All, Cast, Crew) */}
-              <div className="inline-flex p-0.5 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] text-[10px] sm:text-[11px] font-bold self-start sm:self-auto">
-                <button
-                  onClick={() => setCrewFilter('all')}
-                  className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
-                    crewFilter === 'all'
-                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  All ({currentCast.length + currentCrew.length})
-                </button>
-                {currentCast.length > 0 && (
-                  <button
-                    onClick={() => setCrewFilter('cast')}
-                    className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
-                      crewFilter === 'cast'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    Cast ({currentCast.length})
-                  </button>
-                )}
-                {currentCrew.length > 0 && (
-                  <button
-                    onClick={() => setCrewFilter('crew')}
-                    className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
-                      crewFilter === 'crew'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    Crew ({currentCrew.length})
-                  </button>
-                )}
-              </div>
+              {(() => {
+                const resolvedCastCount = currentCast.length > 0 ? currentCast.length : (currentMedia?.cast?.length || 0);
+                const resolvedCrewCount = currentCrew.length > 0 ? currentCrew.length : (currentMedia?.crew?.length || 0);
+                return (
+                  <div className="inline-flex p-0.5 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] text-[10px] sm:text-[11px] font-bold self-start sm:self-auto">
+                    <button
+                      onClick={() => setCrewFilter('all')}
+                      className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
+                        crewFilter === 'all'
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      All ({resolvedCastCount + resolvedCrewCount})
+                    </button>
+                    {resolvedCastCount > 0 && (
+                      <button
+                        onClick={() => setCrewFilter('cast')}
+                        className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
+                          crewFilter === 'cast'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        Cast ({resolvedCastCount})
+                      </button>
+                    )}
+                    {resolvedCrewCount > 0 && (
+                      <button
+                        onClick={() => setCrewFilter('crew')}
+                        className={`px-2.5 py-1 rounded-full transition active:scale-95 ${
+                          crewFilter === 'crew'
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        Crew ({resolvedCrewCount})
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Horizontal touch scroll rail with circular avatars */}
@@ -900,7 +915,7 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
           {libraryAppearances.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
               {libraryAppearances.map((item) => {
-                const state = userStates[item.id];
+                const state = resolveStateForMediaItem(item, userStates, mediaItems);
                 return (
                   <button
                     key={item.id}
@@ -1203,8 +1218,25 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
                       m.id === `tmdb-${cr.type}-${cr.id}` ||
                       (m.title.toLowerCase() === cr.title.toLowerCase() && (!yearNum || m.year === yearNum))
                   );
-                  const targetId = existingMedia ? existingMedia.id : `tmdb-${cr.type}-${rawId || cr.id}`;
-                  const isInWatchlist = Boolean(userStates[targetId]?.inWatchlist);
+                  const creditCandidate: MediaItem = existingMedia || {
+                    id: `tmdb-${cr.type}-${rawId || cr.id}`,
+                    title: cr.title,
+                    originalTitle: cr.title,
+                    type: cr.type,
+                    year: yearNum,
+                    releaseDate: cr.releaseDate || '',
+                    posterUrl: cr.posterUrl || '',
+                    backdropUrl: cr.backdropUrl || cr.posterUrl || '',
+                    overview: cr.overview || '',
+                    genres: [],
+                    imdbRating: cr.rating || 0,
+                    tmdbRating: cr.rating || 0,
+                    voteCount: cr.voteCount || 0,
+                    tmdbId: rawId > 0 ? rawId : undefined,
+                    cast: [],
+                    crew: [],
+                  };
+                  const isInWatchlist = Boolean(resolveStateForMediaItem(creditCandidate, userStates, mediaItems)?.inWatchlist);
 
                   return (
                     <div
@@ -1261,11 +1293,11 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
                             aria-label={isInWatchlist ? `Remove ${cr.title} from Watchlist` : `Add ${cr.title} to Watchlist`}
                           >
                             {isLoadingThis ? (
-                              <Loader2 className="w-3 h-3 text-white animate-spin" />
+                              <Loader2 className="w-3 h-3 animate-spin" />
                             ) : isInWatchlist ? (
-                              <Bookmark className="w-3 h-3 text-white fill-current drop-shadow-xs" />
+                              <Bookmark className="w-3 h-3 fill-current" />
                             ) : (
-                              <Bookmark className="w-3 h-3 text-white drop-shadow-xs" />
+                              <Bookmark className="w-3 h-3" />
                             )}
                           </button>
 

@@ -683,6 +683,54 @@
   animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Fluid Liquid Animation Utilities */
+@keyframes liquidMorph {
+  0% {
+    transform: scale(0.9, 1.12);
+    border-radius: 9999px;
+  }
+  35% {
+    transform: scale(1.06, 0.94);
+  }
+  65% {
+    transform: scale(0.98, 1.02);
+  }
+  100% {
+    transform: scale(1, 1);
+    border-radius: 9999px;
+  }
+}
+
+@keyframes liquidFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes liquidShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-liquid-morph {
+  animation: liquidMorph 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-liquid-flow {
+  background-size: 200% 200%;
+  animation: liquidFlow 4s ease infinite;
+}
+
 /* Hardware accelerated smooth transitions */
 * {
   -webkit-tap-highlight-color: transparent;

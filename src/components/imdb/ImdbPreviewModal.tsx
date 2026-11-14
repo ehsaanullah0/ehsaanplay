@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { parseImdbInput, getCanonicalImdbUrl } from '../../services/imdbParser';
 import { fetchImdbPreview, ImdbMetadataPreview } from '../../services/omdb';
 import { MediaItem, PersonalMediaState } from '../../types/movie';
+import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { loadUserSettings } from '../../services/storage';
 import { SafeImage } from '../common/SafeImage';
 import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
@@ -37,7 +38,7 @@ interface ImdbPreviewModalProps {
   customApiKey?: string;
   onSelectMedia?: (item: MediaItem) => void;
   onAddMediaToLibrary?: (item: MediaItem) => void;
-  onToggleWatchlist?: (id: string) => void;
+  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
   userStates?: Record<string, PersonalMediaState>;
   mediaItems?: MediaItem[];
 }
@@ -75,6 +76,7 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
 
   // Sync initial input and focus
   useEffect(() => {
+    let focusTimer: ReturnType<typeof setTimeout> | null = null;
     if (isOpen) {
       const startVal = initialInput || '';
       setInputVal(startVal);
@@ -87,27 +89,32 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
         handleTriggerFetch(startVal.trim());
       }
 
-      setTimeout(() => {
+      focusTimer = setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     } else {
+      setSelectedPerson(null);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     }
+    return () => {
+      if (focusTimer) clearTimeout(focusTimer);
+    };
   }, [isOpen, initialInput]);
 
-  // Handle escape key
+  // Handle escape key (yield to nested CastCrewDetailModal if open)
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (selectedPerson) return;
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, selectedPerson]);
 
   const handleTriggerFetch = async (queryToFetch: string) => {
     const parseResult = parseImdbInput(queryToFetch);
@@ -231,9 +238,13 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentMediaId = previewData?.imdbId || '';
-  const currentUserState = currentMediaId ? userStates[currentMediaId] : undefined;
-  const inWatchlist = currentUserState?.inWatchlist;
+  const matchedLibraryItem = previewData?.mediaItem
+    ? mediaItems.find(m => areMediaItemsSame(m, previewData.mediaItem))
+    : undefined;
+  const currentUserState = previewData?.mediaItem
+    ? resolveStateForMediaItem(matchedLibraryItem || previewData.mediaItem, userStates, mediaItems)
+    : undefined;
+  const inWatchlist = Boolean(currentUserState?.inWatchlist);
 
   return (
     <div
@@ -242,7 +253,13 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
       aria-label="IMDb Link Preview"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto"
     >
-      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div
+        className="fixed inset-0"
+        onClick={() => {
+          if (!selectedPerson) onClose();
+        }}
+        aria-hidden="true"
+      />
 
       <div className="relative w-full max-w-3xl my-auto bg-[var(--modal-bg)] text-[var(--text-primary)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] overflow-hidden flex flex-col max-h-[92vh] z-10 animate-scale-up">
         {/* Top Header */}
@@ -787,8 +804,10 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        handleAddMedia();
-                        onToggleWatchlist(previewData.imdbId);
+                        if (previewData.mediaItem) {
+                          handleAddMedia();
+                          onToggleWatchlist(previewData.mediaItem.id || previewData.imdbId, previewData.mediaItem);
+                        }
                       }}
                       className={`px-3 py-2 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-3xs ${
                         inWatchlist

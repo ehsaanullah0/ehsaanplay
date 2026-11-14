@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   MediaItem,
   PersonalMediaState,
   FilterState,
   UserSettings,
   resolveRatingTag,
+  CustomList,
 } from '../../types/movie';
 import { SafeImage } from '../common/SafeImage';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { MoviePoster } from '../common/MoviePoster';
 import { FilterSheet } from './FilterSheet';
 import { RandomModal } from './RandomModal';
@@ -32,14 +34,18 @@ interface WatchlistViewProps {
   onSelectMedia: (item: MediaItem) => void;
   initialFilterStatus?: string;
   onRemoveFromWatchlist?: (id: string) => void;
-  onMarkWatching?: (id: string) => void;
-  onMarkWatched?: (id: string) => void;
+  onMarkWatching?: (id: string, item?: MediaItem) => void;
+  onMarkWatched?: (id: string, item?: MediaItem) => void;
   onDismissFromWatching?: (id: string) => void;
-  onToggleWatchlist?: (id: string) => void;
-  onToggleFavorite?: (id: string) => void;
+  onToggleWatchlist?: (id: string, item?: MediaItem) => void;
+  onToggleFavorite?: (id: string, item?: MediaItem) => void;
   onNavigateToDiscover?: () => void;
   viewMode?: 'grid' | 'list' | 'cards';
   settings?: UserSettings;
+  customLists?: CustomList[];
+  onAddItemToList?: (listId: string, mediaId: string, item?: MediaItem) => void;
+  onRemoveItemFromList?: (listId: string, mediaId: string) => void;
+  onCreateList?: (title: string, description?: string, colorTag?: string) => CustomList | void;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -66,6 +72,10 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
   onNavigateToDiscover,
   viewMode = 'grid',
   settings,
+  customLists,
+  onAddItemToList,
+  onRemoveItemFromList,
+  onCreateList,
 }) => {
   const [filters, setFilters] = useState<FilterState>({
     ...DEFAULT_FILTERS,
@@ -88,6 +98,20 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBatchModeActive, setIsBatchModeActive] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (msg: string) => {
+    setActionToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setActionToast(null), 3200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const isSelectionModeActive = isBatchModeActive || selectedIds.size > 0;
 
@@ -129,7 +153,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
     itemIds.forEach((id) => {
       const item = itemMap.get(id);
       if (item) {
-        const state = statesMap[id];
+        const state = resolveStateForMediaItem(item, statesMap);
         currentChangeId += 1;
         changes.push({
           changeId: currentChangeId,
@@ -181,7 +205,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       setIsShareModalOpen(false);
       setSelectedIds(new Set()); // Clear selection after export
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to export selection.');
+      showToast(err instanceof Error ? err.message : 'Failed to export selection.');
     }
   };
 
@@ -212,7 +236,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       } else {
         // Clipboard fallback for browsers without navigator.share
         await navigator.clipboard.writeText(jsonString);
-        alert('✓ Copied Change-JSON payload to clipboard! Share it with your friends to let them import it.');
+        showToast('Copied Change-JSON payload to clipboard.');
         setIsShareModalOpen(false);
         setSelectedIds(new Set());
       }
@@ -271,8 +295,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
 
   // Filter & Sort Logic
   const filteredItems = useMemo(() => {
-    return mediaItems.filter(item => {
-      const state = userStates[item.id];
+    const sorted = mediaItems.filter(item => {
+      const state = resolveStateForMediaItem(item, userStates);
 
       // Format filter
       if (filters.type !== 'all' && item.type !== filters.type) return false;
@@ -335,8 +359,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
 
       return true;
     }).sort((a, b) => {
-      const stateA = userStates[a.id];
-      const stateB = userStates[b.id];
+      const stateA = resolveStateForMediaItem(a, userStates);
+      const stateB = resolveStateForMediaItem(b, userStates);
 
       if (filters.sortBy === 'recent') {
         const timeA = stateA?.addedAt || '';
@@ -361,12 +385,24 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       if (filters.sortBy === 'title_asc') return a.title.localeCompare(b.title);
       return 0;
     });
+
+    const unique: MediaItem[] = [];
+    const seen = new Set<string>();
+    for (const item of sorted) {
+      const normTitle = (item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const dedupKey = normTitle ? `${normTitle}_${item.year || ''}` : item.id;
+      if (!seen.has(dedupKey)) {
+        seen.add(dedupKey);
+        unique.push(item);
+      }
+    }
+    return unique;
   }, [mediaItems, userStates, filters]);
 
   // Handle Random Pick (strictly excludes watched titles)
   const handleTriggerRandom = () => {
     const sourceItems = filteredItems.length > 0 ? filteredItems : mediaItems;
-    const unwatched = sourceItems.filter(i => !userStates[i.id]?.isWatched);
+    const unwatched = sourceItems.filter(i => !resolveStateForMediaItem(i, userStates)?.isWatched);
     const targetPool = unwatched.length > 0 ? unwatched : sourceItems;
     if (targetPool.length === 0) return;
     const validPool = targetPool.filter(i => Boolean(i.posterUrl && i.posterUrl !== 'N/A' && i.posterUrl.trim() !== ''));
@@ -554,7 +590,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
         viewMode === 'list' ? (
           <div className="space-y-3">
             {filteredItems.map(item => {
-              const state = userStates[item.id];
+              const state = resolveStateForMediaItem(item, userStates);
               const rating = state?.personalRating || (item.imdbRating || 0);
               const progress = state?.progressPercent || 0;
               const year = item.releaseDate ? item.releaseDate.split('-')[0] : '';
@@ -668,7 +704,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
               <MoviePoster
                 key={item.id}
                 item={item}
-                userState={userStates[item.id]}
+                userState={resolveStateForMediaItem(item, userStates)}
                 onClick={() => {
                   if (isSelectionModeActive) {
                     handleToggleItemSelection(item.id);
@@ -682,6 +718,9 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
                 onDismissFromWatching={onDismissFromWatching}
                 onToggleWatchlist={onToggleWatchlist}
                 onToggleFavorite={onToggleFavorite}
+                customLists={customLists}
+                onAddItemToList={onAddItemToList}
+                onRemoveItemFromList={onRemoveItemFromList}
                 isSelected={selectedIds.has(item.id)}
                 isSelectionModeActive={isSelectionModeActive}
                 onLongPress={() => handleLongPressItem(item.id)}
@@ -729,9 +768,14 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
         onClose={() => setIsRandomModalOpen(false)}
         onSelectMedia={onSelectMedia}
         onPickAnother={handleTriggerRandom}
-        userState={randomItem ? userStates[randomItem.id] : undefined}
+        userState={randomItem ? resolveStateForMediaItem(randomItem, userStates) : undefined}
         userStates={userStates}
         candidatePool={filteredItems.length > 0 ? filteredItems : mediaItems}
+        customLists={customLists}
+        onAddItemToList={onAddItemToList}
+        onRemoveItemFromList={onRemoveItemFromList}
+        onCreateList={onCreateList}
+        onToggleFavorite={onToggleFavorite}
       />
 
       {/* Custom Themed Share & Export Modal */}
@@ -824,6 +868,13 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {actionToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold shadow-xl flex items-center gap-2 animate-scale-up pointer-events-none">
+          <Check className="w-3.5 h-3.5 stroke-[3]" />
+          <span>{actionToast}</span>
         </div>
       )}
     </div>

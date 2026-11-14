@@ -43,6 +43,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   imageStorageMode: 'online',
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
   tweaks: DEFAULT_APP_TWEAKS,
+  geminiModel: 'gemini-3.1-flash-lite',
 };
 
 export interface LibraryBackupPackage {

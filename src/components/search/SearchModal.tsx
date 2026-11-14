@@ -5,6 +5,7 @@ import { searchWithFallback, SearchProviderMode, SearchDiagnosticInfo } from '..
 import { parseImdbInput } from '../../services/imdbParser';
 import { Search, X, Star, Loader2, Plus, Check, Bookmark, Database, Sparkles, Layers, AlertCircle, Info, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { SafeImage } from '../common/SafeImage';
+import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -571,7 +572,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           )}
 
           {searchResults.map(item => {
-            const state = userStates[item.id];
+            const state = resolveStateForMediaItem(item, userStates);
             const inWatchlist = state?.inWatchlist;
             const isWatched = state?.isWatched;
             const isWatching = !isWatched && (state?.progressPercent || 0) > 0;
