@@ -58,7 +58,7 @@ EHSAAN PLAY is **local-first with optional cloud sync**. Your library works with
 
 <sub>Designed for large personal libraries, with capacity for approximately **60,000+ movie titles and metadata**. Actual limits depend on device storage, browser capabilities, and the configured database.</sub>
 
-📌 **if library not sync , please reconnect your user account (sign-i again)**
+📌 **if library not sync , please reconnect your user account (sign-in again)**
 
 ---
 
