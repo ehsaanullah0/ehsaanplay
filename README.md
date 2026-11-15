@@ -212,7 +212,7 @@ EHSAAN PLAY is a modern, browser-first application built around client-side func
 
 > [!IMPORTANT]
 > ### WANT STREAMING, REFFER [VEGA-ORG](https://github.com/vega-org)
-> It is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
+> EHSAAN PLAY is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
 
 ---
 
