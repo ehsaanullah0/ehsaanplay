@@ -242,6 +242,7 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 </a>
 <br>
 
+<p align="center">
 [![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
 
 ---
