@@ -239,12 +239,23 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 
 [![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
 
+## Star History
+
 <a href="https://www.star-history.com/?repos=ehsaanullah0%2Fehsaanplay&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left" />
- </picture>
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&theme=dark&legend=top-left&v=20261117"
+    />
+    <source
+      media="(prefers-color-scheme: light)"
+      srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left&v=20261117"
+    />
+    <img
+      alt="Star History Chart"
+      src="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left&v=20261117"
+    />
+  </picture>
 </a>
 <br>
 
