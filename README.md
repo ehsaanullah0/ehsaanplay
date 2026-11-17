@@ -255,12 +255,12 @@ EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
 EHSAAN PLAY is independently developed. If you find it useful, your support helps me maintain the project, improve features, and keep building useful tools.
 
+
 <p align="center">
   <a href="https://ehsaan.odoo.com/support">
     <img src="assets/reademe/light/btn-support-ehsaanplay.svg" alt="Support the EHSAAN PLAY project" height="68">
   </a>
 </p>
-<br>
 
 ## MORE FROM EHSAAN
 
