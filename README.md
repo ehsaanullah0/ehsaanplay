@@ -65,7 +65,9 @@ EHSAAN PLAY is **local-first with optional cloud sync**. Your library works with
 <h2><img src="assets/reademe/light/disclaimer.svg" alt="Legal and disclaimer" width="100%"></h2>
 
 EHSAAN PLAY is an independently developed personal-library application, not a streaming service. Movie and TV metadata, posters, and related artwork are supplied by third-party providers and remain subject to their respective terms. Features that depend on external services may change or become unavailable. The project is provided as-is, without a guarantee of uninterrupted or error-free operation. Please review the project license before redistributing or modifying the source.
+
 ### [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) FOR CUSTOM PWA LOGO
+### [360+ title json file](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.4.1/ehsaan-play-360.json) to import my cstom watchlist with a thriller taste
  
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
 
@@ -238,6 +240,7 @@ Movie and TV information and artwork are provided through **[The Movie Database 
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left" />
  </picture>
 </a>
+<br>
 
 [![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
 
