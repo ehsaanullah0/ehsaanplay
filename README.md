@@ -269,4 +269,17 @@ EHSAAN FLOW |
 EHSAAAN COMPRESS |
 EHSAAN COLOUR 
 
-
+<p align="center">
+  <a href="https://instagram.com/cs.ehsaan">
+    <img src="https://img.shields.io/badge/INSTAGRAM-D3D3D3?style=for-the-badge&logo=instagram&logoColor=111111&labelColor=D3D3D3" />
+  </a>
+  <a href="https://facebook.com/cs.ehsaan">
+    <img src="https://img.shields.io/badge/FACEBOOK-D3D3D3?style=for-the-badge&logo=facebook&logoColor=111111&labelColor=D3D3D3" />
+  </a>
+  <a href="https://x.com/cs.ehsaan">
+    <img src="https://img.shields.io/badge/X_TWITTER-D3D3D3?style=for-the-badge&logo=x&logoColor=111111&labelColor=D3D3D3" />
+  </a>
+  <a href="https://youtube.com/@worsmon">
+    <img src="https://img.shields.io/badge/YOUTUBE-D3D3D3?style=for-the-badge&logo=youtube&logoColor=111111&labelColor=D3D3D3" />
+  </a>
+</p>
