@@ -233,6 +233,8 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 
 ## Star History
 
+[![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
+
 <a href="https://www.star-history.com/?repos=ehsaanullah0%2Fehsaanplay&type=date&legend=top-left">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&theme=dark&legend=top-left" />
@@ -241,9 +243,6 @@ Movie and TV information and artwork are provided through **[The Movie Database 
  </picture>
 </a>
 <br>
-
-<p align="center">
-[![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
 
 ---
 
