@@ -2,6 +2,9 @@
 
 
 # EHSAAN PLAY • Cloud Sync Activation Guide
+# visit the video guide [-click here-](https://docs.google.com/videos/d/19Pf4ygSsrRM0vZKS1dHJrNRzNFZZ9_7SERHWRFxTJ-I/play?usp=sharing)
+<img width="1357" height="713" alt="{139B9B11-0B59-487C-A6D7-3D135172F493}" src="https://github.com/user-attachments/assets/d7dba4e1-ecea-410e-92a9-5d1b7f665c5c" />
+
 
 ---
 
@@ -104,13 +107,17 @@ Keep your Supabase project dashboard accessible.
 5. Navigate to Project Settings → API Keys.
 6. Copy the following information:
 
+### click on copy on your dashboard and it will expand with options
+
+<img width="365" height="210" alt="{94099982-DEFA-41FE-9AA8-145196617F97}" src="https://github.com/user-attachments/assets/aeabad79-e0b0-4a9f-844d-bbe579131c07" />
+
    - **Project URL:** Your Supabase project URL.
    - **Publishable Key:** Your project's publishable key.
 
-7. Return to EHSAAN PLAY.
-8. Enter the Project URL and Publishable Key into their respective fields.
-9. Use the connection test option.
-10. Save the connection settings.
+8. Return to EHSAAN PLAY.
+9. Enter the Project URL and Publishable Key into their respective fields.
+10. Use the connection test option.
+11. Save the connection settings.
 
 **Important:** Use your project's Publishable Key (or legacy anon public key where supported). Never enter your Supabase service_role key or secret key into the browser application.
 
@@ -129,6 +136,8 @@ You must initialize the database schema.
 7. Paste the EHSAAN PLAY SQL setup script.
 8. Execute the query.
 9. Wait for the SQL execution to finish successfully.
+
+<img width="385" height="188" alt="{1ED39E95-483C-4C17-A78E-271946008687}" src="https://github.com/user-attachments/assets/29d1cec2-d4ea-4a14-a5b4-ca83b380ef31" />
 
 **Important:**
 
