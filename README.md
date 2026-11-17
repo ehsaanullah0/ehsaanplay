@@ -5,11 +5,15 @@
 </p>
 <p align="center">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Android/android2.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/ViteJS/vitejs2.svg">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/TypeScript/typescript2.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/LicenceGPLv3/licencegplv33.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Supabase/supabase3.svg">
+ <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Javascript/javascript3.svg">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Kotlin/kotlin1.svg">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/React/react2.svg">
- <img src="https://m3-markdown-badges.vercel.app/stars/1/3/ehsaanullah0/ehsaanplay">
-<img src="https://m3-markdown-badges.vercel.app/issues/3/3/ehsaanullah0/ehsaanplay">
+ <img src="https://m3-markdown-badges.vercel.app/issues/4/2/ehsaanullah0/ehsaanplay">
+  <img src="https://m3-markdown-badges.vercel.app/stars/1/3/ehsaanullah0/ehsaanplay">
 </p>
 
 # EHSAAN PLAY
