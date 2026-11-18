@@ -1,5 +1,5 @@
 <p align="center">
-<img width="1796" height="876" alt="EhsaanPlay_ Private Watchlist, Simplified" src="https://github.com/user-attachments/assets/d227364f-9d8c-46cd-b22f-4081527c526f" />
+<img width="1774" height="887" alt="Warm Cream EHSAAN PLAY Dashboard" src="https://github.com/user-attachments/assets/3ee7e37d-da0b-48f3-827f-50f6a18dca4b" />
 </p>
 
 </p>
