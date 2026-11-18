@@ -122,6 +122,7 @@ interface SettingsViewProps {
   onOpenLicense?: () => void;
   onReloadAllArtwork?: (onProgress?: (count: number, total: number) => void) => Promise<{ total: number; updatedCount: number }>;
   onRemoveAllDuplicates?: () => { beforeCount: number; afterCount: number; removedCount: number };
+  isActive?: boolean;
 }
 
 /**
@@ -229,7 +230,7 @@ const M3Slider: React.FC<M3SliderProps> = ({
   );
 };
 
-export const SettingsView: React.FC<SettingsViewProps> = ({
+export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
   settings,
   onUpdateSettings,
   onDeleteAllData,
@@ -244,6 +245,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onOpenLicense,
   onReloadAllArtwork,
   onRemoveAllDuplicates,
+  isActive = true,
 }) => {
   const [isReloadingArt, setIsReloadingArt] = useState(false);
   const [reloadArtStatus, setReloadArtStatus] = useState<string | null>(null);
@@ -316,7 +318,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const { hasUpdate, isUpdating, isChecking, checkMessage, applyUpdate, checkForUpdate } = usePWAUpdate();
   const isOnline = useOnlineStatus();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
-  const [storageStats, setStorageStats] = useState<StorageStats>(getStorageStats());
+  const [storageStats, setStorageStats] = useState<StorageStats>(() => ({
+    usedKb: 0,
+    totalItems: mediaItems.length,
+    watchedCount: 0,
+    watchlistCount: 0,
+    listsCount: 0,
+  }));
   const [imageCacheStats, setImageCacheStats] = useState<ImageCacheStats>({ count: 0, bytes: 0, formattedSize: '0 KB' });
   const [tmdbKeyInput, setTmdbKeyInput] = useState(settings.tmdbApiKey || '');
   const [omdbKeyInput, setOmdbKeyInput] = useState(settings.omdbApiKey || '');
@@ -425,8 +433,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   }, [recordingAction, shortcuts, onUpdateSettings]);
 
   useEffect(() => {
+    if (!isActive) return;
+    setStorageStats(getStorageStats());
     getImageCacheStats().then(setImageCacheStats);
-  }, []);
+  }, [isActive, mediaItems.length]);
 
   const handleRunDiagnostic = async () => {
     setIsRunningDiagnostic(true);
@@ -1226,13 +1236,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="text-xs text-[var(--text-secondary)] mt-0.5">Live TMDB/IMDb trending 3D coverflow with hover details</div>
                 </div>
                 <M3Switch
-                  checked={settings.homeSections?.showHeroSlideshow !== false}
+                  checked={settings.homeSections?.showHeroSlideshow === true}
                   onChange={() =>
                     onUpdateSettings({
                       homeSections: {
                         ...DEFAULT_HOME_SECTIONS,
                         ...settings.homeSections,
-                        showHeroSlideshow: settings.homeSections?.showHeroSlideshow === false,
+                        showHeroSlideshow: settings.homeSections?.showHeroSlideshow !== true,
                       },
                     })
                   }
@@ -1599,10 +1609,141 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
-            {/* Card Group 4: Preview Action Buttons */}
+            {/* Card Group 4: Preview Window & Action Buttons */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Preview Modal Action Buttons
+                Preview Window & Action Buttons
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="pr-3">
+                  <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--text-primary)]">
+                    {settings.tweaks?.previewShowPosterCard !== false ? (
+                      <Eye className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                    )}
+                    <span>Title Image Card</span>
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Hide the poster card in the preview hero to adjust all details to the bottom-left and give full space to background artwork
+                  </div>
+                </div>
+                <M3Switch
+                  checked={settings.tweaks?.previewShowPosterCard !== false}
+                  onChange={() =>
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        previewShowPosterCard: settings.tweaks?.previewShowPosterCard === false,
+                      },
+                    })
+                  }
+                  ariaLabel="Toggle Title Image Card in Preview"
+                />
+              </div>
+
+              <div className={`p-4 sm:p-5 flex items-center justify-between transition-opacity ${settings.tweaks?.previewShowPosterCard !== false ? 'opacity-100' : 'opacity-50'}`}>
+                <div className="pr-3">
+                  <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--text-primary)]">
+                    <Sparkles className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                    <span>Poster Adaptive Color Glow</span>
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Subtle directional glow around the movie card in the preview window matching the poster's top, bottom, and side colors
+                  </div>
+                </div>
+                <M3Switch
+                  checked={settings.tweaks?.previewPosterGlow !== false}
+                  onChange={() =>
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        previewPosterGlow: settings.tweaks?.previewPosterGlow === false,
+                      },
+                    })
+                  }
+                  ariaLabel="Toggle Poster Adaptive Color Glow"
+                />
+              </div>
+
+              <div className={`p-4 sm:p-5 space-y-3 transition-opacity ${settings.tweaks?.previewPosterGlow !== false ? 'opacity-100' : 'opacity-45'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-bold text-sm text-[var(--text-primary)]">Poster Glow Contrast</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Adjust the contrast and intensity of the directional glow around preview poster cards
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {Math.abs((settings.tweaks?.previewPosterGlowContrast ?? 1.0) - 1.0) >= 0.05 &&
+                      settings.tweaks?.previewPosterGlow !== false && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onUpdateSettings({
+                              tweaks: {
+                                ...DEFAULT_APP_TWEAKS,
+                                ...settings.tweaks,
+                                previewPosterGlowContrast: 1.0,
+                              },
+                            })
+                          }
+                          className="text-[11px] font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] flex items-center gap-1 transition active:scale-95"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset</span>
+                        </button>
+                      )}
+                    <span className="font-mono tabular-nums text-xs font-black px-2.5 py-1 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
+                      {settings.tweaks?.previewPosterGlow !== false
+                        ? `${Math.round((settings.tweaks?.previewPosterGlowContrast ?? 1.0) * 100)}%`
+                        : 'OFF'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative h-3.5 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--accent-primary)] transition-[width] duration-75"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (((settings.tweaks?.previewPosterGlowContrast ?? 1.0) - 0.25) / 1.75) * 100
+                        )
+                      )}%`,
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="2.0"
+                    step="0.05"
+                    value={settings.tweaks?.previewPosterGlowContrast ?? 1.0}
+                    disabled={settings.tweaks?.previewPosterGlow === false}
+                    onChange={(e) =>
+                      onUpdateSettings({
+                        tweaks: {
+                          ...DEFAULT_APP_TWEAKS,
+                          ...settings.tweaks,
+                          previewPosterGlowContrast: parseFloat(e.target.value),
+                        },
+                      })
+                    }
+                    aria-label="Poster Glow Contrast"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] font-semibold">
+                  <span>Soft (25%)</span>
+                  <span>Balanced (100%)</span>
+                  <span>High Contrast (200%)</span>
+                </div>
               </div>
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
@@ -2241,7 +2382,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         return (
           <div className="space-y-4">
             {/* Provider Selector Tabs (TMDB Secret Integration / OMDb) */}
-            <div className="flex p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] gap-1 shadow-3xs">
+            <div className="flex p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] gap-1 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setActiveApiTab('TMDB')}
@@ -3621,4 +3762,4 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
     </div>
   );
-};
+});

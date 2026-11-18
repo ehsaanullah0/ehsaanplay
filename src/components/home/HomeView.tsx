@@ -16,8 +16,7 @@ import { RankingRail } from './RankingRail';
 import { ContinueWatchingRail } from './ContinueWatchingRail';
 import { ExploreSection } from './ExploreSection';
 import { Footer } from '../layout/Footer';
-import { areMediaItemsSame } from '../../hooks/useMediaLibrary';
-import { resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { resolveStateForMediaItem, normalizeMediaTitle } from '../../utils/mediaDedup';
 
 interface HomeViewProps {
   mediaItems: MediaItem[];
@@ -57,7 +56,7 @@ interface HomeViewProps {
   onUpdateSettings?: (partial: Partial<UserSettings>) => void;
 }
 
-export const HomeView: React.FC<HomeViewProps> = ({
+export const HomeView: React.FC<HomeViewProps> = React.memo(({
   mediaItems,
   userStates,
   stats,
@@ -84,6 +83,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onUpdateSettings,
 }) => {
   const sections = homeSections || {
+    showHeroSlideshow: false,
     showTopMovies: true,
     showTopSeries: true,
     showContinueWatching: true,
@@ -124,10 +124,19 @@ export const HomeView: React.FC<HomeViewProps> = ({
     };
   }, [settings?.tmdbApiKey]);
 
-  // In-Progress / Continue Watching items (Guaranteed zero duplicates)
+  // In-Progress / Continue Watching items (O(N), zero duplicates)
   const continueWatchingItems = useMemo(() => {
     const list: { item: MediaItem; state: PersonalMediaState }[] = [];
-    const seenTitles = new Set<string>();
+    const seenIndexByKey = new Map<string, number>();
+
+    const getMatchKeys = (item: MediaItem) => {
+      const keys: string[] = [`id:${item.id}`];
+      if (item.imdbId) keys.push(`imdb:${item.imdbId}`);
+      if (item.tmdbId) keys.push(`tmdb:${item.type || 'movie'}:${item.tmdbId}`);
+      const normTitle = normalizeMediaTitle(item.title || '');
+      if (normTitle) keys.push(`title:${item.type || 'movie'}:${normTitle}`);
+      return keys;
+    };
 
     for (const item of mediaItems) {
       const state = resolveStateForMediaItem(item, userStates);
@@ -138,16 +147,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
         state.progressPercent > 0 &&
         state.progressPercent < 100
       ) {
-        const normTitle = (item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-        const dedupKey = normTitle ? `${normTitle}_${item.year || ''}` : item.id;
-
-        const existingIdx = list.findIndex(entry => {
-          const entryNorm = (entry.item.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return (normTitle && entryNorm === normTitle) || areMediaItemsSame(entry.item, item);
-        });
+        const keys = getMatchKeys(item);
+        let existingIdx = -1;
+        for (const k of keys) {
+          const found = seenIndexByKey.get(k);
+          if (found !== undefined) {
+            existingIdx = found;
+            break;
+          }
+        }
 
         if (existingIdx !== -1) {
-          // If already in list, keep the one with higher episode progress or more recent timestamp
           const prev = list[existingIdx];
           const prevScore = (prev.state.tvProgress?.currentSeason || 1) * 1000 + (prev.state.tvProgress?.currentEpisode || 1);
           const currScore = (state.tvProgress?.currentSeason || 1) * 1000 + (state.tvProgress?.currentEpisode || 1);
@@ -156,13 +166,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
           if (currScore > prevScore || (currScore === prevScore && currTime > prevTime)) {
             list[existingIdx] = { item, state };
           }
+          for (const k of keys) seenIndexByKey.set(k, existingIdx);
           continue;
         }
 
-        seenTitles.add(dedupKey);
+        const nextIndex = list.length;
         list.push({ item, state });
+        for (const k of keys) seenIndexByKey.set(k, nextIndex);
       }
     }
+
     return list.sort((a, b) => {
       const timeA = a.state.lastWatchedAt || '';
       const timeB = b.state.lastWatchedAt || '';
@@ -170,70 +183,73 @@ export const HomeView: React.FC<HomeViewProps> = ({
     });
   }, [mediaItems, userStates]);
 
-  // Recently Watched (Guaranteed zero duplicates)
+  // Recently Watched (O(N), zero duplicates)
   const recentlyWatchedItems = useMemo(() => {
-    const list: MediaItem[] = [];
-    const sorted = [...mediaItems]
-      .filter(m => resolveStateForMediaItem(m, userStates)?.isWatched)
-      .sort((a, b) => {
-        const stA = resolveStateForMediaItem(a, userStates);
-        const stB = resolveStateForMediaItem(b, userStates);
-        const timeA = stA?.lastWatchedAt || stA?.addedAt || '';
-        const timeB = stB?.lastWatchedAt || stB?.addedAt || '';
-        return timeB.localeCompare(timeA);
-      });
-
-    for (const m of sorted) {
-      const normTitle = (m.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isDuplicate = list.some(existing => {
-        const existingNorm = (existing.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-        return (normTitle && existingNorm === normTitle) || areMediaItemsSame(existing, m);
-      });
-      if (!isDuplicate) {
-        list.push(m);
+    const withState: { item: MediaItem; state: PersonalMediaState }[] = [];
+    for (const m of mediaItems) {
+      const st = resolveStateForMediaItem(m, userStates);
+      if (st?.isWatched) {
+        withState.push({ item: m, state: st });
       }
     }
-    return list.slice(0, 10);
-  }, [mediaItems, userStates]);
+    withState.sort((a, b) => {
+      const timeA = a.state.lastWatchedAt || a.state.addedAt || '';
+      const timeB = b.state.lastWatchedAt || b.state.addedAt || '';
+      return timeB.localeCompare(timeA);
+    });
 
-  // Favorites / Personal Picks (Guaranteed zero duplicates)
-  const favoriteItems = useMemo(() => {
     const list: MediaItem[] = [];
-    const sorted = [...mediaItems]
-      .filter(m => resolveStateForMediaItem(m, userStates)?.isFavorite)
-      .sort((a, b) => {
-        const stA = resolveStateForMediaItem(a, userStates);
-        const stB = resolveStateForMediaItem(b, userStates);
-        const timeA = stA?.favoritedAt || stA?.addedAt || '';
-        const timeB = stB?.favoritedAt || stB?.addedAt || '';
-        return timeB.localeCompare(timeA);
-      });
+    const seenKeys = new Set<string>();
+    for (const { item: m } of withState) {
+      const normTitle = normalizeMediaTitle(m.title || '');
+      const keys = [`id:${m.id}`];
+      if (m.imdbId) keys.push(`imdb:${m.imdbId}`);
+      if (m.tmdbId) keys.push(`tmdb:${m.type || 'movie'}:${m.tmdbId}`);
+      if (normTitle) keys.push(`title:${m.type || 'movie'}:${normTitle}`);
 
-    for (const m of sorted) {
-      const normTitle = (m.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isDuplicate = list.some(existing => {
-        const existingNorm = (existing.title || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-        return (normTitle && existingNorm === normTitle) || areMediaItemsSame(existing, m);
-      });
-      if (!isDuplicate) {
-        list.push(m);
-      }
+      if (keys.some(k => seenKeys.has(k))) continue;
+      for (const k of keys) seenKeys.add(k);
+      list.push(m);
+      if (list.length >= 10) break;
     }
     return list;
   }, [mediaItems, userStates]);
 
-  // Featured 5 recently added or highlighted titles for top Hero Slideshow
-  const featuredSlideshowItems = useMemo(() => {
-    if (!mediaItems || mediaItems.length === 0) return [];
-    // Prioritize titles with backdrops and posters
-    const withArt = mediaItems.filter(m => m.backdropUrl || m.posterUrl);
-    return (withArt.length >= 5 ? withArt : mediaItems).slice(0, 5);
-  }, [mediaItems]);
+  // Favorites / Personal Picks (O(N), zero duplicates)
+  const favoriteItems = useMemo(() => {
+    const withState: { item: MediaItem; state: PersonalMediaState }[] = [];
+    for (const m of mediaItems) {
+      const st = resolveStateForMediaItem(m, userStates);
+      if (st?.isFavorite) {
+        withState.push({ item: m, state: st });
+      }
+    }
+    withState.sort((a, b) => {
+      const timeA = a.state.favoritedAt || a.state.addedAt || '';
+      const timeB = b.state.favoritedAt || b.state.addedAt || '';
+      return timeB.localeCompare(timeA);
+    });
+
+    const list: MediaItem[] = [];
+    const seenKeys = new Set<string>();
+    for (const { item: m } of withState) {
+      const normTitle = normalizeMediaTitle(m.title || '');
+      const keys = [`id:${m.id}`];
+      if (m.imdbId) keys.push(`imdb:${m.imdbId}`);
+      if (m.tmdbId) keys.push(`tmdb:${m.type || 'movie'}:${m.tmdbId}`);
+      if (normTitle) keys.push(`title:${m.type || 'movie'}:${normTitle}`);
+
+      if (keys.some(k => seenKeys.has(k))) continue;
+      for (const k of keys) seenKeys.add(k);
+      list.push(m);
+    }
+    return list;
+  }, [mediaItems, userStates]);
 
   return (
     <div className="w-full pb-28 md:pb-16 animate-fade-in">
-      {/* Full-Screen Trending Shows Coverflow Stage (Directly from TMDB) */}
-      {sections.showHeroSlideshow !== false && (
+      {/* Full-Screen Trending Shows Coverflow Stage (Hidden by default, opt-in) */}
+      {sections.showHeroSlideshow === true && (
         <TrendingHeroShowcase
           onSelectMedia={onSelectMedia}
           userStates={userStates}
@@ -404,4 +420,4 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
     </div>
   );
-};
+});

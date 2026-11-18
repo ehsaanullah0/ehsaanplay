@@ -22,6 +22,7 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [failedPosterIds, setFailedPosterIds] = useState<Record<string, boolean>>({});
 
   // Responsive device width tracking
   const [windowWidth, setWindowWidth] = useState(
@@ -267,12 +268,11 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
     >
       {/* Ambient Radial Glow matching App Theme */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-700 opacity-60 dark:opacity-40"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-700 opacity-15 dark:opacity-20"
         style={{
           background:
             'radial-gradient(circle 900px at 50% 45%, var(--accent-primary) 0%, transparent 75%)',
           filter: 'blur(100px)',
-          opacity: 0.12,
         }}
       />
 
@@ -428,15 +428,28 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
                   }}
                 >
                   {/* Pristine Full Movie Poster Artwork (No obscuring hover details card) */}
-                  <img
-                    src={item.posterUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80'}
-                    alt={item.title}
-                    className="w-full h-full object-cover pointer-events-none"
-                    loading="lazy"
-                    onError={e => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80';
-                    }}
-                  />
+                  {item.posterUrl && !failedPosterIds[item.id || String(index)] ? (
+                    <img
+                      src={item.posterUrl}
+                      alt={item.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover pointer-events-none"
+                      loading="lazy"
+                      onError={() => {
+                        const key = item.id || String(index);
+                        setFailedPosterIds(prev => (prev[key] ? prev : { ...prev, [key]: true }));
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-neutral-800 via-neutral-900 to-black flex flex-col items-center justify-center p-5 text-center text-white/75 pointer-events-none">
+                      {item.type === 'tv' ? (
+                        <Tv className="w-10 h-10 mb-2 opacity-50" />
+                      ) : (
+                        <Film className="w-10 h-10 mb-2 opacity-50" />
+                      )}
+                      <span className="text-sm font-bold leading-snug line-clamp-3">{item.title}</span>
+                    </div>
+                  )}
 
                   {/* Clean, Subtle Bottom Gradient with Title and Metadata */}
                   {isCenter && (

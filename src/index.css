@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, [data-theme="dark-olive"], [data-theme="dark-olive"] *, [data-theme="oled-black"], [data-theme="oled-black"] *));
+
+@theme {
+  --breakpoint-xs: 25rem;
+}
+
 @layer base {
   /* ========================================================================== */
   /* DEFAULT ICONIC OLIVE & YELLOW PALETTE (Character of the App)              */

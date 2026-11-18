@@ -69,6 +69,8 @@ export default function App() {
   } = useMediaLibrary();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const [visitedTabs, setVisitedTabs] = useState<Set<ActiveTab>>(() => new Set(['home']));
+  const [listsResetSignal, setListsResetSignal] = useState(0);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isImdbPreviewOpen, setIsImdbPreviewOpen] = useState(false);
@@ -83,6 +85,22 @@ export default function App() {
   const [genreMixAction, setGenreMixAction] = useState<GenreMixBottomBarAction | null>(null);
 
   const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
+  const syncToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tabScrollYRef = useRef<Record<ActiveTab, number>>({
+    home: 0,
+    watchlist: 0,
+    lists: 0,
+    settings: 0,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
+      if (backToastTimerRef.current) clearTimeout(backToastTimerRef.current);
+    };
+  }, []);
+
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
     try {
       return !localStorage.getItem('ehsaan_start_guide_completed_v1');
@@ -123,7 +141,8 @@ export default function App() {
         const added = applyResult.newItemsCount;
         const updated = applyResult.updatesCount;
         setSyncSuccessToast(`✓ Library Synced: ${added} new title${added !== 1 ? 's' : ''} • ${updated} update${updated !== 1 ? 's' : ''} from ${globalIncomingTransfer.sourceDevice.deviceName}`);
-        setTimeout(() => setSyncSuccessToast(null), 4000);
+        if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
+        syncToastTimerRef.current = setTimeout(() => setSyncSuccessToast(null), 4000);
         refreshLibrary();
       }
     } finally {
@@ -367,7 +386,8 @@ export default function App() {
       } else {
         lastBackPressTimeRef.current = now;
         setBackToastMessage('Press back again to exit');
-        setTimeout(() => setBackToastMessage(null), 2000);
+        if (backToastTimerRef.current) clearTimeout(backToastTimerRef.current);
+        backToastTimerRef.current = setTimeout(() => setBackToastMessage(null), 2000);
         try {
           window.history.pushState({ page: 'ehsaan-home' }, '');
         } catch {
@@ -380,6 +400,49 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Switch primary tabs instantly (cached mount + per-tab scroll preservation)
+  const handleSelectTab = useCallback((tab: ActiveTab, options?: { scrollToTop?: boolean }) => {
+    const prevTab = activeTabRef.current;
+
+    if (prevTab === tab) {
+      if (tab === 'lists') {
+        setListsResetSignal(s => s + 1);
+      } else if (tab === 'settings') {
+        setSettingsTopic(null);
+      }
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      tabScrollYRef.current[prevTab] = window.scrollY;
+    }
+
+    if (tab === 'settings') {
+      setSettingsTopic(null);
+    }
+    if (tab === 'watchlist') {
+      triggerBackgroundSync();
+    }
+
+    setVisitedTabs(prev => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+    setActiveTab(tab);
+
+    if (typeof window !== 'undefined') {
+      const targetY = options?.scrollToTop ? 0 : (tabScrollYRef.current[tab] || 0);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, targetY);
+      });
+    }
+  }, []);
+
   // Open IMDb Link Preview Modal with optional initial link/ID
   const handleOpenImdbPreview = useCallback((initialVal: string = '') => {
     setImdbPreviewInput(initialVal);
@@ -389,10 +452,8 @@ export default function App() {
   // Navigate to Watchlist with a specific initial filter
   const handleNavigateToWatchlistWithFilter = useCallback((status: string = 'all') => {
     setWatchlistInitialFilter(status);
-    setActiveTab('watchlist');
-    triggerBackgroundSync();
-    window.scrollTo(0, 0);
-  }, []);
+    handleSelectTab('watchlist', { scrollToTop: true });
+  }, [handleSelectTab]);
 
   // Quick Random Pick trigger from top bar or home (strictly excludes watched titles)
   const handleTriggerRandomGlobal = useCallback(() => {
@@ -532,26 +593,16 @@ export default function App() {
 
   // Navigate directly to Changelog inside Settings > EHSAAN PLAY
   const handleOpenChangelog = useCallback(() => {
+    handleSelectTab('settings', { scrollToTop: true });
     setSettingsTopic('app');
-    setActiveTab('settings');
-    window.scrollTo(0, 0);
-  }, []);
+  }, [handleSelectTab]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200 selection:bg-[var(--accent-primary)] selection:text-[var(--bg-primary)]">
       {/* Top Bar Navigation */}
       <Header
         activeTab={activeTab}
-        onSelectTab={tab => {
-          if (tab === 'settings') {
-            setSettingsTopic(null);
-          }
-          if (tab === 'watchlist') {
-            triggerBackgroundSync();
-          }
-          setActiveTab(tab);
-          window.scrollTo(0, 0);
-        }}
+        onSelectTab={handleSelectTab}
         onOpenSearch={() => setIsSearchOpen(true)}
         onRandomPick={handleTriggerRandomGlobal}
         onOpenImdbPreview={handleOpenImdbPreview}
@@ -560,121 +611,122 @@ export default function App() {
         onTriggerSwapConfirm={() => setIsSwapNavConfirmOpen(true)}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area (Visited tabs remain mounted for instant zero-lag switching) */}
       <main className="flex-1 w-full">
-        {activeTab === 'home' && (
-          <HomeView
-            mediaItems={mediaItems}
-            userStates={userStates}
-            stats={stats}
-            onSelectMedia={setSelectedMedia}
-            onNavigateTab={setActiveTab}
-            onNavigateToWatchlistWithFilter={handleNavigateToWatchlistWithFilter}
-            homeSections={settings.homeSections}
-            onUpdateHomeSections={sections => updateSettings({ homeSections: sections })}
-            onRemoveFromWatchlist={removeFromWatchlist}
-            onDismissFromWatching={dismissFromWatching}
-            onMarkWatching={markWatching}
-            onMarkWatched={markWatched}
-            onToggleWatchlist={toggleWatchlist}
-            onToggleFavorite={toggleFavorite}
-            onAddMediaToLibrary={addMediaToLibrary}
-            customLists={customLists}
-            onAddItemToList={addItemToList}
-            onRemoveItemFromList={removeItemFromList}
-            onOpenChangelog={handleOpenChangelog}
-            onOpenLicense={() => setIsLicenseModalOpen(true)}
-            onRandomPick={handleRandomPickFromItems}
-            tweaks={settings.tweaks}
-            settings={settings}
-            onUpdateSettings={updateSettings}
-          />
+        {visitedTabs.has('home') && (
+          <div className={activeTab === 'home' ? 'block' : 'hidden'}>
+            <HomeView
+              mediaItems={mediaItems}
+              userStates={userStates}
+              stats={stats}
+              onSelectMedia={setSelectedMedia}
+              onNavigateTab={handleSelectTab}
+              onNavigateToWatchlistWithFilter={handleNavigateToWatchlistWithFilter}
+              homeSections={settings.homeSections}
+              onUpdateHomeSections={sections => updateSettings({ homeSections: sections })}
+              onRemoveFromWatchlist={removeFromWatchlist}
+              onDismissFromWatching={dismissFromWatching}
+              onMarkWatching={markWatching}
+              onMarkWatched={markWatched}
+              onToggleWatchlist={toggleWatchlist}
+              onToggleFavorite={toggleFavorite}
+              onAddMediaToLibrary={addMediaToLibrary}
+              customLists={customLists}
+              onAddItemToList={addItemToList}
+              onRemoveItemFromList={removeItemFromList}
+              onOpenChangelog={handleOpenChangelog}
+              onOpenLicense={() => setIsLicenseModalOpen(true)}
+              onRandomPick={handleRandomPickFromItems}
+              tweaks={settings.tweaks}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+            />
+          </div>
         )}
 
-        {activeTab === 'watchlist' && (
-          <WatchlistView
-            mediaItems={mediaItems}
-            userStates={userStates}
-            onSelectMedia={setSelectedMedia}
-            initialFilterStatus={watchlistInitialFilter}
-            onRemoveFromWatchlist={removeFromWatchlist}
-            onMarkWatching={markWatching}
-            onMarkWatched={markWatched}
-            onDismissFromWatching={dismissFromWatching}
-            onToggleWatchlist={toggleWatchlist}
-            onToggleFavorite={toggleFavorite}
-            onNavigateToDiscover={() => setActiveTab('home')}
-            settings={settings}
-            customLists={customLists}
-            onAddItemToList={addItemToList}
-            onRemoveItemFromList={removeItemFromList}
-            onCreateList={createCustomList}
-          />
+        {visitedTabs.has('watchlist') && (
+          <div className={activeTab === 'watchlist' ? 'block' : 'hidden'}>
+            <WatchlistView
+              mediaItems={mediaItems}
+              userStates={userStates}
+              onSelectMedia={setSelectedMedia}
+              initialFilterStatus={watchlistInitialFilter}
+              onRemoveFromWatchlist={removeFromWatchlist}
+              onMarkWatching={markWatching}
+              onMarkWatched={markWatched}
+              onDismissFromWatching={dismissFromWatching}
+              onToggleWatchlist={toggleWatchlist}
+              onToggleFavorite={toggleFavorite}
+              onNavigateToDiscover={() => handleSelectTab('home', { scrollToTop: true })}
+              settings={settings}
+              customLists={customLists}
+              onAddItemToList={addItemToList}
+              onRemoveItemFromList={removeItemFromList}
+              onCreateList={createCustomList}
+            />
+          </div>
         )}
 
-        {activeTab === 'lists' && (
-          <ListsView
-            customLists={customLists}
-            mediaItems={mediaItems}
-            userStates={userStates}
-            onSelectMedia={setSelectedMedia}
-            onCreateList={createCustomList}
-            onUpdateList={updateCustomList}
-            onDeleteList={deleteCustomList}
-            onAddItemToList={addItemToList}
-            onRemoveItemFromList={removeItemFromList}
-            onRandomPick={handleRandomPickFromItems}
-            onRemoveFromWatchlist={removeFromWatchlist}
-            onMarkWatching={markWatching}
-            onMarkWatched={markWatched}
-            onDismissFromWatching={dismissFromWatching}
-            onToggleWatchlist={toggleWatchlist}
-            onToggleFavorite={toggleFavorite}
-            onAddMediaToLibrary={addMediaToLibrary}
-            settings={settings}
-            onUpdateSettings={updateSettings}
-            onGenreMixActionChange={setGenreMixAction}
-            onAutoSaveAiList={handleSaveAiList}
-            onManualSaveList={handleManualSaveList}
-            onNavigateToSettingsTopic={topic => {
-              setSettingsTopic(topic);
-              setActiveTab('settings');
-            }}
-          />
+        {visitedTabs.has('lists') && (
+          <div className={activeTab === 'lists' ? 'block' : 'hidden'}>
+            <ListsView
+              customLists={customLists}
+              mediaItems={mediaItems}
+              userStates={userStates}
+              onSelectMedia={setSelectedMedia}
+              onCreateList={createCustomList}
+              onUpdateList={updateCustomList}
+              onDeleteList={deleteCustomList}
+              onAddItemToList={addItemToList}
+              onRemoveItemFromList={removeItemFromList}
+              onRandomPick={handleRandomPickFromItems}
+              onRemoveFromWatchlist={removeFromWatchlist}
+              onMarkWatching={markWatching}
+              onMarkWatched={markWatched}
+              onDismissFromWatching={dismissFromWatching}
+              onToggleWatchlist={toggleWatchlist}
+              onToggleFavorite={toggleFavorite}
+              onAddMediaToLibrary={addMediaToLibrary}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              onGenreMixActionChange={setGenreMixAction}
+              onAutoSaveAiList={handleSaveAiList}
+              onManualSaveList={handleManualSaveList}
+              resetSignal={listsResetSignal}
+              onNavigateToSettingsTopic={topic => {
+                handleSelectTab('settings', { scrollToTop: true });
+                setSettingsTopic(topic);
+              }}
+            />
+          </div>
         )}
 
-        {activeTab === 'settings' && (
-          <SettingsView
-            settings={settings}
-            onUpdateSettings={updateSettings}
-            onDeleteAllData={deleteAllData}
-            onRestoreBackup={restoreBackup}
-            onClearCachedTitlesAndImages={clearCachedTitlesAndImages}
-            onReplayGuide={() => setIsOnboardingOpen(true)}
-            onOpenLicense={() => setIsLicenseModalOpen(true)}
-            mediaItems={mediaItems}
-            activeTopicId={settingsTopic}
-            onSelectTopic={setSettingsTopic}
-            onRefreshData={refreshLibrary}
-            onReloadAllArtwork={reloadAllArtwork}
-            onRemoveAllDuplicates={removeAllDuplicates}
-          />
+        {visitedTabs.has('settings') && (
+          <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+            <SettingsView
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              onDeleteAllData={deleteAllData}
+              onRestoreBackup={restoreBackup}
+              onClearCachedTitlesAndImages={clearCachedTitlesAndImages}
+              onReplayGuide={() => setIsOnboardingOpen(true)}
+              onOpenLicense={() => setIsLicenseModalOpen(true)}
+              mediaItems={mediaItems}
+              activeTopicId={settingsTopic}
+              onSelectTopic={setSettingsTopic}
+              onRefreshData={refreshLibrary}
+              onReloadAllArtwork={reloadAllArtwork}
+              onRemoveAllDuplicates={removeAllDuplicates}
+              isActive={activeTab === 'settings'}
+            />
+          </div>
         )}
       </main>
 
       {/* Floating Pill Bottom Navigation / Liquid Morph Generate Bar */}
       <BottomNavigation
         activeTab={activeTab}
-        onSelectTab={tab => {
-          if (tab === 'settings') {
-            setSettingsTopic(null);
-          }
-          if (tab === 'watchlist') {
-            triggerBackgroundSync();
-          }
-          setActiveTab(tab);
-          window.scrollTo(0, 0);
-        }}
+        onSelectTab={handleSelectTab}
         swapSearchAndLists={isSwappedNav}
         onOpenSearch={() => setIsSearchOpen(true)}
         onTriggerSwapConfirm={() => setIsSwapNavConfirmOpen(true)}
@@ -732,6 +784,36 @@ export default function App() {
         onSelectMedia={setSelectedMedia}
         onRegisterBackHandler={(handler) => {
           moviePreviewBackHandlerRef.current = handler;
+        }}
+        posterGlowEnabled={settings.tweaks?.previewPosterGlow !== false}
+        onTogglePosterGlow={(enabled) => {
+          updateSettings({
+            tweaks: {
+              ...DEFAULT_APP_TWEAKS,
+              ...settings.tweaks,
+              previewPosterGlow: enabled,
+            },
+          });
+        }}
+        posterGlowContrast={settings.tweaks?.previewPosterGlowContrast ?? 1.0}
+        onChangePosterGlowContrast={(contrast) => {
+          updateSettings({
+            tweaks: {
+              ...DEFAULT_APP_TWEAKS,
+              ...settings.tweaks,
+              previewPosterGlowContrast: contrast,
+            },
+          });
+        }}
+        showPosterCard={settings.tweaks?.previewShowPosterCard !== false}
+        onToggleShowPosterCard={(show) => {
+          updateSettings({
+            tweaks: {
+              ...DEFAULT_APP_TWEAKS,
+              ...settings.tweaks,
+              previewShowPosterCard: show,
+            },
+          });
         }}
       />
 

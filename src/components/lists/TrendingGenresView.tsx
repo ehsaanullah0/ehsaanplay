@@ -294,7 +294,7 @@ export const TrendingGenresView: React.FC<TrendingGenresViewProps> = ({
                   setIsMixMode(true);
                 }
               }}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-3xs cursor-pointer border ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-2xs cursor-pointer border ${
                 isMixMode
                   ? 'bg-amber-500 text-black border-amber-500'
                   : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]/40'
@@ -344,7 +344,7 @@ export const TrendingGenresView: React.FC<TrendingGenresViewProps> = ({
                 onTouchEnd={handleTouchEnd}
                 onMouseDown={() => handleTouchStart(genre)}
                 onMouseUp={handleTouchEnd}
-                className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer shadow-3xs active:scale-95 select-none border flex items-center gap-2 group ${
+                className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 select-none border flex items-center gap-2 group ${
                   isSelectedInMix
                     ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent ring-2 ring-[var(--accent-primary)]/40 scale-105'
                     : isMixMode

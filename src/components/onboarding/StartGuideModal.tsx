@@ -912,7 +912,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
               <button
                 type="button"
                 onClick={handleForceComplete}
-                className="w-full py-2.5 px-4 rounded-2xl bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs transition active:scale-98 border border-[var(--border-subtle)] cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-2xl bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs transition active:scale-[0.98] border border-[var(--border-subtle)] cursor-pointer"
               >
                 Continue Without Installing
               </button>

@@ -15,7 +15,14 @@ import {
   loadUserSettings,
   saveUserSettings,
 } from '../storage';
-import { getSupabaseClient, loadSupabaseConfig, SyncState } from './config';
+import {
+  getSupabaseClient,
+  loadSupabaseConfig,
+  SyncState,
+  getSyncPausedUntil,
+  isSyncPaused,
+  setSyncPausedUntil,
+} from './config';
 import { getCloudSession, getCloudUser } from './auth';
 import { normalizeDurationToSeconds, secondsToMinutes } from './durationUtils';
 import {
@@ -33,6 +40,7 @@ export interface SyncStatusInfo {
   pendingQueueCount: number;
   errorMessage?: string | null;
   isRealtimeConnected: boolean;
+  pausedUntil?: string | null;
 }
 
 interface OfflineQueueEntry {
@@ -48,18 +56,21 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'ehsaan_supabase_last_sync_v1',
 };
 
+const initialPausedUntil = typeof window !== 'undefined' ? getSyncPausedUntil() : null;
+
 let currentSyncStatus: SyncStatusInfo = {
-  state: 'not_configured',
+  state: initialPausedUntil ? 'paused' : 'not_configured',
   lastSyncAt: null,
   pendingQueueCount: 0,
   errorMessage: null,
   isRealtimeConnected: false,
+  pausedUntil: initialPausedUntil,
 };
 
 let realtimeChannel: RealtimeChannel | null = null;
 let realtimeUserId: string | null = null;
 let isSyncing = false;
-let activeSyncPromise: Promise<{ success: boolean; message: string }> | null = null;
+let activeSyncPromise: Promise<{ success: boolean; message: string; paused?: boolean }> | null = null;
 let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastBackgroundSyncAttemptAt = 0;
 
@@ -91,7 +102,81 @@ function updateSyncStatus(partial: Partial<SyncStatusInfo>): void {
 }
 
 export function getSyncStatus(): SyncStatusInfo {
+  const activePausedUntil = typeof window !== 'undefined' ? getSyncPausedUntil() : currentSyncStatus.pausedUntil || null;
+  if (activePausedUntil !== currentSyncStatus.pausedUntil) {
+    currentSyncStatus = {
+      ...currentSyncStatus,
+      pausedUntil: activePausedUntil,
+      state: activePausedUntil ? 'paused' : (currentSyncStatus.state === 'paused' ? 'ready' : currentSyncStatus.state),
+    };
+  }
   return currentSyncStatus;
+}
+
+/**
+ * Pauses all Supabase cloud synchronization until the chosen date/time.
+ * Tears down active Realtime connections while keeping local mutations safely queued.
+ */
+export function pauseCloudSyncUntil(dateInput: string): { success: boolean; pausedUntil: string | null; message: string } {
+  const pausedIso = setSyncPausedUntil(dateInput);
+  if (!pausedIso) {
+    return {
+      success: false,
+      pausedUntil: null,
+      message: 'Please select today or a future date to pause sync.',
+    };
+  }
+
+  const client = getSupabaseClient();
+  if (client && realtimeChannel) {
+    try {
+      client.removeChannel(realtimeChannel);
+    } catch {
+      // ignore cleanup error
+    }
+    realtimeChannel = null;
+    realtimeUserId = null;
+  }
+
+  updateSyncStatus({
+    state: 'paused',
+    pausedUntil: pausedIso,
+    isRealtimeConnected: false,
+    errorMessage: null,
+    pendingQueueCount: loadOfflineQueue().length,
+  });
+
+  const formattedDate = new Date(pausedIso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return {
+    success: true,
+    pausedUntil: pausedIso,
+    message: `Cloud sync paused until ${formattedDate}.`,
+  };
+}
+
+/**
+ * Resumes Supabase cloud synchronization immediately, reconnects Realtime, and flushes queued local changes.
+ */
+export async function resumeCloudSync(): Promise<{ success: boolean; message: string }> {
+  setSyncPausedUntil(null);
+  updateSyncStatus({
+    state: 'ready',
+    pausedUntil: null,
+    errorMessage: null,
+  });
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: true, message: 'Sync schedule cleared.' };
+  }
+
+  initializeRealtimeSubscription();
+  return await executeFullSync({ force: true });
 }
 
 /**
@@ -711,16 +796,51 @@ export function reconcileCloudAndLocalData(input: ReconcileInput): ReconcileOutp
  * 4. Self-heals missing MediaItems via TMDB/OMDb and deduplicates alias IDs.
  * 5. Saves merged results locally, dispatches refresh events, and pushes local-only updates.
  */
-export async function executeFullSync(): Promise<{ success: boolean; message: string }> {
+export async function executeFullSync(options?: { force?: boolean }): Promise<{ success: boolean; message: string; paused?: boolean }> {
+  const pausedUntil = getSyncPausedUntil();
+  if (pausedUntil && !options?.force) {
+    const client = getSupabaseClient();
+    if (client && realtimeChannel) {
+      try {
+        client.removeChannel(realtimeChannel);
+      } catch {
+        // ignore
+      }
+      realtimeChannel = null;
+      realtimeUserId = null;
+    }
+    updateSyncStatus({
+      state: 'paused',
+      pausedUntil,
+      isRealtimeConnected: false,
+      errorMessage: null,
+      pendingQueueCount: loadOfflineQueue().length,
+    });
+    const formatted = new Date(pausedUntil).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return {
+      success: false,
+      paused: true,
+      message: `Cloud sync is paused until ${formatted}.`,
+    };
+  }
+
+  if (options?.force && pausedUntil) {
+    setSyncPausedUntil(null);
+  }
+
   const client = getSupabaseClient();
   if (!client) {
-    updateSyncStatus({ state: 'not_configured' });
+    updateSyncStatus({ state: 'not_configured', pausedUntil: getSyncPausedUntil() });
     return { success: false, message: 'Supabase client not configured.' };
   }
 
   const user = await resolveAuthenticatedUser();
   if (!user) {
-    updateSyncStatus({ state: 'connected_unauthenticated' });
+    updateSyncStatus({ state: 'connected_unauthenticated', pausedUntil: null });
     return { success: false, message: 'Please sign in to sync with your cloud database.' };
   }
 
@@ -729,7 +849,7 @@ export async function executeFullSync(): Promise<{ success: boolean; message: st
   }
 
   isSyncing = true;
-  updateSyncStatus({ state: 'syncing', errorMessage: null });
+  updateSyncStatus({ state: 'syncing', errorMessage: null, pausedUntil: null });
 
   const runSync = async (): Promise<{ success: boolean; message: string }> => {
     try {
@@ -869,9 +989,10 @@ export async function executeFullSync(): Promise<{ success: boolean; message: st
 /**
  * Triggers a throttled non-blocking background sync (e.g. when switching to Watchlist tab).
  */
-export function triggerBackgroundSync(minIntervalMs = 3000): void {
+export function triggerBackgroundSync(minIntervalMs = 15000): void {
   const config = loadSupabaseConfig();
   if (!config) return;
+  if (isSyncPaused()) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
   const now = Date.now();
@@ -937,7 +1058,7 @@ async function flushOfflineQueue(client: any, userId: string): Promise<void> {
 }
 
 /**
- * Uploads a state modification to Supabase immediately (or queues if offline)
+ * Uploads a state modification to Supabase immediately (or queues if offline / paused)
  */
 export function syncStateChangeToCloud(state: PersonalMediaState): void {
   const client = getSupabaseClient();
@@ -945,7 +1066,7 @@ export function syncStateChangeToCloud(state: PersonalMediaState): void {
     if (!client || !user) return;
 
     const row = mapPersonalStateToDbRow(user.id, state);
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (isSyncPaused() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       enqueueOfflineChange('user_media_states', 'upsert', row);
       return;
     }
@@ -964,7 +1085,7 @@ export function syncStateChangeToCloud(state: PersonalMediaState): void {
 }
 
 /**
- * Uploads a custom list change to Supabase immediately
+ * Uploads a custom list change to Supabase immediately (or queues if offline / paused)
  */
 export function syncCustomListChangeToCloud(list: CustomList): void {
   const client = getSupabaseClient();
@@ -972,7 +1093,7 @@ export function syncCustomListChangeToCloud(list: CustomList): void {
     if (!client || !user) return;
 
     const row = mapCustomListToDbRow(user.id, list);
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (isSyncPaused() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       enqueueOfflineChange('user_custom_lists', 'upsert', row);
       return;
     }
@@ -991,14 +1112,14 @@ export function syncCustomListChangeToCloud(list: CustomList): void {
 }
 
 /**
- * Uploads a custom list deletion to Supabase
+ * Uploads a custom list deletion to Supabase (or queues if offline / paused)
  */
 export function syncCustomListDeletionToCloud(listId: string): void {
   const client = getSupabaseClient();
   resolveAuthenticatedUser().then(async user => {
     if (!client || !user) return;
 
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (isSyncPaused() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       enqueueOfflineChange('user_custom_lists', 'delete', { id: listId });
       return;
     }
@@ -1019,7 +1140,7 @@ export function syncCustomListDeletionToCloud(listId: string): void {
 }
 
 /**
- * Uploads media item to Supabase
+ * Uploads media item to Supabase (or queues if offline / paused)
  */
 export function syncMediaItemToCloud(item: MediaItem): void {
   const client = getSupabaseClient();
@@ -1027,7 +1148,7 @@ export function syncMediaItemToCloud(item: MediaItem): void {
     if (!client || !user) return;
 
     const row = mapMediaItemToDbRow(user.id, item);
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (isSyncPaused() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       enqueueOfflineChange('user_media_items', 'upsert', row);
       return;
     }
@@ -1113,10 +1234,29 @@ export function initializeRealtimeSubscription(): () => void {
     return () => {};
   }
 
+  const pausedUntil = getSyncPausedUntil();
+  if (pausedUntil) {
+    if (realtimeChannel) {
+      try {
+        client.removeChannel(realtimeChannel);
+      } catch {
+        // ignore
+      }
+      realtimeChannel = null;
+      realtimeUserId = null;
+    }
+    updateSyncStatus({
+      state: 'paused',
+      pausedUntil,
+      isRealtimeConnected: false,
+    });
+    return () => {};
+  }
+
   let cancelled = false;
 
   resolveAuthenticatedUser().then(user => {
-    if (cancelled || !user) return;
+    if (cancelled || !user || isSyncPaused()) return;
 
     // Avoid rebuilding if already subscribed for this exact user and connected
     if (realtimeChannel && realtimeUserId === user.id && currentSyncStatus.isRealtimeConnected) {
@@ -1290,16 +1430,35 @@ function handleRealtimeMediaItemChange(payload: any) {
  * Initializes global event handlers for connectivity, tab visibility/focus, and periodic background sync
  */
 export function initGlobalSyncListeners(): () => void {
+  const handleAutoResumeCheck = (): boolean => {
+    const pausedUntil = getSyncPausedUntil();
+    if (pausedUntil) {
+      if (currentSyncStatus.state !== 'paused') {
+        updateSyncStatus({ state: 'paused', pausedUntil, isRealtimeConnected: false });
+      }
+      return true;
+    }
+    // Pause just expired -> reconnect Realtime and catch up cleanly
+    if (currentSyncStatus.state === 'paused') {
+      updateSyncStatus({ state: 'ready', pausedUntil: null });
+      initializeRealtimeSubscription();
+    }
+    return false;
+  };
+
   const handleOnline = () => {
+    if (handleAutoResumeCheck()) return;
     updateSyncStatus({ state: 'syncing' });
     executeFullSync();
   };
 
   const scheduleDebouncedSync = (delayMs: number) => {
+    if (handleAutoResumeCheck()) return;
     if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
     syncDebounceTimer = setTimeout(() => {
+      if (isSyncPaused()) return;
       if (typeof navigator === 'undefined' || navigator.onLine) {
-        triggerBackgroundSync(2000);
+        triggerBackgroundSync(5000);
       }
     }, delayMs);
   };
@@ -1320,8 +1479,9 @@ export function initGlobalSyncListeners(): () => void {
     document.addEventListener('visibilitychange', handleVisibilityChange);
   }
 
-  // Periodic background poll while tab is visible (catches missed Realtime events)
+  // Periodic background poll while tab is visible (catches missed Realtime events and auto-resumes expired schedules)
   const periodicTimer = setInterval(() => {
+    if (handleAutoResumeCheck()) return;
     if (
       typeof document !== 'undefined' &&
       document.visibilityState === 'visible' &&

@@ -6,16 +6,24 @@ import {
   RATING_TAGS,
   RatingTagId,
   resolveRatingTag,
+  DEFAULT_APP_TWEAKS,
 } from '../../types/movie';
 import { KNOWN_TV_SHOWS_METADATA } from '../../data/curatedCatalog';
 import { fetchDetailsWithFallback } from '../../services/metadataFallback';
-import { loadUserSettings, saveMediaCache, loadMediaCache } from '../../services/storage';
+import { loadUserSettings, saveUserSettings, saveMediaCache, loadMediaCache } from '../../services/storage';
 import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { SafeImage } from '../common/SafeImage';
+import { MoviePoster } from '../common/MoviePoster';
+import { PosterAmbientGlow } from './PosterAmbientGlow';
 import { StarRating } from '../common/StarRating';
 import { StreamingBrandIcon } from '../common/StreamingBrandIcon';
 import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
 import { openStreamingPlatform } from '../../services/streamingDirectUrls';
+import {
+  getCachedSimilarTitles,
+  getSimilarTitlesForMedia,
+  rankLocalSimilarTitles,
+} from '../../services/similarTitles';
 import {
   X,
   ArrowLeft,
@@ -29,6 +37,8 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Sliders,
   Pencil,
   ArrowUp,
@@ -168,6 +178,12 @@ interface MoviePreviewModalProps {
   userStates?: Record<string, PersonalMediaState>;
   onSelectMedia?: (item: MediaItem) => void;
   onRegisterBackHandler?: (handler: (() => boolean) | null) => void;
+  posterGlowEnabled?: boolean;
+  onTogglePosterGlow?: (enabled: boolean) => void;
+  posterGlowContrast?: number;
+  onChangePosterGlowContrast?: (contrast: number) => void;
+  showPosterCard?: boolean;
+  onToggleShowPosterCard?: (show: boolean) => void;
 }
 
 export interface PreviewHistoryEntry {
@@ -198,6 +214,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   userStates = {},
   onSelectMedia,
   onRegisterBackHandler,
+  posterGlowEnabled,
+  onTogglePosterGlow,
+  posterGlowContrast,
+  onChangePosterGlowContrast,
+  showPosterCard,
+  onToggleShowPosterCard,
 }) => {
   const [item, setItem] = useState<MediaItem | null>(initialItem);
   const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
@@ -212,7 +234,19 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const [reloadFeedback, setReloadFeedback] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<SelectedPersonInfo | null>(null);
   const [showAllCast, setShowAllCast] = useState(false);
+  const [similarTitles, setSimilarTitles] = useState<MediaItem[]>([]);
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
+  const [similarCanScrollLeft, setSimilarCanScrollLeft] = useState(false);
+  const [similarCanScrollRight, setSimilarCanScrollRight] = useState(false);
+  const similarRailRef = useRef<HTMLDivElement>(null);
   const modalScrollRef = useRef<HTMLDivElement>(null);
+  const customizerContainerRef = useRef<HTMLDivElement>(null);
+  const desktopListContainerRef = useRef<HTMLDivElement>(null);
+  const mobileListContainerRef = useRef<HTMLDivElement>(null);
+  const mediaItemsRef = useRef<MediaItem[]>(mediaItems);
+  useEffect(() => {
+    mediaItemsRef.current = mediaItems;
+  }, [mediaItems]);
   const lastOpenedItemIdRef = useRef<string | null>(null);
   const wasOpenRef = useRef<boolean>(false);
 
@@ -235,6 +269,28 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const isAddingToListRef = useRef(isAddingToList);
   useEffect(() => { isAddingToListRef.current = isAddingToList; }, [isAddingToList]);
 
+  // Dismiss open popups (Preview Customizer / Add to Collection) on outside pointer click
+  useEffect(() => {
+    if (!showCustomizer && !isAddingToList) return;
+
+    const handleOutsidePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (showCustomizer && customizerContainerRef.current && !customizerContainerRef.current.contains(target)) {
+        setShowCustomizer(false);
+      }
+      if (isAddingToList) {
+        const insideDesktop = desktopListContainerRef.current?.contains(target);
+        const insideMobile = mobileListContainerRef.current?.contains(target);
+        if (!insideDesktop && !insideMobile) {
+          setIsAddingToList(false);
+        }
+      }
+    };
+
+    window.addEventListener('pointerdown', handleOutsidePointerDown);
+    return () => window.removeEventListener('pointerdown', handleOutsidePointerDown);
+  }, [showCustomizer, isAddingToList]);
+
   // Handle opening a credit from an actor's filmography without destroying the actor profile
   const handleSelectCreditFromActorProfile = (newMedia: MediaItem) => {
     if (item && selectedPerson) {
@@ -244,7 +300,17 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       ]);
     }
     setSelectedPerson(null);
+    setShowCustomizer(false);
+    setIsAddingToList(false);
+    setShowRearrangeModal(false);
+    setIsPlayingTrailer(false);
+    setIsOverviewExpanded(false);
+    setSelectedSeason(1);
+    setShowAllCast(false);
+    setReloadFeedback(null);
     setItem(newMedia);
+    const nextState = resolveStateForMediaItem(newMedia, userStates, mediaItemsRef.current);
+    setNotesDraft(nextState?.notes || '');
     if (modalScrollRef.current) {
       modalScrollRef.current.scrollTop = 0;
     }
@@ -258,8 +324,15 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     if (previewHistory.length > 0) {
       const prevEntry = previewHistory[previewHistory.length - 1];
       setPreviewHistory((prev) => prev.slice(0, -1));
+      setShowCustomizer(false);
+      setIsAddingToList(false);
+      setShowRearrangeModal(false);
+      setIsPlayingTrailer(false);
+      setReloadFeedback(null);
       setItem(prevEntry.item);
       setSelectedPerson(prevEntry.person);
+      const prevState = resolveStateForMediaItem(prevEntry.item, userStates, mediaItemsRef.current);
+      setNotesDraft(prevState?.notes || '');
       if (onSelectMedia) {
         onSelectMedia(prevEntry.item);
       }
@@ -463,6 +536,108 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     });
   };
 
+  // Poster ambient color glow, contrast, and poster card visibility (synced with UserSettings.tweaks)
+  const [localPosterGlow, setLocalPosterGlow] = useState<boolean>(() => {
+    if (typeof posterGlowEnabled === 'boolean') return posterGlowEnabled;
+    return loadUserSettings().tweaks?.previewPosterGlow !== false;
+  });
+  const [localPosterGlowContrast, setLocalPosterGlowContrast] = useState<number>(() => {
+    if (typeof posterGlowContrast === 'number') return posterGlowContrast;
+    return loadUserSettings().tweaks?.previewPosterGlowContrast ?? 1.0;
+  });
+  const [localShowPosterCard, setLocalShowPosterCard] = useState<boolean>(() => {
+    if (typeof showPosterCard === 'boolean') return showPosterCard;
+    return loadUserSettings().tweaks?.previewShowPosterCard !== false;
+  });
+
+  useEffect(() => {
+    if (typeof posterGlowEnabled === 'boolean') {
+      setLocalPosterGlow(posterGlowEnabled);
+    }
+  }, [posterGlowEnabled]);
+
+  useEffect(() => {
+    if (typeof posterGlowContrast === 'number') {
+      setLocalPosterGlowContrast(posterGlowContrast);
+    }
+  }, [posterGlowContrast]);
+
+  useEffect(() => {
+    if (typeof showPosterCard === 'boolean') {
+      setLocalShowPosterCard(showPosterCard);
+    }
+  }, [showPosterCard]);
+
+  useEffect(() => {
+    const syncFromSettings = () => {
+      const settings = loadUserSettings();
+      setLocalPosterGlow(settings.tweaks?.previewPosterGlow !== false);
+      setLocalPosterGlowContrast(settings.tweaks?.previewPosterGlowContrast ?? 1.0);
+      setLocalShowPosterCard(settings.tweaks?.previewShowPosterCard !== false);
+    };
+    window.addEventListener('ehsaan:settings-change', syncFromSettings);
+    return () => window.removeEventListener('ehsaan:settings-change', syncFromSettings);
+  }, []);
+
+  const isPosterGlowEnabled = typeof posterGlowEnabled === 'boolean' ? posterGlowEnabled : localPosterGlow;
+  const effectivePosterGlowContrast =
+    typeof posterGlowContrast === 'number' ? posterGlowContrast : localPosterGlowContrast;
+  const isPosterCardVisible = typeof showPosterCard === 'boolean' ? showPosterCard : localShowPosterCard;
+
+  const handleToggleShowPosterCard = () => {
+    const nextShow = !isPosterCardVisible;
+    setLocalShowPosterCard(nextShow);
+    if (onToggleShowPosterCard) {
+      onToggleShowPosterCard(nextShow);
+    } else {
+      const current = loadUserSettings();
+      saveUserSettings({
+        ...current,
+        tweaks: {
+          ...DEFAULT_APP_TWEAKS,
+          ...current.tweaks,
+          previewShowPosterCard: nextShow,
+        },
+      });
+    }
+  };
+
+  const handleTogglePosterGlow = () => {
+    const nextEnabled = !isPosterGlowEnabled;
+    setLocalPosterGlow(nextEnabled);
+    if (onTogglePosterGlow) {
+      onTogglePosterGlow(nextEnabled);
+    } else {
+      const current = loadUserSettings();
+      saveUserSettings({
+        ...current,
+        tweaks: {
+          ...DEFAULT_APP_TWEAKS,
+          ...current.tweaks,
+          previewPosterGlow: nextEnabled,
+        },
+      });
+    }
+  };
+
+  const handleChangePosterGlowContrast = (nextContrast: number) => {
+    const clamped = Math.max(0.25, Math.min(2.0, Math.round(nextContrast * 20) / 20));
+    setLocalPosterGlowContrast(clamped);
+    if (onChangePosterGlowContrast) {
+      onChangePosterGlowContrast(clamped);
+    } else {
+      const current = loadUserSettings();
+      saveUserSettings({
+        ...current,
+        tweaks: {
+          ...DEFAULT_APP_TWEAKS,
+          ...current.tweaks,
+          previewPosterGlowContrast: clamped,
+        },
+      });
+    }
+  };
+
   // Load customizable card section order
   const [cardSections, setCardSections] = useState<PreviewCardItem[]>(() => {
     try {
@@ -586,6 +761,107 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     };
   }, [initialItem, isOpen, onHydrateDetails]);
 
+  // Load taste-matched Similar Titles whenever preview item opens/changes
+  useEffect(() => {
+    if (!isOpen || !item) {
+      return;
+    }
+
+    let cancelled = false;
+    const cached = getCachedSimilarTitles(item);
+    if (cached && cached.length > 0) {
+      setSimilarTitles(cached);
+      setIsLoadingSimilar(false);
+      return;
+    }
+
+    const currentPool = mediaItemsRef.current;
+    const instantLocal = rankLocalSimilarTitles(item, currentPool, 16);
+    setSimilarTitles(instantLocal);
+    setIsLoadingSimilar(true);
+
+    const apiKey = loadUserSettings().tmdbApiKey;
+    getSimilarTitlesForMedia(item, currentPool, apiKey, 16)
+      .then((results) => {
+        if (cancelled) return;
+        if (results.length > 0) {
+          setSimilarTitles(results);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingSimilar(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, item?.id, item?.tmdbId, item?.imdbId]);
+
+  const updateSimilarScrollButtons = () => {
+    const el = similarRailRef.current;
+    if (!el) return;
+    setSimilarCanScrollLeft(el.scrollLeft > 12);
+    setSimilarCanScrollRight(
+      el.scrollWidth > el.clientWidth + 12 && el.scrollLeft + el.clientWidth < el.scrollWidth - 12
+    );
+  };
+
+  useEffect(() => {
+    const el = similarRailRef.current;
+    const t1 = setTimeout(updateSimilarScrollButtons, 80);
+    const t2 = setTimeout(updateSimilarScrollButtons, 320);
+    window.addEventListener('resize', updateSimilarScrollButtons);
+
+    let observer: ResizeObserver | null = null;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(updateSimilarScrollButtons);
+      observer.observe(el);
+    }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', updateSimilarScrollButtons);
+      observer?.disconnect();
+    };
+  }, [similarTitles, isOpen]);
+
+  const handleScrollSimilarRail = (direction: 'left' | 'right') => {
+    const el = similarRailRef.current;
+    if (!el) return;
+    const distance = el.clientWidth * 0.78;
+    el.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth',
+    });
+    setTimeout(updateSimilarScrollButtons, 340);
+  };
+
+  const handleSelectSimilarTitle = (similarItem: MediaItem) => {
+    if (!item) return;
+    setPreviewHistory((prev) => [...prev, { item, person: null }]);
+    setSelectedPerson(null);
+    setShowCustomizer(false);
+    setIsAddingToList(false);
+    setShowRearrangeModal(false);
+    setIsPlayingTrailer(false);
+    setIsOverviewExpanded(false);
+    setSelectedSeason(1);
+    setShowAllCast(false);
+    setReloadFeedback(null);
+    setItem(similarItem);
+    const nextState = resolveStateForMediaItem(similarItem, userStates, mediaItemsRef.current);
+    setNotesDraft(nextState?.notes || '');
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+    if (onSelectMedia) {
+      onSelectMedia(similarItem);
+    }
+  };
+
   // Providers fallback & intelligent deduplication (called unconditionally before early return)
   const cleanedProviders = React.useMemo(() => {
     const rawProviders = (item?.providers && item.providers.length > 0)
@@ -673,6 +949,15 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const embedUrl = getYoutubeEmbedUrl(item.trailerUrl);
   const isDarkPreview = Boolean(heroCustomizer.forceDarkMode);
   const isDarkHero = Boolean(heroCustomizer.artOn || heroCustomizer.forceDarkMode);
+  const hasHeroRatingBadge = Boolean(
+    heroCustomizer.showRatingBadge &&
+      ((item.imdbRating && item.imdbRating > 0) || (item.tmdbRating && item.tmdbRating > 0))
+  );
+  const hasAnyHeroActionButton =
+    heroCustomizer.showWatchlistButton !== false ||
+    heroCustomizer.showWatchedButton !== false ||
+    heroCustomizer.showFavoriteButton !== false ||
+    heroCustomizer.showAddToListButton !== false;
 
   return (
     <div
@@ -686,7 +971,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       {/* ========================================================================= */}
       {/* CINEMATIC HERO SECTION                                                    */}
       {/* ========================================================================= */}
-      <div className={`relative w-full min-h-[340px] sm:min-h-[540px] md:min-h-[620px] lg:min-h-[680px] flex flex-col justify-between shrink-0 border-b border-[var(--border-subtle)] transition-colors ${
+      <div className={`relative w-full ${
+        heroCustomizer.artOn
+          ? !isPosterCardVisible
+            ? 'min-h-[100dvh]'
+            : 'min-h-[340px] sm:min-h-[540px] md:min-h-[620px] lg:min-h-[680px]'
+          : 'min-h-0'
+      } flex flex-col justify-between shrink-0 border-b border-[var(--border-subtle)] transition-colors ${
         isDarkHero ? 'bg-[#000000]' : 'bg-[var(--modal-bg)]'
       }`}>
         
@@ -696,15 +987,25 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             <SafeImage
               src={item.backdropUrl || item.posterUrl}
               fallbackSrc={item.fallbackPosterUrl}
+              fallbackTitle={item.title}
               alt={item.title}
-              className="w-full h-full object-cover transition-opacity duration-300"
+              containerClassName="bg-black"
+              className={`w-full h-full object-cover ${
+                !isPosterCardVisible ? 'object-[center_20%]' : 'object-center'
+              } transition-opacity duration-300`}
               style={{ opacity: heroCustomizer.opacity }}
             />
-            {/* Dynamic directional gradient overlay that smoothly recedes at 100% opacity for full, brilliant artwork visibility */}
+            {/* Dynamic directional gradient overlay: leaves top/right artwork crisp while ensuring bottom-left text legibility */}
             <div
               className="absolute inset-0 pointer-events-none transition-opacity duration-300"
               style={{
-                background: heroCustomizer.opacity >= 0.98
+                background: !isPosterCardVisible
+                  ? heroCustomizer.opacity >= 0.98
+                    ? 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.48) 32%, rgba(0,0,0,0.08) 58%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.22) 38%, transparent 66%)'
+                    : heroCustomizer.opacity >= 0.75
+                    ? 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.58) 38%, rgba(0,0,0,0.16) 66%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.34) 42%, transparent 72%)'
+                    : 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.68) 44%, rgba(0,0,0,0.24) 72%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 45%, transparent 75%)'
+                  : heroCustomizer.opacity >= 0.98
                   ? 'linear-gradient(to right, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.18) 30%, transparent 62%), linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 35%)'
                   : heroCustomizer.opacity >= 0.75
                   ? 'linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 35%, rgba(0,0,0,0.12) 70%, transparent 100%), linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 45%)'
@@ -717,7 +1018,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         {/* Top Floating Action Bar */}
         <div className="relative z-20 w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-3.5 sm:py-4 flex items-center justify-between">
           {/* Left: Back button + Production label */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={handleBackClick}
               aria-label={
@@ -727,12 +1028,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               }
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition border active:scale-95 shadow-xs ${
                 isDarkHero
-                  ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                  ? 'bg-black/55 hover:bg-black/75 text-white border-white/20 backdrop-blur-md'
                   : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
               }`}
             >
-              <ArrowLeft className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
-              <span>
+              <ArrowLeft className={`w-4 h-4 ${isDarkHero ? 'text-white' : 'text-[var(--accent-primary)]'}`} />
+              <span className="truncate max-w-[160px] sm:max-w-xs">
                 {previewHistory.length > 0 && previewHistory[previewHistory.length - 1].person
                   ? `Back to ${previewHistory[previewHistory.length - 1].person!.name}`
                   : 'Back'}
@@ -742,7 +1043,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             {item.productionCompany && (
               <span className={`hidden sm:inline-block px-3.5 py-1.5 rounded-full text-xs font-semibold border truncate max-w-[280px] ${
                 isDarkHero
-                  ? 'bg-black/50 text-white/90 backdrop-blur-md border-white/15'
+                  ? 'bg-black/55 text-white/90 backdrop-blur-md border-white/20'
                   : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
               }`}>
                 {item.productionCompany}
@@ -751,21 +1052,25 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           </div>
 
           {/* Right: Customizer Tool, Rearrange Tool, Favorite, Close button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* ADD TO LIST TRIGGER (ICON ONLY) */}
             {heroCustomizer.showAddToListButton !== false && (
-              <div className="relative hidden sm:inline-block">
+              <div ref={desktopListContainerRef} className="relative hidden sm:inline-block">
                 <button
-                  onClick={() => setIsAddingToList(!isAddingToList)}
+                  onClick={() => {
+                    const next = !isAddingToList;
+                    setIsAddingToList(next);
+                    if (next) setShowCustomizer(false);
+                  }}
                   aria-label="Add to Collection List"
                   className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
                     isDarkHero
-                      ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                      ? 'bg-black/55 hover:bg-black/75 text-white border-white/20 backdrop-blur-md'
                       : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
                   } ${isAddingToList ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
                   title="Add to Collection List"
                 >
-                  <FolderPlus className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+                  <FolderPlus className={`w-4 h-4 ${isDarkHero ? 'text-white' : 'text-[var(--accent-primary)]'}`} />
                 </button>
 
                 {isAddingToList && (
@@ -811,18 +1116,22 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             )}
 
             {/* PREVIEW CUSTOMIZER TRIGGER (ICON ONLY) */}
-            <div className="relative">
+            <div ref={customizerContainerRef} className="relative">
               <button
-                onClick={() => setShowCustomizer(!showCustomizer)}
+                onClick={() => {
+                  const next = !showCustomizer;
+                  setShowCustomizer(next);
+                  if (next) setIsAddingToList(false);
+                }}
                 aria-label="Preview Customizer"
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
                   isDarkHero
-                    ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                    ? 'bg-black/55 hover:bg-black/75 text-white border-white/20 backdrop-blur-md'
                     : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
-                }`}
+                } ${showCustomizer ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}
                 title="Preview Customizer"
               >
-                <Sliders className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+                <Sliders className={`w-4 h-4 ${isDarkHero ? 'text-white' : 'text-[var(--accent-primary)]'}`} />
               </button>
 
               {/* PREVIEW CUSTOMIZER POPUP CARD */}
@@ -904,12 +1213,109 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     </button>
                   </div>
 
+                  {/* Title Image Card Visibility Toggle */}
+                  <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)] mt-2">
+                    <div className="flex flex-col pr-2">
+                      <span className="font-bold text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                        {isPosterCardVisible ? (
+                          <Eye className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                        ) : (
+                          <EyeOff className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                        )}
+                        Title Image Card
+                      </span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">
+                        Hide poster card to spotlight background artwork
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleShowPosterCard}
+                      className={`px-3 py-1 rounded-full text-xs font-black transition active:scale-95 shrink-0 ${
+                        isPosterCardVisible
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {isPosterCardVisible ? 'SHOW' : 'HIDE'}
+                    </button>
+                  </div>
+
+                  {/* Adaptive Poster Color Glow Toggle */}
+                  <div className={`flex items-center justify-between py-2 border-t border-[var(--border-subtle)] mt-2 transition-opacity ${isPosterCardVisible ? 'opacity-100' : 'opacity-45'}`}>
+                    <div className="flex flex-col pr-2">
+                      <span className="font-bold text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                        Poster Color Glow
+                      </span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">
+                        Subtle directional aura matching poster colors
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTogglePosterGlow}
+                      className={`px-3 py-1 rounded-full text-xs font-black transition active:scale-95 shrink-0 ${
+                        isPosterGlowEnabled
+                          ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {isPosterGlowEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {/* Poster Glow Contrast Progress Bar */}
+                  <div className={`space-y-2 pb-2 pt-1.5 transition-opacity ${isPosterGlowEnabled && isPosterCardVisible ? 'opacity-100' : 'opacity-45'}`}>
+                    <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary)]">
+                      <span>Glow Contrast</span>
+                      <div className="flex items-center gap-2">
+                        {Math.abs(effectivePosterGlowContrast - 1.0) >= 0.05 && isPosterGlowEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => handleChangePosterGlowContrast(1.0)}
+                            className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] underline"
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="text-[var(--accent-primary)] font-mono font-bold tabular-nums">
+                          {isPosterGlowEnabled ? `${Math.round(effectivePosterGlowContrast * 100)}%` : 'OFF'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="relative h-3 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[var(--accent-primary)] transition-[width] duration-75"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, ((effectivePosterGlowContrast - 0.25) / 1.75) * 100))}%`,
+                        }}
+                      />
+                      <input
+                        type="range"
+                        min="0.25"
+                        max="2.0"
+                        step="0.05"
+                        value={effectivePosterGlowContrast}
+                        onChange={(e) => handleChangePosterGlowContrast(Number(e.target.value))}
+                        disabled={!isPosterGlowEnabled}
+                        aria-label="Poster glow contrast"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--text-secondary)]">
+                      <span>Soft 25%</span>
+                      <span>Balanced 100%</span>
+                      <span>High 200%</span>
+                    </div>
+                  </div>
+
                   {/* REFRESH ARTWORK & BANNER (THIS TITLE ONLY) */}
                   <div className="border-t border-[var(--border-subtle)] my-3" />
                   <div className="text-[11px] font-black text-[var(--text-secondary)] tracking-wider uppercase mb-2 flex items-center justify-between">
                     <span>REFRESH ARTWORK (THIS TITLE):</span>
                     {reloadFeedback && (
-                      <span className="text-[10px] font-bold text-blue-500 animate-fade-in flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-fade-in flex items-center gap-1">
                         <Check className="w-3 h-3" /> {reloadFeedback}
                       </span>
                     )}
@@ -970,7 +1376,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     <button
                       onClick={() => handleReloadSingleArtwork('all')}
                       disabled={reloadingType !== null}
-                      className="w-full py-2 px-3 rounded-2xl text-xs font-bold bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)] text-[var(--text-primary)] border border-[var(--border-subtle)] active:scale-98 transition disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
+                      className="w-full py-2 px-3 rounded-2xl text-xs font-bold bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)] text-[var(--text-primary)] border border-[var(--border-subtle)] active:scale-[0.98] transition disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
                     >
                       {reloadingType === 'all' ? (
                         <>
@@ -1241,16 +1647,20 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
             {/* PENCIL ICON: REARRANGE & CUSTOMIZE CARDS */}
             <button
-              onClick={() => setShowRearrangeModal(true)}
+              onClick={() => {
+                setShowCustomizer(false);
+                setIsAddingToList(false);
+                setShowRearrangeModal(true);
+              }}
               aria-label="Rearrange cards"
               className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border active:scale-95 ${
                 isDarkHero
-                  ? 'bg-[var(--chip-bg)] sm:bg-black/50 hover:bg-[var(--chip-bg)]/80 sm:hover:bg-black/70 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/15 sm:backdrop-blur-md'
+                  ? 'bg-black/55 hover:bg-black/75 text-white border-white/20 backdrop-blur-md'
                   : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:bg-[var(--chip-bg)]/80 border-[var(--border-subtle)]'
               }`}
               title="Rearrange & Customize Cards Order"
             >
-              <Pencil className={`w-4 h-4 ${isDarkHero ? 'text-[var(--accent-primary)] sm:text-white' : 'text-[var(--accent-primary)]'}`} />
+              <Pencil className={`w-4 h-4 ${isDarkHero ? 'text-white' : 'text-[var(--accent-primary)]'}`} />
             </button>
 
             {/* Filled Blood Red Cross Close Button */}
@@ -1283,63 +1693,95 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             </button>
           </div>
         ) : (
-          /* Hero Content Area: Left-Anchored Poster & Left-Aligned Information */
-          <div className="relative z-10 w-full px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 sm:pb-8 pt-2 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-8">
-            {/* Anchored Left Poster / Album Artwork */}
-            <div className={`w-48 xs:w-56 sm:w-64 md:w-76 lg:w-84 flex-none aspect-[2/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg sm:shadow-2xl border select-none transition-transform duration-300 hover:scale-[1.02] relative self-start shrink-0 ${
-              isDarkHero
-                ? 'bg-[var(--bg-surface-elevated)] sm:bg-[#24291B] border-[var(--border-subtle)] sm:border-white/25'
-                : 'bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
-            }`}>
-              <SafeImage
+          /* Hero Content Area: With Left Poster Card OR Bottom-Left Artwork-First Layout */
+          <div
+            className={`relative z-10 w-full ${
+              !isPosterCardVisible
+                ? heroCustomizer.artOn
+                  ? 'mt-auto px-4 sm:px-8 lg:px-12 xl:px-16 pt-20 sm:pt-32 md:pt-40 pb-8 sm:pb-12 flex flex-col items-start'
+                  : 'px-4 sm:px-8 lg:px-12 xl:px-16 pt-3 sm:pt-5 pb-6 sm:pb-8 flex flex-col items-start'
+                : 'px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 sm:pb-8 pt-2 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-8'
+            }`}
+          >
+            {/* Anchored Left Poster / Album Artwork with Directional Color Glow */}
+            {isPosterCardVisible && (
+              <PosterAmbientGlow
                 src={item.posterUrl || item.backdropUrl}
                 fallbackSrc={item.fallbackPosterUrl}
-                alt={item.title}
-                fallbackTitle={item.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+                enabled={isPosterGlowEnabled}
+                contrast={effectivePosterGlowContrast}
+                isDarkSurface={
+                  isDarkHero ||
+                  (typeof document !== 'undefined' &&
+                    document.documentElement.getAttribute('data-theme') !== 'cream')
+                }
+                className="w-48 xs:w-56 sm:w-64 md:w-76 lg:w-84 flex-none aspect-[2/3] select-none transition-transform duration-300 hover:scale-[1.02] self-start shrink-0"
+              >
+                <div
+                  className={`w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg sm:shadow-2xl border ${
+                    isDarkHero
+                      ? 'bg-[#181c14] border-white/25'
+                      : 'bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+                  }`}
+                >
+                  <SafeImage
+                    src={item.posterUrl || item.backdropUrl}
+                    fallbackSrc={item.fallbackPosterUrl}
+                    alt={item.title}
+                    fallbackTitle={item.title}
+                    containerClassName={isDarkHero ? 'bg-[#181c14]' : ''}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </PosterAmbientGlow>
+            )}
 
             {/* Hero Information Hierarchy */}
             <div
-              className={`flex-1 min-w-0 flex flex-col items-start text-left w-full transition-all ${
+              className={`min-w-0 flex flex-col items-start text-left transition-all ${
+                !isPosterCardVisible ? 'w-full max-w-xl sm:max-w-2xl' : 'flex-1 w-full'
+              } ${
                 heroCustomizer.showTitleBackgroundCard
                   ? isDarkHero
-                    ? 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] sm:bg-black/60 sm:backdrop-blur-md border border-[var(--border-subtle)] sm:border-white/15 shadow-sm sm:shadow-xl'
+                    ? 'p-4 sm:p-6 rounded-3xl bg-black/60 backdrop-blur-md border border-white/15 shadow-xl'
                     : 'p-4 sm:p-6 rounded-3xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shadow-sm'
                   : ''
               }`}
             >
-              {/* Media Type & Metadata Line (Cleanly on top of title) */}
-              <div className={`flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider mb-1 ${
-                isDarkHero
-                  ? 'text-[var(--text-secondary)] sm:text-white/90'
-                  : 'text-[var(--text-secondary)]'
-              }`}>
-                <span className="flex items-center gap-1">
-                  {item.type === 'tv' ? <Tv className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
-                  {item.type === 'tv' ? 'TV SERIES' : 'MOVIE'}
-                </span>
-                <span aria-hidden="true">·</span>
-                <span>{item.year || '2025'}</span>
-                {item.runtime ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{Math.floor(item.runtime / 60)}H {item.runtime % 60}M</span>
-                  </>
-                ) : null}
-                {seasonsCount ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{seasonsCount > 1 ? `${seasonsCount} SEASONS` : '1 SEASON'}</span>
-                  </>
-                ) : null}
-              </div>
+              {/* Media Type & Metadata Line (Above title when Poster Card is visible; tucked cleanly under Title when Poster Card is hidden) */}
+              {isPosterCardVisible && (
+                <div className={`flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider mb-1 ${
+                  isDarkHero ? 'text-white/90' : 'text-[var(--text-secondary)]'
+                }`}>
+                  <span className="flex items-center gap-1">
+                    {item.type === 'tv' ? <Tv className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
+                    {item.type === 'tv' ? 'TV SERIES' : 'MOVIE'}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{item.year || '2025'}</span>
+                  {item.runtime ? (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>{Math.floor(item.runtime / 60)}H {item.runtime % 60}M</span>
+                    </>
+                  ) : null}
+                  {seasonsCount ? (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>{seasonsCount > 1 ? `${seasonsCount} SEASONS` : '1 SEASON'}</span>
+                    </>
+                  ) : null}
+                </div>
+              )}
 
-              {/* Primary Title (Bold, Left-Aligned) */}
-              <h1 className={`text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12] text-left ${
+              {/* Primary Title (Commanding Bottom-Left Typography when Poster Card is hidden) */}
+              <h1 className={`${
+                !isPosterCardVisible
+                  ? 'text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.06]'
+                  : 'text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12]'
+              } text-left ${
                 isDarkHero
-                  ? 'text-[var(--text-primary)] sm:text-white'
+                  ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]'
                   : 'text-[var(--text-primary)]'
               }`}>
                 {item.title}
@@ -1347,60 +1789,73 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
               {/* Tagline Quote */}
               {heroCustomizer.showTaglineQuote && item.tagline && (
-                <p className={`mt-1 text-xs sm:text-sm italic line-clamp-2 text-left ${
-                  isDarkHero
-                    ? 'text-[var(--text-secondary)] sm:text-white/85'
-                    : 'text-[var(--text-secondary)]'
+                <p className={`mt-1.5 text-xs sm:text-sm italic line-clamp-2 text-left ${
+                  isDarkHero ? 'text-white/85' : 'text-[var(--text-secondary)]'
                 }`}>
                   "{item.tagline}"
                 </p>
               )}
 
-              {/* Genre Pills */}
-              {heroCustomizer.showGenrePills && (
-                <div className="mt-3 flex flex-wrap items-center justify-start gap-1.5">
-                  {(item.genres && item.genres.length > 0 ? item.genres : ['Animation', 'Action', 'Fantasy']).map((genre) => (
-                    <span
-                      key={genre}
-                      className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border border-[var(--border-subtle)] text-xs font-bold shadow-xs"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Rating Row */}
-              <div className="mt-3.5 flex flex-wrap items-center justify-start gap-2.5">
-                {/* 1. Rating Pill Badge */}
-                {heroCustomizer.showRatingBadge && ((item.imdbRating && item.imdbRating > 0) || (item.tmdbRating && item.tmdbRating > 0)) && (
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-2xs ${
-                    heroCustomizer.artOn
-                      ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/20'
+              {/* Compact Type + Year + Rating Row */}
+              <div className={`${!isPosterCardVisible ? 'mt-3' : 'mt-3.5'} flex flex-wrap items-center justify-start gap-2.5`}>
+                {/* 1. Rating Badge */}
+                {hasHeroRatingBadge && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                    isDarkHero
+                      ? 'bg-black/60 text-white border-white/20 backdrop-blur-xs'
                       : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
                   }`}>
                     {item.imdbRating && item.imdbRating > 0 ? (
                       <>
                         <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                        <span className="tabular-nums font-black">{item.imdbRating.toFixed(1)} / 10</span>
+                        <span className="tabular-nums font-black">{item.imdbRating.toFixed(1)}</span>
                         <span className="text-[10px] uppercase font-bold opacity-75">IMDb</span>
                       </>
                     ) : (
                       <>
                         <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
-                        <span className="tabular-nums font-black">{(item.tmdbRating || 0).toFixed(1)} / 10</span>
+                        <span className="tabular-nums font-black">{(item.tmdbRating || 0).toFixed(1)}</span>
                         <span className="text-[10px] uppercase font-bold opacity-75">TMDB</span>
                       </>
                     )}
                   </span>
                 )}
 
-                {/* Vote Count */}
-                {item.voteCount > 0 && (
+                {/* Compact Type · Year · Duration when Poster Card is Hidden */}
+                {!isPosterCardVisible && (
+                  <div className={`flex flex-wrap items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider ${
+                    isDarkHero ? 'text-white/90' : 'text-[var(--text-secondary)]'
+                  }`}>
+                    {hasHeroRatingBadge && <span aria-hidden="true">·</span>}
+                    <span className="flex items-center gap-1">
+                      {item.type === 'tv' ? <Tv className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
+                      {item.type === 'tv' ? 'TV SERIES' : 'MOVIE'}
+                    </span>
+                    {item.year ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{item.year}</span>
+                      </>
+                    ) : null}
+                    {item.runtime ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{Math.floor(item.runtime / 60)}H {item.runtime % 60}M</span>
+                      </>
+                    ) : null}
+                    {seasonsCount ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{seasonsCount > 1 ? `${seasonsCount} SEASONS` : '1 SEASON'}</span>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Vote Count (only shown in standard poster mode to keep bottom-left artwork view clean) */}
+                {isPosterCardVisible && item.voteCount > 0 && (
                   <span className={`text-xs font-medium tabular-nums ${
-                    heroCustomizer.artOn
-                      ? 'text-[var(--text-secondary)] sm:text-white/70'
-                      : 'text-[var(--text-secondary)]'
+                    isDarkHero ? 'text-white/75' : 'text-[var(--text-secondary)]'
                   }`}>
                     ({item.voteCount.toLocaleString()} votes)
                   </span>
@@ -1417,8 +1872,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 {/* HD Quality Badge (Optional) */}
                 {heroCustomizer.showHDQualityBadge && (
                   <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
-                    heroCustomizer.artOn
-                      ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white/90 border-[var(--border-subtle)] sm:border-white/20'
+                    isDarkHero
+                      ? 'bg-black/60 text-white/90 border-white/20'
                       : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
                   }`}>
                     4K Ultra HD
@@ -1429,7 +1884,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 {heroCustomizer.showWatchTrailerButton && item.trailerUrl && !isPlayingTrailer && (
                   <button
                     onClick={() => setIsPlayingTrailer(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 ml-auto sm:ml-0"
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 ${
+                      isPosterCardVisible ? 'ml-auto sm:ml-0' : ''
+                    }`}
                   >
                     <Play className="w-3 h-3 fill-current ml-0.5" />
                     <span>Trailer</span>
@@ -1437,12 +1894,26 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 )}
               </div>
 
-              {/* Optional Synopsis in Hero */}
+              {/* Genre Pills (filled with app theme primary color for crisp contrast & visibility) */}
+              {heroCustomizer.showGenrePills && item.genres && item.genres.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap items-center justify-start gap-1.5">
+                  {(!isPosterCardVisible ? item.genres.slice(0, 4) : item.genres).map((genre) => (
+                    <span
+                      key={genre}
+                      className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold shadow-xs"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Synopsis in Hero (strictly respects Synopsis in Hero Show/Hide setting) */}
               {heroCustomizer.showSynopsisInHero && item.overview && (
-                <p className={`mt-3 text-xs sm:text-sm line-clamp-2 max-w-2xl leading-relaxed text-left ${
-                  heroCustomizer.artOn
-                    ? 'text-[var(--text-secondary)] sm:text-white/85'
-                    : 'text-[var(--text-secondary)]'
+                <p className={`mt-3 text-xs sm:text-sm ${
+                  !isPosterCardVisible ? 'line-clamp-2 sm:line-clamp-3 max-w-xl' : 'line-clamp-2 max-w-2xl'
+                } leading-relaxed text-left ${
+                  isDarkHero ? 'text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)]' : 'text-[var(--text-secondary)]'
                 }`}>
                   {item.overview}
                 </p>
@@ -1455,8 +1926,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     <div
                       key={idx}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                        heroCustomizer.artOn
-                          ? 'bg-[var(--chip-bg)] sm:bg-black/60 text-[var(--text-primary)] sm:text-white border-[var(--border-subtle)] sm:border-white/20'
+                        isDarkHero
+                          ? 'bg-black/60 text-white border-white/20'
                           : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
                       }`}
                     >
@@ -1467,7 +1938,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 </div>
               )}
 
-              {/* Hero Action Buttons (Configurable Full text vs Icon Only, and visibility toggles) */}
+              {/* Hero Action Buttons (Unchanged app action buttons in both modes) */}
+              {hasAnyHeroActionButton && (
               <div className="mt-4 flex flex-wrap items-center gap-2.5 sm:gap-3 w-full">
                 {/* 1. Add to Watchlist */}
                 {heroCustomizer.showWatchlistButton !== false && (
@@ -1542,9 +2014,13 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                 {/* 4. Add to List (Mobile view fallback when desktop has top-right icon) */}
                 {heroCustomizer.showAddToListButton !== false && (
-                  <div className="relative sm:hidden">
+                  <div ref={mobileListContainerRef} className="relative sm:hidden">
                     <button
-                      onClick={() => setIsAddingToList(!isAddingToList)}
+                      onClick={() => {
+                        const next = !isAddingToList;
+                        setIsAddingToList(next);
+                        if (next) setShowCustomizer(false);
+                      }}
                       title="Add to Collection List"
                       aria-label="Add to Collection List"
                       className="w-11 h-11 rounded-full inline-flex items-center justify-center transition active:scale-95 shadow-xs border border-[var(--border-subtle)] bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)]"
@@ -1591,15 +2067,18 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   </div>
                 )}
               </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Subtle Divider Line below Hero */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16">
-        <div className="border-t border-[var(--border-subtle)] mt-2 mb-2" />
-      </div>
+      {/* Subtle Divider Line below Hero (when art is off) */}
+      {!heroCustomizer.artOn && (
+        <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16">
+          <div className="border-t border-[var(--border-subtle)] mt-2 mb-2" />
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* CONTENT AREA: Dynamic Configurable Cards Order                            */}
@@ -1736,7 +2215,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
                     <div className="flex items-center gap-2.5 text-[11px]">
                       {isSavedFeedback && (
-                        <span className="inline-flex items-center gap-1 text-blue-800 font-bold animate-fade-in bg-blue-800/10 px-2.5 py-0.5 rounded-full border border-blue-800/20">
+                        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-bold animate-fade-in bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Saved to journal</span>
                         </span>
@@ -2013,7 +2492,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                           }
                         }}
                         title={`Watch "${item.title}" directly on ${p.name}`}
-                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
+                        className="flex items-center justify-between p-3 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-[0.98] transition group shadow-2xs cursor-pointer select-none"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <StreamingBrandIcon name={p.name} className="w-6 h-6 rounded-lg shrink-0 shadow-xs" />
@@ -2103,7 +2582,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                             }
                           }}
                           title={`View full-screen profile for ${c.name}`}
-                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
+                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-[0.98] transition group shadow-2xs cursor-pointer select-none"
                         >
                           {/* Cast Member Profile Avatar */}
                           <div className="w-11 h-11 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] ring-2 ring-transparent group-hover:ring-[var(--accent-primary)]/40 transition flex items-center justify-center">
@@ -2183,7 +2662,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                             }
                           }}
                           title={`View full-screen profile for ${cr.name}`}
-                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-98 transition group shadow-2xs cursor-pointer select-none"
+                          className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:bg-[var(--bg-surface-elevated)] hover:scale-[1.01] active:scale-[0.98] transition group shadow-2xs cursor-pointer select-none"
                         >
                           <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--bg-surface-elevated)] shrink-0 border border-[var(--border-subtle)] ring-2 ring-transparent group-hover:ring-[var(--accent-primary)]/40 transition flex items-center justify-center">
                             {cr.profileUrl ? (
@@ -2215,14 +2694,119 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
           return null;
         })}
+
+        {/* ========================================================================= */}
+        {/* SIMILAR TITLES RECOMMENDATION SECTION AT END OF PREVIEW WINDOW            */}
+        {/* ========================================================================= */}
+        {(isLoadingSimilar || similarTitles.length > 0) && (
+          <section
+            aria-label="Similar Titles"
+            className="w-full p-5 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4"
+          >
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                  <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+                    Similar Titles
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5 truncate">
+                  More {item.type === 'tv' ? 'series' : 'movies'} matching the taste &amp; vibe of {item.title}
+                </p>
+              </div>
+
+              {similarTitles.length > 2 && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleScrollSimilarRail('left')}
+                    disabled={!similarCanScrollLeft}
+                    aria-label="Scroll similar titles left"
+                    className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
+                      !similarCanScrollLeft
+                        ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
+                        : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScrollSimilarRail('right')}
+                    disabled={!similarCanScrollRight}
+                    aria-label="Scroll similar titles right"
+                    className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
+                      !similarCanScrollRight
+                        ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
+                        : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
+                    }`}
+                  >
+                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isLoadingSimilar && similarTitles.length === 0 ? (
+              <div className="flex gap-3.5 sm:gap-5 overflow-hidden pt-1 pb-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex-none w-[134px] sm:w-[160px] md:w-[176px] aspect-[2/3] rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                ref={similarRailRef}
+                onScroll={updateSimilarScrollButtons}
+                className="flex gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar pb-2 pt-1 snap-x snap-mandatory"
+              >
+                {similarTitles.map((simItem) => {
+                  const simState = resolveStateForMediaItem(simItem, userStates, mediaItemsRef.current);
+                  return (
+                    <div
+                      key={simItem.id}
+                      className="flex-none w-[134px] sm:w-[160px] md:w-[176px] snap-start"
+                    >
+                      <MoviePoster
+                        item={simItem}
+                        userState={simState}
+                        onClick={() => handleSelectSimilarTitle(simItem)}
+                        onToggleWatchlist={onToggleWatchlist}
+                        onMarkWatched={onToggleWatched}
+                        onToggleFavorite={onToggleFavorite}
+                        onRemoveFromWatchlist={(id) => {
+                          if (simState?.inWatchlist) {
+                            onToggleWatchlist(id, simItem);
+                          }
+                        }}
+                        customLists={customLists}
+                        onAddItemToList={onAddItemToList}
+                        onRemoveItemFromList={onRemoveItemFromList}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
       {/* ========================================================================= */}
       {/* REARRANGE & CUSTOMIZE CARDS MODAL DIALOG                                  */}
       {/* ========================================================================= */}
       {showRearrangeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="w-full max-w-lg bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] p-6 text-[var(--text-primary)] animate-scale-up">
+        <div
+          onClick={() => setShowRearrangeModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] p-6 text-[var(--text-primary)] animate-scale-up"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-[var(--accent-primary)]" />

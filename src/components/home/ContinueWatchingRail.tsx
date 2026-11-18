@@ -9,7 +9,7 @@ interface ContinueWatchingRailProps {
   onDismissFromWatching?: (id: string) => void;
 }
 
-export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = ({
+export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = React.memo(({
   items,
   onSelectMedia,
   onDismissFromWatching,
@@ -112,4 +112,4 @@ export const ContinueWatchingRail: React.FC<ContinueWatchingRailProps> = ({
       </div>
     </section>
   );
-};
+});

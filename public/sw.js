@@ -1,8 +1,9 @@
 // EHSAAN MOVIE — PWA Application Shell Service Worker
 // NOTE: Application owns artwork caching via Cache API. Service worker handles app shell only.
 
-const SHELL_CACHE_NAME = 'ehsaan-play-static-v6';
+const SHELL_CACHE_NAME = 'ehsaan-play-static-v7';
 const OBSOLETE_SHELL_CACHES = [
+  'ehsaan-play-static-v6',
   'ehsaan-play-static-v5',
   'ehsaan-play-static-v4',
   'ehsaan-movie-shell-v1',
@@ -22,13 +23,10 @@ const OBSOLETE_SHELL_CACHES = [
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/icon.svg',
   '/manifest.json',
-  '/icons/apple-touch-icon-v2.png',
-  '/icons/icon-192-v2.png',
-  '/icons/icon-512-v2.png',
-  '/icons/icon-192-maskable-v2.png',
-  '/icons/icon-512-maskable-v2.png',
+  '/play-icons/icon-orange.svg',
+  '/play-icons/icon-orange-192.png',
+  '/play-icons/icon-orange.png',
 ];
 
 // 1. INSTALL LIFECYCLE - Skip waiting immediately to activate fresh code
@@ -58,7 +56,7 @@ self.addEventListener('activate', (event) => {
           // CRITICAL: NEVER delete artwork cache (ehsaan-movie-offline-images-v1) or user data!
           if (
             OBSOLETE_SHELL_CACHES.includes(key) ||
-            key === 'ehsaan-play-static-v4' ||
+            (key.startsWith('ehsaan-play-static-') && key !== SHELL_CACHE_NAME) ||
             (key.startsWith('ehsaan-movie-shell-') && key !== SHELL_CACHE_NAME)
           ) {
             return caches.delete(key);

@@ -13,8 +13,23 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.4.1',
+    version: 'v2.4.4',
     isLatest: true,
+    tagline: 'Preview Taste-Matched Similar Titles & Artwork-First Title Card Hide Mode',
+    points: [
+      {
+        title: 'Similar Titles Recommendation Rail in Preview Window',
+        description: 'Added a dedicated "Similar Titles" section at the bottom of the preview window recommending movies and series aligned with the genres, creative talent, era, and vibe of the opened title—with instant local taste matching enriched by live TMDB recommendations and seamless Back-history navigation.',
+      },
+      {
+        title: 'Hide Title Image Card & Bottom-Left Artwork Hero Layout',
+        description: 'Added a synchronized "Title Image Card" Show/Hide option inside both the Preview Customizer and Settings → Tweaks. When hidden, the hero cleanly re-anchors the title, compact rating/type line, concise overview, and existing app action buttons to the bottom-left with tuned contrast scrims—giving maximum open space for background artwork.',
+      },
+    ],
+  },
+  {
+    version: 'v2.4.1',
+    isLatest: false,
     tagline: 'BYOD Supabase Cloud Database & Sync, Resume Paused Projects & 500 MB Storage Analytics',
     points: [
       {
@@ -36,6 +51,10 @@ export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
       {
         title: 'Resilient Cloud Migration & Canonical Duration Normalization',
         description: 'One-click safe upload of existing local data with canonical integer-second duration normalization (handling formatted duration strings like "29 min"), 50-item resilient batching, and isolated individual fallback to ensure zero data loss.',
+      },
+      {
+        title: 'Adaptive Directional Poster Glow & Contrast Control',
+        description: 'Added a subtle, multi-directional ambient glow around the movie card in the preview window that follows each poster’s regional color palette (e.g., warm orange highlights on top paired with cool blues along the bottom). Includes a synchronized ON/OFF toggle and an interactive Glow Contrast progress bar (25%–200%) inside both the Preview Customizer and Settings → Tweaks.',
       },
     ],
   },

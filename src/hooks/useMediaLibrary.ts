@@ -19,6 +19,7 @@ import {
   resetLibraryToDefault,
   deleteAllLibraryData,
   importLibraryBackup,
+  DEFAULT_HOME_SECTIONS,
 } from '../services/storage';
 import {
   fetchNetflixTop10Movies,
@@ -93,13 +94,32 @@ export function useMediaLibrary() {
       localStorage.setItem('ehsaan_clean_start_v8', 'true');
     }
 
+    // One-time non-destructive migration: hide homepage slideshow by default on existing installs
+    let effectiveSettings = loadedSettings;
+    try {
+      if (!localStorage.getItem('ehsaan_slideshow_default_hidden_v1')) {
+        effectiveSettings = {
+          ...loadedSettings,
+          homeSections: {
+            ...DEFAULT_HOME_SECTIONS,
+            ...loadedSettings.homeSections,
+            showHeroSlideshow: false,
+          },
+        };
+        saveUserSettings(effectiveSettings);
+        localStorage.setItem('ehsaan_slideshow_default_hidden_v1', 'true');
+      }
+    } catch {
+      // ignore storage migration errors
+    }
+
     setMediaItems(loadedMedia);
     setUserStates(cleanStates);
     setCustomLists(loadedLists);
-    setSettings(loadedSettings);
-    document.documentElement.setAttribute('data-theme', loadedSettings.theme);
-    document.documentElement.setAttribute('data-color-scheme', loadedSettings.colorScheme || 'olive');
-    document.documentElement.setAttribute('data-font', loadedSettings.tweaks?.fontFamily || 'google-sans-flex');
+    setSettings(effectiveSettings);
+    document.documentElement.setAttribute('data-theme', effectiveSettings.theme);
+    document.documentElement.setAttribute('data-color-scheme', effectiveSettings.colorScheme || 'olive');
+    document.documentElement.setAttribute('data-font', effectiveSettings.tweaks?.fontFamily || 'google-sans-flex');
 
     const initCatalog = async () => {
       let fetchedCatalog: MediaItem[] = [];

@@ -58,7 +58,7 @@ const DEFAULT_FILTERS: FilterState = {
   searchQuery: '',
 };
 
-export const WatchlistView: React.FC<WatchlistViewProps> = ({
+export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
   mediaItems,
   userStates,
   onSelectMedia,
@@ -293,10 +293,19 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
     return Array.from(set).sort();
   }, [mediaItems]);
 
+  // Precompute state map once in O(N) instead of repeated lookups in filter/sort/map
+  const resolvedStateMap = useMemo(() => {
+    const map = new Map<string, PersonalMediaState | undefined>();
+    for (const item of mediaItems) {
+      map.set(item.id, resolveStateForMediaItem(item, userStates));
+    }
+    return map;
+  }, [mediaItems, userStates]);
+
   // Filter & Sort Logic
   const filteredItems = useMemo(() => {
     const sorted = mediaItems.filter(item => {
-      const state = resolveStateForMediaItem(item, userStates);
+      const state = resolvedStateMap.get(item.id);
 
       // Format filter
       if (filters.type !== 'all' && item.type !== filters.type) return false;
@@ -359,8 +368,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
 
       return true;
     }).sort((a, b) => {
-      const stateA = resolveStateForMediaItem(a, userStates);
-      const stateB = resolveStateForMediaItem(b, userStates);
+      const stateA = resolvedStateMap.get(a.id);
+      const stateB = resolvedStateMap.get(b.id);
 
       if (filters.sortBy === 'recent') {
         const timeA = stateA?.addedAt || '';
@@ -397,7 +406,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       }
     }
     return unique;
-  }, [mediaItems, userStates, filters]);
+  }, [mediaItems, resolvedStateMap, filters]);
 
   // Handle Random Pick (strictly excludes watched titles)
   const handleTriggerRandom = () => {
@@ -590,7 +599,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
         viewMode === 'list' ? (
           <div className="space-y-3">
             {filteredItems.map(item => {
-              const state = resolveStateForMediaItem(item, userStates);
+              const state = resolvedStateMap.get(item.id);
               const rating = state?.personalRating || (item.imdbRating || 0);
               const progress = state?.progressPercent || 0;
               const year = item.releaseDate ? item.releaseDate.split('-')[0] : '';
@@ -704,7 +713,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
               <MoviePoster
                 key={item.id}
                 item={item}
-                userState={resolveStateForMediaItem(item, userStates)}
+                userState={resolvedStateMap.get(item.id)}
                 onClick={() => {
                   if (isSelectionModeActive) {
                     handleToggleItemSelection(item.id);
@@ -723,7 +732,11 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
                 onRemoveItemFromList={onRemoveItemFromList}
                 isSelected={selectedIds.has(item.id)}
                 isSelectionModeActive={isSelectionModeActive}
-                onLongPress={() => handleLongPressItem(item.id)}
+                onLongPress={
+                  settings?.tweaks?.longPressBatchSelection || isSelectionModeActive
+                    ? () => handleLongPressItem(item.id)
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -826,8 +839,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
                 onClick={handleBatchNativeShare}
                 className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--chip-bg)] hover:bg-[var(--border-subtle)] border border-[var(--border-subtle)] text-left transition duration-200 active:scale-[0.98] group"
               >
-                <div className="w-10 h-10 rounded-xl bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)] flex items-center justify-center shrink-0">
-                  <Share2 className="w-5 h-5 text-[var(--accent-secondary)]" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center shrink-0">
+                  <Share2 className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-bold text-[var(--text-primary)]">
@@ -879,4 +892,4 @@ export const WatchlistView: React.FC<WatchlistViewProps> = ({
       )}
     </div>
   );
-};
+});

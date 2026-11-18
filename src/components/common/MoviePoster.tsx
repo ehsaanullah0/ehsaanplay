@@ -37,7 +37,7 @@ interface MoviePosterProps {
   isSelectionModeActive?: boolean;
 }
 
-export const MoviePoster: React.FC<MoviePosterProps> = ({
+export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
   item,
   userState,
   onClick,
@@ -61,10 +61,16 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
   const [showListPicker, setShowListPicker] = useState(false);
   const [localLists, setLocalLists] = useState<CustomList[]>(() => customLists || loadCustomLists());
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
   const longPressTriggeredTimeRef = useRef(0);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   // Sync custom lists when opened
   useEffect(() => {
@@ -530,31 +536,33 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
                       </button>
 
                       {/* 2. Mark Watch (3-Tap Ability: Watched -> Watching -> Reset) */}
-                      <button
-                        type="button"
-                        onClick={handleCycleWatchStatus}
-                        className={`w-full flex items-center justify-between px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all border cursor-pointer touch-manipulation active:scale-[0.97] ${
-                          isWatched
-                            ? 'bg-[var(--bg-card-olive,#ecfccb)] text-[var(--text-card-olive,#365314)] border-lime-300/40 shadow-xs'
-                            : hasProgress
-                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary,#000)] border-transparent shadow-xs'
-                            : 'bg-[var(--chip-bg,rgba(255,255,255,0.08))] text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-                          {isWatched ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
-                          ) : hasProgress ? (
-                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-60" />
-                          )}
-                          <span className="truncate">
-                            {isWatched ? 'Watched' : hasProgress ? 'Watching' : 'Mark Watch'}
-                          </span>
-                        </div>
-                        {isWatched && <Check className="w-3 h-3 stroke-[3] shrink-0" />}
-                      </button>
+                      {(onMarkWatched || onMarkWatching || onDismissFromWatching) && (
+                        <button
+                          type="button"
+                          onClick={handleCycleWatchStatus}
+                          className={`w-full flex items-center justify-between px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all border cursor-pointer touch-manipulation active:scale-[0.97] ${
+                            isWatched
+                              ? 'bg-[var(--bg-card-olive,#ecfccb)] text-[var(--text-card-olive,#365314)] border-lime-300/40 shadow-xs'
+                              : hasProgress
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary,#000)] border-transparent shadow-xs'
+                              : 'bg-[var(--chip-bg,rgba(255,255,255,0.08))] text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                            {isWatched ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
+                            ) : hasProgress ? (
+                              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-60" />
+                            )}
+                            <span className="truncate">
+                              {isWatched ? 'Watched' : hasProgress ? 'Watching' : 'Mark Watch'}
+                            </span>
+                          </div>
+                          {isWatched && <Check className="w-3 h-3 stroke-[3] shrink-0" />}
+                        </button>
+                      )}
 
                       {/* 3. Add to List Button */}
                       <button
@@ -572,17 +580,19 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
                         <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 opacity-60" />
                       </button>
 
-                      {/* 4. Remove Button (Minimal Dark Crimson Red) */}
-                      <button
-                        type="button"
-                        onClick={handleRemove}
-                        className="w-full flex items-center justify-between px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-2xs active:scale-[0.97] border border-red-900/60 cursor-pointer touch-manipulation"
-                      >
-                        <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                          <span className="truncate">Remove</span>
-                        </div>
-                      </button>
+                      {/* 4. Remove Button (only when saved in Watchlist or In-Progress with handler) */}
+                      {((inWatchlist && onRemoveFromWatchlist) || (hasProgress && onDismissFromWatching)) && (
+                        <button
+                          type="button"
+                          onClick={handleRemove}
+                          className="w-full flex items-center justify-between px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-2xs active:scale-[0.97] border border-red-900/60 cursor-pointer touch-manipulation"
+                        >
+                          <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                            <span className="truncate">Remove</span>
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -680,5 +690,5 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
       </div>
     </>
   );
-};
+});
 

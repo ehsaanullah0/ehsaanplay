@@ -238,6 +238,10 @@ export interface AppTweaksConfig {
   heroSlideshowOpacity?: number; // 0.0 to 1.0 (default: 0.75)
   heroSlideshowGenresPill?: boolean; // Default: false (true = theme colored pills, false = dot separated)
   heroSlideshowTitleColor?: 'white' | 'artwork-adaptive'; // Default: 'white' (standard white vs theme accent color)
+  // Preview Window Poster Glow & Card Visibility
+  previewPosterGlow?: boolean; // Default: true (subtle directional adaptive glow around poster card in preview)
+  previewPosterGlowContrast?: number; // 0.25 to 2.0 (default: 1.0)
+  previewShowPosterCard?: boolean; // Default: true (show or hide left title poster card in preview hero)
 }
 
 export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
@@ -265,6 +269,9 @@ export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
   heroSlideshowOpacity: 0.75,
   heroSlideshowGenresPill: false,
   heroSlideshowTitleColor: 'white',
+  previewPosterGlow: true,
+  previewPosterGlowContrast: 1.0,
+  previewShowPosterCard: true,
 };
 
 export interface UserSettings {

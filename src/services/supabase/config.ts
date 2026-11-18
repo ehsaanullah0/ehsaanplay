@@ -34,6 +34,7 @@ export type SyncState =
   | 'ready'
   | 'syncing'
   | 'sync_active'
+  | 'paused'
   | 'offline_pending'
   | 'error';
 
@@ -42,6 +43,7 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'ehsaan_supabase_last_sync_v1',
   OFFLINE_QUEUE: 'ehsaan_supabase_offline_queue_v1',
   CACHED_USER: 'ehsaan_supabase_cached_user_v1',
+  SYNC_PAUSED_UNTIL: 'ehsaan_supabase_sync_paused_until_v1',
 };
 
 let cachedClient: SupabaseClient | null = null;
@@ -174,6 +176,7 @@ export function clearSupabaseConfig(): void {
     localStorage.removeItem(STORAGE_KEYS.CONFIG);
     localStorage.removeItem(STORAGE_KEYS.LAST_SYNC);
     localStorage.removeItem(STORAGE_KEYS.CACHED_USER);
+    localStorage.removeItem(STORAGE_KEYS.SYNC_PAUSED_UNTIL);
     cachedClient = null;
     currentClientKey = '';
     if (typeof window !== 'undefined') {
@@ -181,6 +184,87 @@ export function clearSupabaseConfig(): void {
     }
   } catch (err) {
     console.error('Failed to clear Supabase config:', err);
+  }
+}
+
+/**
+ * Converts a YYYY-MM-DD date string or ISO timestamp into an ISO timestamp for pause expiry.
+ * Future calendar dates resolve to 00:00:00 local time on that date (so "Pause until Nov 20" resumes when Nov 20 starts).
+ * Selecting today's date resolves to 23:59:59.999 local time today (pauses for the rest of today).
+ */
+export function parsePauseDateToIso(dateInput: string | null | undefined, nowMs: number = Date.now()): string | null {
+  if (!dateInput || typeof dateInput !== 'string') return null;
+  const trimmed = dateInput.trim();
+  if (!trimmed) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [yearStr, monthStr, dayStr] = trimmed.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10) - 1;
+    const day = parseInt(dayStr, 10);
+    const targetStart = new Date(year, month, day, 0, 0, 0, 0);
+    if (isNaN(targetStart.getTime())) return null;
+
+    const nowDate = new Date(nowMs);
+    const todayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), 0, 0, 0, 0);
+    if (targetStart.getTime() === todayStart.getTime()) {
+      const todayEnd = new Date(year, month, day, 23, 59, 59, 999);
+      return todayEnd.getTime() > nowMs ? todayEnd.toISOString() : null;
+    }
+    return targetStart.getTime() > nowMs ? targetStart.toISOString() : null;
+  }
+
+  const parsed = new Date(trimmed);
+  if (isNaN(parsed.getTime()) || parsed.getTime() <= nowMs) return null;
+  return parsed.toISOString();
+}
+
+/**
+ * Returns the ISO timestamp until which cloud sync is paused, or null if active/expired.
+ * Automatically clears storage once the chosen date/time has passed.
+ */
+export function getSyncPausedUntil(nowMs: number = Date.now()): string | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SYNC_PAUSED_UNTIL);
+    if (!raw) return null;
+    const parsedMs = new Date(raw).getTime();
+    if (isNaN(parsedMs) || parsedMs <= nowMs) {
+      localStorage.removeItem(STORAGE_KEYS.SYNC_PAUSED_UNTIL);
+      return null;
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+export function isSyncPaused(nowMs: number = Date.now()): boolean {
+  return getSyncPausedUntil(nowMs) !== null;
+}
+
+export function setSyncPausedUntil(dateOrIso: string | null, nowMs: number = Date.now()): string | null {
+  try {
+    if (!dateOrIso) {
+      localStorage.removeItem(STORAGE_KEYS.SYNC_PAUSED_UNTIL);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ehsaan:supabase-sync-pause-change', { detail: null }));
+      }
+      return null;
+    }
+
+    const iso = parsePauseDateToIso(dateOrIso, nowMs);
+    if (!iso) {
+      return null;
+    }
+
+    localStorage.setItem(STORAGE_KEYS.SYNC_PAUSED_UNTIL, iso);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ehsaan:supabase-sync-pause-change', { detail: iso }));
+    }
+    return iso;
+  } catch (err) {
+    console.error('Failed to persist sync pause date:', err);
+    return null;
   }
 }
 

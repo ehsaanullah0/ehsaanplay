@@ -28,18 +28,34 @@ export const Header: React.FC<HeaderProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollYRef = useRef(0);
 
-  // Long press detection on the top corner action button (Search or Lists)
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isLongPressRef = useRef(false);
+  // Long press detection on the top corner action button (Search or Lists) using unified Pointer Events & timestamp guard
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredAtRef = useRef<number>(0);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const startPress = (x: number, y: number) => {
-    isLongPressRef.current = false;
-    startPosRef.current = { x, y };
-    if (timerRef.current) clearTimeout(timerRef.current);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const cancelPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    startPosRef.current = null;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    cancelPress();
+    startPosRef.current = { x: e.clientX, y: e.clientY };
 
     timerRef.current = setTimeout(() => {
-      isLongPressRef.current = true;
+      timerRef.current = null;
+      startPosRef.current = null;
+      longPressTriggeredAtRef.current = Date.now();
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
           navigator.vibrate(40);
@@ -47,74 +63,34 @@ export const Header: React.FC<HeaderProps> = ({
           // ignore
         }
       }
-      if (onTriggerSwapConfirm) {
-        onTriggerSwapConfirm();
-      }
+      onTriggerSwapConfirm?.();
     }, 450);
   };
 
-  const cancelPress = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!startPosRef.current || !timerRef.current) return;
+    const dx = Math.abs(e.clientX - startPosRef.current.x);
+    const dy = Math.abs(e.clientY - startPosRef.current.y);
+    if (dx > 12 || dy > 12) {
+      cancelPress();
     }
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      startPress(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startPosRef.current && e.touches.length === 1) {
-      const dx = Math.abs(e.touches[0].clientX - startPosRef.current.x);
-      const dy = Math.abs(e.touches[0].clientY - startPosRef.current.y);
-      if (dx > 10 || dy > 10) {
-        cancelPress();
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    cancelPress();
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 0) {
-      startPress(e.clientX, e.clientY);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (startPosRef.current) {
-      const dx = Math.abs(e.clientX - startPosRef.current.x);
-      const dy = Math.abs(e.clientY - startPosRef.current.y);
-      if (dx > 10 || dy > 10) {
-        cancelPress();
-      }
-    }
-  };
-
-  const handleMouseUp = () => {
-    cancelPress();
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     cancelPress();
-    if (onTriggerSwapConfirm) {
-      onTriggerSwapConfirm();
-    }
+    onTriggerSwapConfirm?.();
   };
 
   const handleCornerButtonClick = (e: React.MouseEvent) => {
-    if (isLongPressRef.current) {
+    cancelPress();
+    if (longPressTriggeredAtRef.current > 0 && Date.now() - longPressTriggeredAtRef.current < 1200) {
       e.preventDefault();
       e.stopPropagation();
-      isLongPressRef.current = false;
+      longPressTriggeredAtRef.current = 0;
       return;
     }
+    longPressTriggeredAtRef.current = 0;
 
     if (swapSearchAndLists) {
       onSelectTab('lists');
@@ -122,6 +98,11 @@ export const Header: React.FC<HeaderProps> = ({
       onOpenSearch();
     }
   };
+
+  useEffect(() => {
+    setIsVisible(true);
+    lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
+  }, [activeTab]);
 
   useEffect(() => {
     if (!autoHideHeader) {
@@ -262,14 +243,10 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={handleCornerButtonClick}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={cancelPress}
+                onPointerCancel={cancelPress}
                 onContextMenu={handleContextMenu}
                 className={`h-8 px-2.5 sm:px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs active:scale-95 transition-all border border-[var(--border-subtle)] select-none focus:outline-none ${
                   activeTab === 'lists'
@@ -300,14 +277,10 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={handleCornerButtonClick}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={cancelPress}
+                onPointerCancel={cancelPress}
                 onContextMenu={handleContextMenu}
                 className="h-8 px-2.5 sm:px-3 rounded-full bg-[var(--bg-card-olive)] hover:opacity-90 text-[var(--text-card-olive)] border border-[var(--border-subtle)] flex items-center justify-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs active:scale-95 transition-all select-none focus:outline-none group/search"
                 aria-label="Search movies and series (long press to exchange position)"

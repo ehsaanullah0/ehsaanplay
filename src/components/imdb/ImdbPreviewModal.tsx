@@ -5,6 +5,7 @@ import { MediaItem, PersonalMediaState } from '../../types/movie';
 import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { loadUserSettings } from '../../services/storage';
 import { SafeImage } from '../common/SafeImage';
+import { PosterAmbientGlow } from '../preview/PosterAmbientGlow';
 import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
 import { openStreamingPlatform } from '../../services/streamingDirectUrls';
 import {
@@ -70,6 +71,22 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [isPosterGlowEnabled, setIsPosterGlowEnabled] = useState<boolean>(
+    () => loadUserSettings().tweaks?.previewPosterGlow !== false
+  );
+  const [posterGlowContrast, setPosterGlowContrast] = useState<number>(
+    () => loadUserSettings().tweaks?.previewPosterGlowContrast ?? 1.0
+  );
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      const updated = loadUserSettings();
+      setIsPosterGlowEnabled(updated.tweaks?.previewPosterGlow !== false);
+      setPosterGlowContrast(updated.tweaks?.previewPosterGlowContrast ?? 1.0);
+    };
+    window.addEventListener('ehsaan:settings-change', handleSettingsChange);
+    return () => window.removeEventListener('ehsaan:settings-change', handleSettingsChange);
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -452,27 +469,40 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
           {!isLoading && previewData && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row gap-5 items-start">
-                {/* Poster Artwork with fallback */}
-                <div className="w-full sm:w-52 aspect-[2/3] rounded-2xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] shadow-md shrink-0 relative group">
-                  {previewData.posterUrl ? (
-                    <SafeImage
-                      src={previewData.posterUrl}
-                      alt={previewData.title}
-                      fallbackTitle={previewData.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[var(--bg-surface)] text-[var(--text-secondary)]">
-                      {previewData.type === 'series' ? (
-                        <Tv className="w-10 h-10 mb-2 opacity-50" />
-                      ) : (
-                        <Film className="w-10 h-10 mb-2 opacity-50" />
-                      )}
-                      <span className="text-xs font-bold">{previewData.title}</span>
-                      <span className="text-[10px] opacity-75 mt-1">No poster available from OMDb</span>
-                    </div>
-                  )}
-                </div>
+                {/* Poster Artwork with subtle directional color glow & fallback */}
+                <PosterAmbientGlow
+                  src={previewData.posterUrl}
+                  enabled={isPosterGlowEnabled && Boolean(previewData.posterUrl)}
+                  contrast={posterGlowContrast}
+                  isDarkSurface={
+                    typeof document !== 'undefined' &&
+                    document.documentElement.getAttribute('data-theme') !== 'cream'
+                  }
+                  haloRoundedClass="rounded-3xl"
+                  rimRoundedClass="rounded-[18px]"
+                  className="w-full sm:w-52 aspect-[2/3] shrink-0"
+                >
+                  <div className="w-full h-full rounded-2xl overflow-hidden bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] shadow-md relative group">
+                    {previewData.posterUrl ? (
+                      <SafeImage
+                        src={previewData.posterUrl}
+                        alt={previewData.title}
+                        fallbackTitle={previewData.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[var(--bg-surface)] text-[var(--text-secondary)]">
+                        {previewData.type === 'series' ? (
+                          <Tv className="w-10 h-10 mb-2 opacity-50" />
+                        ) : (
+                          <Film className="w-10 h-10 mb-2 opacity-50" />
+                        )}
+                        <span className="text-xs font-bold">{previewData.title}</span>
+                        <span className="text-[10px] opacity-75 mt-1">No poster available from OMDb</span>
+                      </div>
+                    )}
+                  </div>
+                </PosterAmbientGlow>
 
                 {/* Primary Metadata */}
                 <div className="flex-1 space-y-3 min-w-0">
@@ -668,10 +698,10 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                             type="button"
                             onClick={() => openStreamingPlatform(p.name, previewData.mediaItem.title, previewData.mediaItem.type, previewData.mediaItem.year)}
                             title={`Watch "${previewData.mediaItem.title}" directly on ${p.name}`}
-                            className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-98 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-2xs transition cursor-pointer select-none"
+                            className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] hover:scale-[1.02] active:scale-[0.98] text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-2xs transition cursor-pointer select-none"
                           >
                             {p.logoUrl ? (
-                              <img src={p.logoUrl} alt={p.name} className="w-4 h-4 rounded-md object-cover" />
+                              <img src={p.logoUrl} alt={p.name} referrerPolicy="no-referrer" className="w-4 h-4 rounded-md object-cover" />
                             ) : (
                               <Globe className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                             )}
@@ -769,7 +799,7 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopyId(previewData.imdbId)}
-                    className="px-3 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-subtle)] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-3xs"
+                    className="px-3 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-subtle)] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
                     title="Copy IMDb Title ID to clipboard"
                   >
                     {copiedId ? (
@@ -809,7 +839,7 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                           onToggleWatchlist(previewData.mediaItem.id || previewData.imdbId, previewData.mediaItem);
                         }
                       }}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-3xs ${
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-2xs ${
                         inWatchlist
                           ? 'bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] font-black border border-[#DFB00F]'
                           : 'bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)]'

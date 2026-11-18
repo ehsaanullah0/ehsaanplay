@@ -456,7 +456,7 @@ async function startServer() {
     const title = req.query.t as string;
     const query = req.query.s as string;
     const customKey = (req.headers['x-omdb-api-key'] as string) || (req.query.apikey as string);
-    const apiKey = (customKey && customKey.trim()) || process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || '5ac583a2';
+    const apiKey = (customKey && customKey.trim()) || process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || '';
 
     if (!imdbId && !title && !query) {
       return res.status(400).json({ Response: 'False', Error: 'Missing i (imdbId), t (title), or s (search) query parameter' });
@@ -500,7 +500,7 @@ async function startServer() {
     
     // Key resolution order: header override > server env secret > client vite env secret > default fallback
     const customHeaderKey = req.headers['x-tmdb-api-key'] as string;
-    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'a846f4eb273f08cf2aa2a8ee0b7ad03d';
+    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
     const bearerToken = process.env.TMDB_READ_ACCESS_TOKEN;
 
     try {
@@ -566,7 +566,7 @@ async function startServer() {
       let actualType = mediaType;
 
       if (imdbId && imdbId.startsWith('tt')) {
-        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'a846f4eb273f08cf2aa2a8ee0b7ad03d';
+        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
         const findUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${apiKey}&external_source=imdb_id`;
         const findRes = await fetch(findUrl);
         if (findRes.ok) {
@@ -581,7 +581,7 @@ async function startServer() {
 
       // 2. Query TMDB Watch Providers if TMDB ID resolved
       if (tmdbId) {
-        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'a846f4eb273f08cf2aa2a8ee0b7ad03d';
+        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
         const provUrl = `https://api.themoviedb.org/3/${actualType}/${tmdbId}/watch/providers?api_key=${apiKey}`;
         const provRes = await fetch(provUrl);
         if (provRes.ok) {
@@ -905,6 +905,86 @@ Selection Criteria:
         ok: false,
         error: err.message || 'Failed to generate Top 50 collection using Gemini.',
       });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 9. CORS-Safe Poster Image Proxy (for Directional Ambient Glow Sampling)
+  // -------------------------------------------------------------------------
+
+  const ALLOWED_IMAGE_HOST_SUFFIXES = [
+    'image.tmdb.org',
+    'media-amazon.com',
+    'media-imdb.com',
+    'tvmaze.com',
+    'justwatch.com',
+    'thetvdb.com',
+    'fanart.tv',
+    'trakt.tv',
+  ];
+
+  app.get('/api/image-proxy', async (req: Request, res: Response) => {
+    const rawUrl = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      return res.status(400).json({ error: 'Invalid URL' });
+    }
+
+    if (parsed.protocol !== 'https:') {
+      return res.status(403).json({ error: 'Only HTTPS image URLs are allowed' });
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    const isAllowedHost = ALLOWED_IMAGE_HOST_SUFFIXES.some(
+      (suffix) => host === suffix || host.endsWith(`.${suffix}`)
+    );
+    if (!isAllowedHost) {
+      return res.status(403).json({ error: 'Host not permitted for image proxy' });
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const upstream = await fetch(parsed.toString(), {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; EhsaanPlay/1.0)',
+          Accept: 'image/*',
+        },
+      });
+      clearTimeout(timeoutId);
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).end();
+      }
+
+      const contentType = upstream.headers.get('content-type') || 'image/jpeg';
+      if (!contentType.toLowerCase().startsWith('image/')) {
+        return res.status(415).json({ error: 'Upstream resource is not an image' });
+      }
+
+      const arrayBuf = await upstream.arrayBuffer();
+      if (arrayBuf.byteLength > 5 * 1024 * 1024) {
+        return res.status(413).json({ error: 'Image exceeds 5MB limit' });
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(Buffer.from(arrayBuf));
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err?.name === 'AbortError') {
+        return res.status(504).json({ error: 'Image fetch timed out' });
+      }
+      return res.status(502).json({ error: 'Failed to proxy image' });
     }
   });
 

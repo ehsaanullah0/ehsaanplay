@@ -218,23 +218,40 @@ export function usePWAInstall() {
   };
 }
 
+let singletonIsOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+const onlineSubscribers = new Set<(online: boolean) => void>();
+let isOnlineListenerAttached = false;
+
+function ensureOnlineListeners() {
+  if (isOnlineListenerAttached || typeof window === 'undefined') return;
+  isOnlineListenerAttached = true;
+
+  const notify = (nextOnline: boolean) => {
+    if (singletonIsOnline !== nextOnline) {
+      singletonIsOnline = nextOnline;
+      onlineSubscribers.forEach(cb => cb(nextOnline));
+    }
+  };
+
+  window.addEventListener('online', () => notify(true), { passive: true });
+  window.addEventListener('offline', () => notify(false), { passive: true });
+}
+
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : singletonIsOnline
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    ensureOnlineListeners();
+    const current = typeof navigator !== 'undefined' ? navigator.onLine : singletonIsOnline;
+    singletonIsOnline = current;
+    setIsOnline(current);
 
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
+    const handleUpdate = (online: boolean) => setIsOnline(online);
+    onlineSubscribers.add(handleUpdate);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      onlineSubscribers.delete(handleUpdate);
     };
   }, []);
 

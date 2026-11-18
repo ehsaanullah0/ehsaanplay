@@ -62,7 +62,7 @@ function ensureStorageListenerAttached() {
   window.addEventListener('storage', update, { passive: true });
 }
 
-export const SafeImage: React.FC<SafeImageProps> = ({
+export const SafeImage: React.FC<SafeImageProps> = React.memo(({
   src,
   alt,
   fallbackTitle,
@@ -89,11 +89,13 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   }, []);
 
   const isOffline = forceOffline || !isOnline || isStorageOffline;
+  const syncDirectUrl =
+    !isOffline && src ? resolveArtworkUrl(src, size) : null;
 
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => syncDirectUrl || null);
   const [hasError, setHasError] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const currentReqRef = useRef<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(src));
+  const currentReqRef = useRef<string | null>(src || null);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +104,6 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
     triedFallbackRef.current = false;
     setHasError(false);
-    setIsLoading(true);
 
     if (!currentSrc) {
       setResolvedSrc(null);
@@ -110,6 +111,16 @@ export const SafeImage: React.FC<SafeImageProps> = ({
       return;
     }
 
+    // Fast synchronous resolution when online (avoids async promise tick + blank frame)
+    if (!isOffline) {
+      const direct = resolveArtworkUrl(currentSrc, size);
+      if (direct) {
+        setResolvedSrc(direct);
+        return;
+      }
+    }
+
+    setIsLoading(true);
     getArtworkDisplaySrc(currentSrc, isOffline, size)
       .then(displayUrl => {
         if (isMounted && currentReqRef.current === currentSrc) {
@@ -178,15 +189,23 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     setIsLoading(false);
   };
 
+  const hasCustomBg = /\bbg-/.test(containerClassName);
+
   if (!resolvedSrc || hasError) {
     return (
       <div
-        className={`w-full h-full flex flex-col items-center justify-center bg-[#EAE5D8] text-[#4E562F] p-3 text-center select-none ${containerClassName}`}
+        className={`w-full h-full flex flex-col items-center justify-center ${
+          hasCustomBg ? 'text-white/70' : 'bg-[#EAE5D8] text-[#4E562F]'
+        } p-3 text-center select-none ${containerClassName}`}
         style={style}
       >
         <Film className="w-8 h-8 opacity-40 mb-1.5 stroke-[1.5]" />
         {fallbackTitle && (
-          <span className="text-xs font-bold leading-tight line-clamp-3 text-[#4E562F] opacity-90 px-1">
+          <span
+            className={`text-xs font-bold leading-tight line-clamp-3 opacity-90 px-1 ${
+              hasCustomBg ? 'text-white/85' : 'text-[#4E562F]'
+            }`}
+          >
             {fallbackTitle}
           </span>
         )}
@@ -196,11 +215,17 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   return (
     <div
-      className={`relative w-full h-full overflow-hidden bg-[#EAE5D8] ${containerClassName}`}
+      className={`relative w-full h-full overflow-hidden ${
+        hasCustomBg ? '' : 'bg-[#EAE5D8]'
+      } ${containerClassName}`}
       style={style}
     >
       {isLoading && (
-        <div className="absolute inset-0 bg-[#EAE5D8] animate-pulse z-0" />
+        <div
+          className={`absolute inset-0 animate-pulse z-0 ${
+            hasCustomBg ? 'bg-black/40' : 'bg-[#EAE5D8]'
+          }`}
+        />
       )}
       <img
         src={resolvedSrc}
@@ -217,4 +242,6 @@ export const SafeImage: React.FC<SafeImageProps> = ({
       />
     </div>
   );
-};
+});
+
+SafeImage.displayName = 'SafeImage';

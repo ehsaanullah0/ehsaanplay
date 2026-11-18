@@ -28,6 +28,8 @@ import {
   FileCode,
   Sparkles,
   PlayCircle,
+  PauseCircle,
+  Calendar,
   HardDrive,
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
@@ -64,6 +66,8 @@ import {
   subscribeToSyncStatus,
   executeFullSync,
   initializeRealtimeSubscription,
+  pauseCloudSyncUntil,
+  resumeCloudSync,
   SyncStatusInfo,
 } from '../../services/supabase/syncService';
 import {
@@ -122,6 +126,30 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
   // Resume paused database full settings page state
   const [isResumeViewActive, setIsResumeViewActive] = useState(false);
   const [storageRefreshKey, setStorageRefreshKey] = useState(0);
+
+  // Sync pause scheduling state
+  const toLocalYmd = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  const addDaysLocalYmd = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return toLocalYmd(d);
+  };
+  const todayYmd = toLocalYmd(new Date());
+
+  const [pauseDateInput, setPauseDateInput] = useState<string>(() => {
+    const initial = getSyncStatus().pausedUntil;
+    if (initial) {
+      const parsed = new Date(initial);
+      if (!isNaN(parsed.getTime())) return toLocalYmd(parsed);
+    }
+    return addDaysLocalYmd(3);
+  });
+  const [isResumingSync, setIsResumingSync] = useState(false);
 
   const handleOpenResume = () => {
     if (onOpenResumePage) {
@@ -323,10 +351,13 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
 
   // 7. Handle Manual Sync Now
   const handleSyncNow = async () => {
+    setFormError(null);
     setIsSyncRunning(true);
     try {
       const res = await executeFullSync();
-      if (res.success) {
+      if (res.paused) {
+        triggerToast(res.message);
+      } else if (res.success) {
         triggerToast('✓ Library synchronized with Supabase!');
         if (onRefreshData) onRefreshData();
       } else {
@@ -336,6 +367,40 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
       setFormError(err instanceof Error ? err.message : 'Sync failed.');
     } finally {
       setIsSyncRunning(false);
+    }
+  };
+
+  // 7b. Handle Pause Cloud Sync until chosen date
+  const handlePauseSync = (overrideDateStr?: string) => {
+    setFormError(null);
+    const chosen = overrideDateStr || pauseDateInput;
+    if (overrideDateStr) {
+      setPauseDateInput(overrideDateStr);
+    }
+    const res = pauseCloudSyncUntil(chosen);
+    if (res.success) {
+      triggerToast(res.message);
+    } else {
+      setFormError(res.message);
+    }
+  };
+
+  // 7c. Handle Resume Cloud Sync immediately
+  const handleResumeSync = async () => {
+    setFormError(null);
+    setIsResumingSync(true);
+    try {
+      const res = await resumeCloudSync();
+      if (res.success) {
+        triggerToast('✓ Cloud sync resumed and synchronized!');
+        if (onRefreshData) onRefreshData();
+      } else {
+        setFormError(res.message);
+      }
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to resume sync.');
+    } finally {
+      setIsResumingSync(false);
     }
   };
 
@@ -432,6 +497,23 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs animate-pulse">
           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
           <span>Syncing Changes...</span>
+        </span>
+      );
+    }
+
+    if (syncStatus.state === 'paused' && syncStatus.pausedUntil) {
+      const untilLabel = new Date(syncStatus.pausedUntil).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow-xs">
+          <PauseCircle className="w-3.5 h-3.5 text-white" />
+          <span>
+            Paused until {untilLabel}
+            {syncStatus.pendingQueueCount > 0 ? ` · ${syncStatus.pendingQueueCount} Queued` : ''}
+          </span>
         </span>
       );
     }
@@ -961,11 +1043,15 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
                       : 'Never'}
                   </div>
                   <span className="text-[10px] text-[var(--text-secondary)]">
-                    {syncStatus.isRealtimeConnected ? '✓ Supabase Realtime connected' : 'Connecting Realtime...'}
+                    {syncStatus.state === 'paused' && syncStatus.pausedUntil
+                      ? `Paused until ${new Date(syncStatus.pausedUntil).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                      : syncStatus.isRealtimeConnected
+                      ? '✓ Supabase Realtime connected'
+                      : 'Connecting Realtime...'}
                   </span>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] flex items-center justify-between gap-2">
                   <div>
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
                       Offline Queue
@@ -980,12 +1066,123 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
                   <button
                     type="button"
                     onClick={handleSyncNow}
-                    disabled={isSyncRunning}
-                    className="px-3.5 py-2 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 active:scale-95 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs"
+                    disabled={isSyncRunning || syncStatus.state === 'paused'}
+                    title={syncStatus.state === 'paused' ? 'Resume sync to upload queued changes' : 'Synchronize with Supabase now'}
+                    className="px-3.5 py-2 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 active:scale-95 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSyncRunning ? 'animate-spin' : ''}`} />
                     <span>Sync Now</span>
                   </button>
+                </div>
+              </div>
+
+              {/* Pause Cloud Sync Schedule Panel */}
+              <div className="p-4 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center shrink-0 mt-0.5">
+                      <PauseCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-[var(--text-primary)] flex items-center gap-2 flex-wrap">
+                        <span>Pause Sync Until Chosen Date</span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            syncStatus.state === 'paused'
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400'
+                          }`}
+                        >
+                          {syncStatus.state === 'paused' ? 'Paused' : 'Sync Active'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                        {syncStatus.state === 'paused' && syncStatus.pausedUntil ? (
+                          <>
+                            Cloud sync is paused until{' '}
+                            <strong className="text-[var(--text-primary)]">
+                              {new Date(syncStatus.pausedUntil).toLocaleDateString(undefined, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </strong>
+                            . Changes you make locally stay queued ({syncStatus.pendingQueueCount} pending) and will upload automatically when sync resumes.
+                          </>
+                        ) : (
+                          'Temporarily pause background, realtime, and manual cloud sync until a specific date. Local edits remain safe and queued.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {syncStatus.state === 'paused' && (
+                    <button
+                      type="button"
+                      onClick={handleResumeSync}
+                      disabled={isResumingSync}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs self-start sm:self-center shrink-0"
+                    >
+                      <PlayCircle className={`w-3.5 h-3.5 ${isResumingSync ? 'animate-spin' : ''}`} />
+                      <span>{isResumingSync ? 'Resuming...' : 'Resume Sync Now'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Date Picker + Presets + Pause Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1">
+                  <div className="relative flex-1 min-w-[160px]">
+                    <Calendar className="w-3.5 h-3.5 text-[var(--text-secondary)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="date"
+                      min={todayYmd}
+                      value={pauseDateInput}
+                      onChange={e => setPauseDateInput(e.target.value)}
+                      aria-label="Choose date to pause cloud sync until"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePauseSync()}
+                    disabled={!pauseDateInput}
+                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0"
+                  >
+                    <PauseCircle className="w-3.5 h-3.5" />
+                    <span>{syncStatus.state === 'paused' ? 'Update Pause Date' : 'Pause Sync'}</span>
+                  </button>
+                </div>
+
+                {/* Quick Duration Presets */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mr-1">
+                    Quick Pick:
+                  </span>
+                  {[
+                    { label: 'Tomorrow', days: 1 },
+                    { label: '+3 Days', days: 3 },
+                    { label: '+7 Days', days: 7 },
+                    { label: '+14 Days', days: 14 },
+                  ].map(preset => {
+                    const targetYmd = addDaysLocalYmd(preset.days);
+                    const isPicked = pauseDateInput === targetYmd;
+                    return (
+                      <button
+                        key={preset.days}
+                        type="button"
+                        onClick={() => handlePauseSync(targetYmd)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 cursor-pointer ${
+                          isPicked && syncStatus.state === 'paused'
+                            ? 'bg-amber-600 text-white border-transparent'
+                            : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

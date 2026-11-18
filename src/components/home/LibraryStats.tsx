@@ -21,7 +21,7 @@ interface LibraryStatsProps {
   onUpdateHomeSections?: (sections: HomeSectionsConfig) => void;
 }
 
-export const LibraryStats: React.FC<LibraryStatsProps> = ({
+export const LibraryStats: React.FC<LibraryStatsProps> = React.memo(({
   stats,
   onNavigateToWatchlist,
   onNavigateTab: _onNavigateTab,
@@ -44,7 +44,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
   };
 
   const sections = homeSections || {
-    showHeroSlideshow: true,
+    showHeroSlideshow: false,
     showTopMovies: true,
     showTopSeries: true,
     showContinueWatching: true,
@@ -53,9 +53,12 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
     showExplore: true,
   };
 
+  const isSectionActive = (key: keyof HomeSectionsConfig) =>
+    key === 'showHeroSlideshow' ? sections[key] === true : sections[key] !== false;
+
   const handleToggle = (key: keyof HomeSectionsConfig) => {
     if (onUpdateHomeSections) {
-      const currentVal = sections[key] !== false;
+      const currentVal = isSectionActive(key);
       onUpdateHomeSections({
         ...sections,
         [key]: !currentVal,
@@ -174,7 +177,7 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
               { key: 'showRecentlyWatched', label: 'Recently Watched' },
               { key: 'showExplore', label: 'Explore Recommendations' },
             ].map(({ key, label }) => {
-              const active = sections[key as keyof HomeSectionsConfig] !== false;
+              const active = isSectionActive(key as keyof HomeSectionsConfig);
               return (
                 <button
                   key={key}
@@ -199,4 +202,4 @@ export const LibraryStats: React.FC<LibraryStatsProps> = ({
       )}
     </section>
   );
-};
+});

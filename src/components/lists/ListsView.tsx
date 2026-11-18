@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   CustomList,
   MediaItem,
@@ -13,7 +13,6 @@ import { ListDetailView } from './ListDetailView';
 import { TrendingGenresView } from './TrendingGenresView';
 import { GenreTop50DetailView } from './GenreTop50DetailView';
 import { SettingsTopicId } from '../settings/SettingsView';
-import { findMediaItemByIdOrAlias } from '../../utils/mediaDedup';
 import { Plus, Layers, Sparkles } from 'lucide-react';
 
 interface ListsViewProps {
@@ -46,9 +45,10 @@ interface ListsViewProps {
     isRenamedOrManual: boolean,
     existingListId?: string
   ) => void;
+  resetSignal?: number;
 }
 
-export const ListsView: React.FC<ListsViewProps> = ({
+export const ListsView: React.FC<ListsViewProps> = React.memo(({
   customLists,
   mediaItems,
   userStates,
@@ -72,6 +72,7 @@ export const ListsView: React.FC<ListsViewProps> = ({
   onNavigateToSettingsTopic,
   onAutoSaveAiList,
   onManualSaveList,
+  resetSignal,
 }) => {
   // Navigation state within Lists: 'shelves' | 'trending_genres'
   const [activeSubView, setActiveSubView] = useState<'shelves' | 'trending_genres'>('shelves');
@@ -79,6 +80,32 @@ export const ListsView: React.FC<ListsViewProps> = ({
   const [selectedGenreCount, setSelectedGenreCount] = useState<number>(20);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (resetSignal && resetSignal > 0) {
+      setActiveListId(null);
+      setActiveGenre(null);
+      setActiveSubView('shelves');
+      onGenreMixActionChange?.(null);
+    }
+  }, [resetSignal, onGenreMixActionChange]);
+
+  const mediaLookupMap = useMemo(() => {
+    const map = new Map<string, MediaItem>();
+    for (const item of mediaItems) {
+      map.set(item.id, item);
+      if (item.imdbId && !map.has(item.imdbId)) {
+        map.set(item.imdbId, item);
+      }
+      if (item.tmdbId) {
+        const tmdbKey = `tmdb-${item.type || 'movie'}-${item.tmdbId}`;
+        if (!map.has(tmdbKey)) {
+          map.set(tmdbKey, item);
+        }
+      }
+    }
+    return map;
+  }, [mediaItems]);
 
   // If a custom shelf list is opened, show its detail view
   const activeList = customLists.find(l => l.id === activeListId);
@@ -215,7 +242,7 @@ export const ListsView: React.FC<ListsViewProps> = ({
                   const seenIds = new Set<string>();
                   const itemsInList: MediaItem[] = [];
                   for (const id of list.itemIds) {
-                    const resolved = findMediaItemByIdOrAlias(id, mediaItems);
+                    const resolved = mediaLookupMap.get(id);
                     if (resolved && !seenIds.has(resolved.id)) {
                       seenIds.add(resolved.id);
                       itemsInList.push(resolved);
@@ -329,4 +356,4 @@ export const ListsView: React.FC<ListsViewProps> = ({
       />
     </div>
   );
-};
+});

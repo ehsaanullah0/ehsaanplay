@@ -82,7 +82,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
       {/* Back button */}
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] text-xs sm:text-sm font-bold mb-6 sm:mb-8 transition group shadow-3xs border border-[var(--border-subtle)]"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] text-xs sm:text-sm font-bold mb-6 sm:mb-8 transition group shadow-2xs border border-[var(--border-subtle)]"
       >
         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
         <span>Back to All Collections</span>
@@ -137,7 +137,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
 
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="p-2.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition border border-[var(--border-subtle)] active:scale-95 shadow-3xs"
+              className="p-2.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition border border-[var(--border-subtle)] active:scale-95 shadow-2xs"
               title="Edit List Details"
             >
               <Edit2 className="w-4 h-4 text-[var(--text-card-yellow)]" />

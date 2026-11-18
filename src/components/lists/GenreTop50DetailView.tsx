@@ -414,7 +414,7 @@ export const GenreTop50DetailView: React.FC<GenreTop50DetailViewProps> = ({
                   key={g.id}
                   type="button"
                   onClick={() => onSelectGenre(g, selectedCount)}
-                  className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer shadow-3xs active:scale-95 select-none ${
+                  className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 select-none ${
                     isSelected
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] ring-2 ring-[var(--accent-primary)]/20'
                       : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-subtle)]/40 border border-[var(--border-subtle)]'

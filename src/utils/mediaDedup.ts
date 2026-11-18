@@ -142,6 +142,10 @@ export function resolveStateForMediaItem(
   return best;
 }
 
+/**
+ * O(N) hash-indexed deduplication of MediaItems, PersonalMediaStates, and CustomLists.
+ * Preserves exact matching rules: exact ID, IMDb ID, TMDB ID+type, cross-ID, and normalized title+type with |yearA-yearB|<=1.
+ */
 export function deduplicateMediaItemsAndStates(
   rawMedia: MediaItem[],
   rawStates: Record<string, PersonalMediaState>,
@@ -150,15 +154,92 @@ export function deduplicateMediaItemsAndStates(
   const canonicalList: MediaItem[] = [];
   const idToCanonical = new Map<string, string>();
 
-  // 1. Group and merge media items into canonical entries
+  // O(1) lookup indices into canonicalList
+  const indexById = new Map<string, number>();
+  const indexByImdb = new Map<string, number>();
+  const indexByTmdbKey = new Map<string, number>();
+  const indicesByTypeTitle = new Map<string, number[]>();
+
+  const registerAliases = (item: MediaItem, canonicalId: string, listIndex: number) => {
+    idToCanonical.set(item.id, canonicalId);
+    indexById.set(item.id, listIndex);
+
+    if (item.imdbId && item.imdbId.startsWith('tt')) {
+      idToCanonical.set(item.imdbId, canonicalId);
+      if (!indexByImdb.has(item.imdbId)) indexByImdb.set(item.imdbId, listIndex);
+    }
+    if (item.tmdbId) {
+      const tmdbKey = `tmdb-${item.type || 'movie'}-${item.tmdbId}`;
+      idToCanonical.set(tmdbKey, canonicalId);
+      if (!indexByTmdbKey.has(tmdbKey)) indexByTmdbKey.set(tmdbKey, listIndex);
+    }
+    const normTitle = normalizeMediaTitle(item.title);
+    if (normTitle) {
+      const titleKeyWithYear = `${item.type || 'movie'}-${normTitle}-${item.year}`;
+      idToCanonical.set(titleKeyWithYear, canonicalId);
+      const typeTitleKey = `${item.type || 'movie'}:${normTitle}`;
+      const bucket = indicesByTypeTitle.get(typeTitleKey);
+      if (bucket) {
+        if (!bucket.includes(listIndex)) bucket.push(listIndex);
+      } else {
+        indicesByTypeTitle.set(typeTitleKey, [listIndex]);
+      }
+    }
+  };
+
+  const findExistingCanonicalIndex = (item: MediaItem): number => {
+    if (item.id) {
+      const byExactId = indexById.get(item.id);
+      if (byExactId !== undefined) return byExactId;
+      if (item.id.startsWith('tt')) {
+        const byImdbCross = indexByImdb.get(item.id);
+        if (byImdbCross !== undefined) return byImdbCross;
+      }
+      if (item.id.startsWith('tmdb-')) {
+        const byTmdbCross = indexByTmdbKey.get(item.id);
+        if (byTmdbCross !== undefined) return byTmdbCross;
+      }
+    }
+
+    if (item.imdbId && item.imdbId.startsWith('tt')) {
+      const byImdb = indexByImdb.get(item.imdbId);
+      if (byImdb !== undefined) return byImdb;
+      const byIdCross = indexById.get(item.imdbId);
+      if (byIdCross !== undefined) return byIdCross;
+    }
+
+    if (item.tmdbId) {
+      const tmdbKey = `tmdb-${item.type || 'movie'}-${item.tmdbId}`;
+      const byTmdb = indexByTmdbKey.get(tmdbKey);
+      if (byTmdb !== undefined) return byTmdb;
+      const byIdCross = indexById.get(tmdbKey);
+      if (byIdCross !== undefined) return byIdCross;
+    }
+
+    const normTitle = normalizeMediaTitle(item.title);
+    if (normTitle) {
+      const typeTitleKey = `${item.type || 'movie'}:${normTitle}`;
+      const candidates = indicesByTypeTitle.get(typeTitleKey);
+      if (candidates) {
+        for (const idx of candidates) {
+          const existing = canonicalList[idx];
+          if (!existing.year || !item.year || Math.abs(existing.year - item.year) <= 1) {
+            return idx;
+          }
+        }
+      }
+    }
+
+    return -1;
+  };
+
+  // 1. Group and merge media items into canonical entries in O(N)
   for (const item of rawMedia) {
     if (!item || !item.id) continue;
 
-    // Check if item matches any existing item in canonicalList
-    const existingIndex = canonicalList.findIndex(existing => areMediaItemsSame(existing, item));
+    const existingIndex = findExistingCanonicalIndex(item);
 
     if (existingIndex === -1) {
-      // First time seeing this title: prefer IMDb ID (tt...) if present, then tmdb ID, then existing ID
       const canonicalId = (item.imdbId && item.imdbId.startsWith('tt'))
         ? item.imdbId
         : (item.tmdbId ? `tmdb-${item.type || 'movie'}-${item.tmdbId}` : item.id);
@@ -168,25 +249,17 @@ export function deduplicateMediaItemsAndStates(
         id: canonicalId,
       };
 
+      const newIndex = canonicalList.length;
       canonicalList.push(canonicalItem);
-      idToCanonical.set(item.id, canonicalId);
-      if (item.imdbId) idToCanonical.set(item.imdbId, canonicalId);
-      if (item.tmdbId) idToCanonical.set(`tmdb-${item.type || 'movie'}-${item.tmdbId}`, canonicalId);
-      const titleKey = `${item.type || 'movie'}-${normalizeMediaTitle(item.title)}-${item.year}`;
-      idToCanonical.set(titleKey, canonicalId);
+      idToCanonical.set(canonicalId, canonicalId);
+      indexById.set(canonicalId, newIndex);
+      registerAliases(item, canonicalId, newIndex);
     } else {
-      // Duplicate found! Merge into existing canonical item
       const existing = canonicalList[existingIndex];
       const canonicalId = existing.id;
 
-      // Register all aliases of this duplicate
-      idToCanonical.set(item.id, canonicalId);
-      if (item.imdbId) idToCanonical.set(item.imdbId, canonicalId);
-      if (item.tmdbId) idToCanonical.set(`tmdb-${item.type || 'movie'}-${item.tmdbId}`, canonicalId);
-      const titleKey = `${item.type || 'movie'}-${normalizeMediaTitle(item.title)}-${item.year}`;
-      idToCanonical.set(titleKey, canonicalId);
+      registerAliases(item, canonicalId, existingIndex);
 
-      // Merge rich properties (prefer better poster, overview, cast, seasons)
       const merged: MediaItem = {
         ...existing,
         id: canonicalId,
@@ -215,19 +288,17 @@ export function deduplicateMediaItemsAndStates(
     }
   }
 
-  // 2. Consolidate PersonalMediaStates for all duplicate alias keys
+  // 2. Consolidate PersonalMediaStates for all duplicate alias keys in O(1) per entry
   const cleanStates: Record<string, PersonalMediaState> = {};
   for (const [id, st] of Object.entries(rawStates)) {
     if (!st) continue;
     let canonicalId = idToCanonical.get(id);
     if (!canonicalId) {
-      const matched = canonicalList.find(m =>
-        m.id === id ||
-        (m.imdbId && m.imdbId === id) ||
-        (m.tmdbId && `tmdb-${m.type || 'movie'}-${m.tmdbId}` === id) ||
-        areMediaItemsSame(m, rawMedia.find(rm => rm.id === id))
-      );
-      canonicalId = matched ? matched.id : id;
+      const matchedIdx =
+        indexById.get(id) ??
+        indexByImdb.get(id) ??
+        indexByTmdbKey.get(id);
+      canonicalId = matchedIdx !== undefined ? canonicalList[matchedIdx].id : id;
     }
 
     const prevSt = cleanStates[canonicalId];

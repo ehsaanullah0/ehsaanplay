@@ -27,7 +27,7 @@ interface RankingRailProps {
   layout?: 'horizontal' | 'vertical';
 }
 
-export const RankingRail: React.FC<RankingRailProps> = ({
+export const RankingRail: React.FC<RankingRailProps> = React.memo(({
   title,
   subtitle,
   items,
@@ -50,6 +50,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
   layout = 'horizontal',
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [isAtStart, setIsAtStart] = useState(true);
 
@@ -73,6 +74,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
     return () => {
       el.removeEventListener('scroll', checkScrollPosition);
       window.removeEventListener('resize', checkScrollPosition);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
     };
   }, [checkScrollPosition, items]);
 
@@ -87,7 +89,8 @@ export const RankingRail: React.FC<RankingRailProps> = ({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth',
       });
-      setTimeout(checkScrollPosition, 350);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = setTimeout(checkScrollPosition, 350);
     }
   };
 
@@ -168,7 +171,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
               onClick={() => handleScroll('left')}
               disabled={isAtStart}
               aria-label="Scroll left"
-              className={`p-2 rounded-full transition focus:outline-none shadow-3xs border border-[var(--border-subtle)] active:scale-95 ${
+              className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
                 isAtStart
                   ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
                   : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
@@ -181,7 +184,7 @@ export const RankingRail: React.FC<RankingRailProps> = ({
               type="button"
               onClick={() => handleScroll('right')}
               aria-label="Scroll right"
-              className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-3xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
+              className="p-2 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -245,4 +248,4 @@ export const RankingRail: React.FC<RankingRailProps> = ({
       )}
     </section>
   );
-};
+});

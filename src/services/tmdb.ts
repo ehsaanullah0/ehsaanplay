@@ -7,7 +7,7 @@
 
 import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo, EpisodeDetail } from '../types/movie';
 
-export const DEFAULT_TMDB_KEY = 'a846f4eb273f08cf2aa2a8ee0b7ad03d'; // Default fallback TMDB API key
+export const DEFAULT_TMDB_KEY = ''; // Configure TMDB_API_KEY in the server environment.
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
@@ -704,3 +704,154 @@ export async function fetchTMDBPersonDetails(
   }
 }
 
+const GENRE_NAME_TO_TMDB_IDS: Record<MediaType, Record<string, number>> = {
+  movie: {
+    action: 28,
+    adventure: 12,
+    animation: 16,
+    comedy: 35,
+    crime: 80,
+    documentary: 99,
+    drama: 18,
+    family: 10751,
+    fantasy: 14,
+    history: 36,
+    horror: 27,
+    music: 10402,
+    mystery: 9648,
+    romance: 10749,
+    'sci-fi': 878,
+    'science fiction': 878,
+    thriller: 53,
+    war: 10752,
+    western: 37,
+  },
+  tv: {
+    action: 10759,
+    adventure: 10759,
+    animation: 16,
+    comedy: 35,
+    crime: 80,
+    documentary: 99,
+    drama: 18,
+    family: 10751,
+    fantasy: 10765,
+    kids: 10762,
+    mystery: 9648,
+    'sci-fi': 10765,
+    'science fiction': 10765,
+    war: 10768,
+    western: 37,
+    thriller: 9648,
+  },
+};
+
+function isSameTitleLoose(a: MediaItem, b: MediaItem): boolean {
+  if (a.id === b.id) return true;
+  if (a.tmdbId && b.tmdbId && a.tmdbId === b.tmdbId && a.type === b.type) return true;
+  if (a.imdbId && b.imdbId && a.imdbId.toLowerCase() === b.imdbId.toLowerCase()) return true;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const titleA = norm(a.title);
+  const titleB = norm(b.title);
+  return Boolean(titleA && titleA === titleB && a.type === b.type && (!a.year || !b.year || Math.abs(a.year - b.year) <= 1));
+}
+
+/**
+ * Fetches taste-matched similar movies or TV series from TMDB.
+ * Resolves TMDB ID via explicit tmdbId, IMDb lookup, or title search when needed,
+ * then merges collaborative `/recommendations`, content `/similar`, and genre discovery.
+ */
+export async function fetchTMDBSimilarTitles(
+  item: MediaItem,
+  customApiKey?: string,
+  limit: number = 16
+): Promise<MediaItem[]> {
+  let targetType: MediaType = item.type === 'tv' ? 'tv' : 'movie';
+  let targetId: number | undefined = item.tmdbId;
+
+  if (!targetId && item.id.startsWith('tmdb-')) {
+    const m = item.id.match(/^tmdb-(movie|tv)-(\d+)$/);
+    if (m) {
+      targetType = m[1] as MediaType;
+      targetId = parseInt(m[2], 10);
+    }
+  }
+
+  if (!targetId && item.imdbId && item.imdbId.startsWith('tt')) {
+    const found = await findTMDBByImdbId(item.imdbId, customApiKey);
+    if (found) {
+      targetId = found.id;
+      targetType = found.type;
+    }
+  }
+
+  if (!targetId && item.title) {
+    try {
+      const searchResults = await searchTMDB(item.title, targetType, 1, customApiKey);
+      const best =
+        searchResults.find(r => !item.year || !r.year || Math.abs(r.year - item.year) <= 1) ||
+        searchResults[0];
+      if (best?.tmdbId) {
+        targetId = best.tmdbId;
+        targetType = best.type || targetType;
+      }
+    } catch {
+      // ignore search failure
+    }
+  }
+
+  const genreMap = GENRE_NAME_TO_TMDB_IDS[targetType];
+  const genreIds = (item.genres || [])
+    .map(g => genreMap[g.trim().toLowerCase()])
+    .filter((id): id is number => typeof id === 'number');
+  const uniqueGenreIds = Array.from(new Set(genreIds)).slice(0, 3);
+
+  const requests: Array<Promise<any>> = [];
+  if (targetId) {
+    requests.push(tmdbFetch(`${targetType}/${targetId}/recommendations`, { page: '1' }, customApiKey));
+    requests.push(tmdbFetch(`${targetType}/${targetId}/similar`, { page: '1' }, customApiKey));
+  }
+  if (uniqueGenreIds.length > 0) {
+    requests.push(
+      tmdbFetch(
+        `discover/${targetType}`,
+        {
+          with_genres: uniqueGenreIds.slice(0, 2).join(','),
+          sort_by: 'popularity.desc',
+          'vote_count.gte': targetType === 'tv' ? '80' : '150',
+          'vote_average.gte': '6.0',
+          without_genres: '10763,10767',
+          page: '1',
+        },
+        customApiKey
+      )
+    );
+  }
+
+  if (requests.length === 0) return [];
+
+  const settled = await Promise.allSettled(requests);
+  const collected: MediaItem[] = [];
+
+  for (const res of settled) {
+    if (res.status !== 'fulfilled' || !Array.isArray(res.value?.results)) continue;
+    for (const raw of res.value.results) {
+      if (!raw || raw.adult || !raw.poster_path) continue;
+      if (raw.media_type === 'person') continue;
+      const gIds: number[] = Array.isArray(raw.genre_ids) ? raw.genre_ids : [];
+      if (gIds.includes(10763) || gIds.includes(10767)) continue;
+
+      const formatted = formatTMDBMediaItem(raw, targetType);
+      if (!formatted.posterUrl) continue;
+      if (isSameTitleLoose(formatted, item)) continue;
+      if (collected.some(existing => isSameTitleLoose(existing, formatted))) continue;
+
+      collected.push(formatted);
+      if (collected.length >= limit) {
+        return collected;
+      }
+    }
+  }
+
+  return collected.slice(0, limit);
+}

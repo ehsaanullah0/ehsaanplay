@@ -48,22 +48,44 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   const isMixing = Boolean(genreMixAction && genreMixAction.genreCount > 0);
 
-  // Keep optimistic tab in sync whenever parent activeTab updates
+  // Keep optimistic tab synced & dock visible when activeTab changes
   useEffect(() => {
     setOptimisticTab(activeTab);
+    setIsVisible(true);
+    lastScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
   }, [activeTab]);
 
-  // Long press detection on tabs (especially search/lists to trigger swap confirm)
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isLongPressRef = useRef(false);
+  // Long press detection on tabs (search/lists swap confirm) using unified Pointer Events & timestamp guard
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredAtRef = useRef<number>(0);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const startPress = (tabId: string) => {
-    isLongPressRef.current = false;
-    if (timerRef.current) clearTimeout(timerRef.current);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const cancelPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    startPosRef.current = null;
+  };
+
+  const handlePointerDown = (tabId: string, e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    cancelPress();
+    startPosRef.current = { x: e.clientX, y: e.clientY };
 
     if (tabId === 'lists' || tabId === 'search') {
       timerRef.current = setTimeout(() => {
-        isLongPressRef.current = true;
+        timerRef.current = null;
+        startPosRef.current = null;
+        longPressTriggeredAtRef.current = Date.now();
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           try {
             navigator.vibrate(40);
@@ -71,17 +93,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             // ignore
           }
         }
-        if (onTriggerSwapConfirm) {
-          onTriggerSwapConfirm();
-        }
+        onTriggerSwapConfirm?.();
       }, 500);
     }
   };
 
-  const cancelPress = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!startPosRef.current || !timerRef.current) return;
+    const dx = Math.abs(e.clientX - startPosRef.current.x);
+    const dy = Math.abs(e.clientY - startPosRef.current.y);
+    if (dx > 12 || dy > 12) {
+      cancelPress();
     }
   };
 
@@ -97,15 +119,18 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       }
 
       const currentScrollY = window.scrollY;
-      const delta = currentScrollY - lastScrollY.current;
+      const docHeight = document.documentElement.scrollHeight;
+      const viewHeight = window.innerHeight;
 
-      // Always show near top of page
-      if (currentScrollY <= 50) {
+      // Always show on short non-scrollable views or near top of page
+      if (docHeight <= viewHeight + 60 || currentScrollY <= 50) {
         setIsVisible(true);
         accumulatedDelta = 0;
         lastScrollY.current = currentScrollY;
         return;
       }
+
+      const delta = currentScrollY - lastScrollY.current;
 
       // Reset accumulation on directional shift
       if ((delta > 0 && accumulatedDelta < 0) || (delta < 0 && accumulatedDelta > 0)) {
@@ -123,9 +148,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       }
 
       // Keep visible if user is at the very bottom of the document
-      const isAtBottom =
-        window.innerHeight + currentScrollY >= document.documentElement.scrollHeight - 30;
-      if (isAtBottom) {
+      if (viewHeight + currentScrollY >= docHeight - 30) {
         setIsVisible(true);
       }
 
@@ -157,13 +180,20 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const activeIndex = tabs.findIndex(tab => !tab.isSpecialAction && currentTab === tab.id);
 
   const handleTabClick = (tabId: ActiveTab | 'search', isSpecialAction?: boolean) => {
-    if (isLongPressRef.current) {
-      isLongPressRef.current = false;
+    cancelPress();
+    const isSwapClickSuppressed =
+      (tabId === 'lists' || tabId === 'search') &&
+      longPressTriggeredAtRef.current > 0 &&
+      Date.now() - longPressTriggeredAtRef.current < 1200;
+
+    if (isSwapClickSuppressed) {
+      longPressTriggeredAtRef.current = 0;
       return;
     }
+    longPressTriggeredAtRef.current = 0;
 
     if (isSpecialAction && tabId === 'search') {
-      if (onOpenSearch) onOpenSearch();
+      onOpenSearch?.();
     } else {
       // Immediate optimistic feedback without delay
       setOptimisticTab(tabId as ActiveTab);
@@ -172,6 +202,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     }
   };
 
+  const dockInteractive = isVisible || isMixing;
+
   return (
     <div
       style={{
@@ -179,10 +211,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           ? 'calc(1.1rem + env(safe-area-inset-bottom, 0px))'
           : 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
       }}
-      className={`fixed left-0 right-0 z-40 flex justify-center px-4 transition-all duration-300 ease-out will-change-transform ${
+      className={`fixed left-0 right-0 z-[45] flex justify-center px-4 pointer-events-none transition-all duration-300 ease-out will-change-transform ${
         isMixing ? 'flex' : 'md:hidden'
       } ${
-        isVisible || isMixing ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
+        dockInteractive ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0'
       }`}
     >
       {/* Morphing Liquid Nav Dock Container */}
@@ -193,7 +225,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           height: '64px',
           transition: 'width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
-        className="relative select-none touch-manipulation flex items-center justify-center"
+        className={`relative select-none touch-manipulation flex items-center justify-center ${
+          dockInteractive ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
       >
         {/* State A: Normal 4-Pod Scalloped Dock (Liquid morphs out when mixing) */}
         {!isMixing && (
@@ -240,17 +274,15 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => handleTabClick(tab.id, tab.isSpecialAction)}
-                    onTouchStart={() => startPress(tab.id)}
-                    onTouchMove={cancelPress}
-                    onTouchEnd={cancelPress}
-                    onTouchCancel={cancelPress}
-                    onMouseDown={() => startPress(tab.id)}
-                    onMouseUp={cancelPress}
-                    onMouseLeave={cancelPress}
+                    onPointerDown={e => handlePointerDown(tab.id, e)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={cancelPress}
+                    onPointerCancel={cancelPress}
                     onContextMenu={e => {
                       if (tab.id === 'lists' || tab.id === 'search') {
                         e.preventDefault();
-                        if (onTriggerSwapConfirm) onTriggerSwapConfirm();
+                        cancelPress();
+                        onTriggerSwapConfirm?.();
                       }
                     }}
                     aria-label={tab.label}
@@ -263,27 +295,21 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                     style={{ touchAction: 'manipulation' }}
                     className="w-[62px] h-[64px] flex items-center justify-center relative cursor-pointer focus:outline-none active:scale-95 transition-transform duration-150"
                   >
-                    <div
-                      className={`w-[46px] h-[46px] rounded-full flex items-center justify-center transition-all duration-200 ${
+                    <span
+                      className={`w-[46px] h-[46px] rounded-full flex items-center justify-center pointer-events-none transition-all duration-200 ${
                         isActive
-                          ? 'opacity-0 scale-90'
-                          : 'opacity-100 scale-100 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1]'
+                          ? 'bg-transparent'
+                          : 'bg-black/[0.04] dark:bg-white/[0.06]'
                       }`}
                     >
                       <Icon
                         className={`w-5 h-5 transition-all duration-200 ${
                           isActive
                             ? 'text-[var(--text-nav-active)] stroke-[2.5] scale-110'
-                            : 'text-[var(--text-nav-inactive)] stroke-[2] opacity-85 hover:opacity-100'
+                            : 'text-[var(--text-nav-inactive)] stroke-[2] opacity-85'
                         }`}
                       />
-                    </div>
-
-                    {isActive && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <Icon className="w-5 h-5 text-[var(--text-nav-active)] stroke-[2.5] scale-110 animate-scale-up" />
-                      </div>
-                    )}
+                    </span>
                   </button>
                 );
               })}
