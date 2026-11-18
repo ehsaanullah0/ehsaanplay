@@ -235,11 +235,10 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 
 ---
 
+
 ## Star History
 
 [![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
-
-## Star History
 
 <a href="https://www.star-history.com/?repos=ehsaanullah0%2Fehsaanplay&type=date&legend=top-left">
   <picture>
