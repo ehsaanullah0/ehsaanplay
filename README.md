@@ -277,12 +277,8 @@ The application is designed so that personal library data can remain on your dev
 EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You may use, study, modify, and redistribute the project under the terms and conditions of that license. If you distribute a modified version, you must comply with the GPL-3.0 requirements, including providing the corresponding source code where required.
 
 [Read the full GPL-3.0 license](LICENSE).
-  
 
-
-
-## MADE BY EHSAAN ULLAH
-**Make useful things. Make them feel good to use.**
+---
 
 EHSAAN PLAY is independently developed. If you find it useful, your support helps me maintain the project, improve features, and keep building useful tools.
 
@@ -314,3 +310,9 @@ EHSAAN COLOUR
     <img src="https://img.shields.io/badge/YOUTUBE-D3D3D3?style=for-the-badge&logo=youtube&logoColor=111111&labelColor=D3D3D3" />
   </a>
 </p>
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ for every movie lover</sub>
+</div>
