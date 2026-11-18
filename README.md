@@ -70,8 +70,10 @@ EHSAAN PLAY is **local-first with optional cloud sync**. Your library works with
 
 EHSAAN PLAY is an independently developed personal-library application, not a streaming service. Movie and TV metadata, posters, and related artwork are supplied by third-party providers and remain subject to their respective terms. Features that depend on external services may change or become unavailable. The project is provided as-is, without a guarantee of uninterrupted or error-free operation. Please review the project license before redistributing or modifying the source.
 
-### [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) FOR CUSTOM PWA LOGO
-### [360+ title json file](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.4.1/ehsaan-play-360.json) to import my cstom watchlist with a thriller taste
+> [!TIP]
+> **Customise your experience:**
+> - [LITE ICONS](https://github.com/ehsaanullah0/ehsaanplay/releases/download/V2.3.6/light-icos.zip) — Custom PWA logos.
+> - [360+ Titles JSON](https://github.com/ehsaanullah0/ehsaanplay/releases/download/v2.4.1/ehsaan-play-360.json) — Import a thriller-focused watchlist.
  
 ## 🚀 WHAT'S NEW IN LATEST RELEASE
 
