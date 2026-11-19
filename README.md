@@ -83,6 +83,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 -  ❌ **Beautiful Analytics Page**
 -  ✔ **introduce direct web search result into app**
 -  ✔ **full indipendent actor profile page**
+-  ✔ **new supabase multi-device sync**
 </table>
 <details>
 <summary>✔ View COMPLETE TASKS</summary>
@@ -95,7 +96,6 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 -  ✔ **Built-in Trailer Player** (v2.1.9)
 -  ✔ **Beautiful First-Visit Guide** (v2.2.9)
 -  ✔ **add imdb link metadata crowl as fallback of every service.**
- 
 </details>
 
 ## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
