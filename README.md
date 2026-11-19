@@ -242,7 +242,7 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 
 EHSAAN PLAY follows a simple principle:
 
-> **Your personal library belongs to you.**
+> **Your personal library belongs to you.** There is no data collection or tracker in the webapp or apk.
 
 The application is designed so that personal library data can remain on your device.
 
