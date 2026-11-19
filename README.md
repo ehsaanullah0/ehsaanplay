@@ -315,5 +315,9 @@ EHSAAN COLOUR
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for every movie lover</sub>
+ this app is made through google ai studio but does not endorsed by them. this is indipendent project.
 </div>
+
+<div align="center">
+ <sub>Built with ❤️ for every movie lover</sub>
+ </div>
