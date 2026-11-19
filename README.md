@@ -235,30 +235,14 @@ Movie and TV information and artwork are provided through **[The Movie Database 
 ---
 
 
-## Star History-
-goal is gain 100 stars before january 2027
+## Star History
+
+**Goal: reach 100 stars before January 2027.**
 
 [![Starred on StarSwap](https://www.fenriryt.me/badge/ehsaanullah0)](https://www.fenriryt.me/u/ehsaanullah0?ref=badge)
 
-<a href="https://www.star-history.com/?repos=ehsaanullah0%2Fehsaanplay&type=date&legend=top-left">
-  <picture>
-    <source
-      media="(prefers-color-scheme: dark)"
-      srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&theme=dark&legend=top-left&v=20261117"
-    />
-    <source
-      media="(prefers-color-scheme: light)"
-      srcset="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left&v=20261117"
-    />
-    <img
-      alt="Star History Chart"
-      src="https://api.star-history.com/chart?repos=ehsaanullah0/ehsaanplay&type=date&legend=top-left&v=20261117"
-    />
-  </picture>
-</a>
-<br>
-
----
+<!-- star-history:start -->
+<!-- star-history:end -->---
 
 <h2><img src="assets/reademe/light/h-privacy.svg" alt="Privacy" width="100%"></h2>
 
