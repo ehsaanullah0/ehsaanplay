@@ -6,8 +6,8 @@
 <p align="center">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Android/android2.svg">
   <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/ViteJS/vitejs2.svg">
- <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/TypeScript/typescript2.svg">
-  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/LicenceGPLv3/licencegplv33.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/TypeScript/typescript2.svg">
+  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/HTML/html2.svg">
   <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Supabase/supabase3.svg">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Javascript/javascript3.svg">
  <img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/Kotlin/kotlin1.svg">
@@ -23,20 +23,19 @@
 > The Apk is currently in beta may have some bugs. prefer webapp for smooth experience.
 
  # **Your watchlist. Your taste. Your space.**
-[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaanplay)
-[<img width="212" height="56" src="https://github.com/user-attachments/assets/9151bdd1-3a42-49ba-948d-89356ceaf511" />](https://ehsaanplay.ai.studio/)
-[<img width="212" height="60" alt="Gemini_Generated_Image_f0kvvof0kvvof0kv-removebg-preview" src="https://github.com/user-attachments/assets/7c72a19e-dd4b-4067-b9c2-62eb75233920" />
-](https://github.com/ehsaanullah0/ehsaanplay/releases)
-</a>
-
+ 
 </a>
 <p>
   <strong>Still taking screenshots of movies?</strong><br>
   Try EHSAAN PLAY and track what you watch in a simple,<br>
   calm, and enjoyable way.
 </p>
-<a href="https://github.com/ehsaanullah0/ehsaanplay/stargazers">
-  <img src="https://img.shields.io/badge/⭐_GIVE_US_A_STAR-If_you_love_EHSAANPLAY,_support_the_project_on_GitHub!-000000?style=for-the-badge&logo=github&logoColor=white&labelColor=000000" alt="Star WatchWave on GitHub" width="800" />
+
+[<img width="212" height="56" alt="image" src="https://github.com/user-attachments/assets/7afd8861-9ded-4590-bb59-a62160d42721" />](https://rookieenough.github.io/Orion-Data/app/?id=ehsaanplay)
+[<img width="212" height="56" src="https://github.com/user-attachments/assets/9151bdd1-3a42-49ba-948d-89356ceaf511" />](https://ehsaanplay.ai.studio/)
+[<img width="212" height="60" alt="Gemini_Generated_Image_f0kvvof0kvvof0kv-removebg-preview" src="https://github.com/user-attachments/assets/7c72a19e-dd4b-4067-b9c2-62eb75233920" />
+](https://github.com/ehsaanullah0/ehsaanplay/releases)
+</a>
   
 ---
 
@@ -277,7 +276,7 @@ The application is designed so that personal library data can remain on your dev
 
 EHSAAN PLAY is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You may use, study, modify, and redistribute the project under the terms and conditions of that license. If you distribute a modified version, you must comply with the GPL-3.0 requirements, including providing the corresponding source code where required.
 
-[Read the full GPL-3.0 license](LICENSE).
+[<img src="https://ziadoua.github.io/m3-Markdown-Badges/badges/LicenceGPLv3/licencegplv33.svg">](LICENSE)
 
 ---
 
