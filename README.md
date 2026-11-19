@@ -196,16 +196,6 @@ EHSAAN PLAY takes inspiration from **Material 3 Expressive** principles: express
 
 ---
 
-<h2><img src="assets/reademe/light/technology.svg" alt="Technology stack" width="100%"></h2>
-
-EHSAAN PLAY is a modern, browser-first application built around client-side functionality and installable PWA support.
-
-<div align="center">
-  <img src="assets/reademe/light/stack.svg" alt="Technology stack" width="880">
-</div>
-
----
-
 > [!IMPORTANT]
 > ### WANT STREAMING, REFFER [VEGA-ORG](https://github.com/vega-org)
 > EHSAAN PLAY is **not a streaming platform**. EHSAAN PLAY is a personal library for discovering, organizing, rating, and keeping track of movies and TV series.
@@ -246,7 +236,7 @@ Movie and TV information and artwork are provided through **[The Movie Database 
   <source media="(prefers-color-scheme: dark)" srcset="assets/star-history/star-history-dark.svg">
   <img alt="Star history" src="assets/star-history/star-history-light.svg">
 </picture>
-<!-- star-history:end -->---
+<!-- star-history:end -->
 
 <h2><img src="assets/reademe/light/h-privacy.svg" alt="Privacy" width="100%"></h2>
 
