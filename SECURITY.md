@@ -78,7 +78,7 @@ Potential risk areas include:
 - Future code changes that may affect confidentiality, integrity, or availability.
 
 > [!NOTE]
-> No guarantee is made that the application will be uninterrupted, error-free, compatible with every device, or immune to security attacks.
+> No guarantee is made that the application will be uninterrupted, error-free, compatible with every device, or immune to security attacks. **if found any please open an issue.**
 
 ---
 
