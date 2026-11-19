@@ -1,0 +1,26 @@
+name: Update Star History
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  watch:
+    types: [started]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history
+  cancel-in-progress: true
+
+jobs:
+  star-history:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Generate and update Star History
+        uses: narayann7/star-history-action@v1
+        with:
+          repos: ${{ github.repository }}
