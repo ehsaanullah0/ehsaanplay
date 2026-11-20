@@ -119,7 +119,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <!-- Desktop Screenshots -->
 
 <p align="center">
-  <img width="100%" src="https://github.com/user-attachments/assets/703cfbec-5781-4205-b1ba-00f725236443" alt="Desktop Screenshot 1">
+<img width="1366" height="768" alt="{350088C5-A0A4-4339-A9C2-010760E3A0F4}" src="https://github.com/user-attachments/assets/ec77858f-2512-4fca-86ea-f2ae5d009809" />
 </p>
 
 <p align="center">
@@ -127,7 +127,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 </p>
 
 <p align="center">
-<img width="1366" height="760" alt="image" src="https://github.com/user-attachments/assets/d5ce31a0-f00c-41c8-a0de-255bf4cbfea0" />
+<img width="1366" height="768" alt="{38698B08-0BC3-410E-907B-224AC72F195C}" src="https://github.com/user-attachments/assets/a646b400-2f32-42b1-a165-ae767e905239" />
 </p>
 
 <!-- Mobile Screenshots -->
@@ -169,22 +169,19 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <details>
 <summary>View More Screenshots</summary>
 
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/3e669e86-9a89-4467-8769-b34b8eb2bdb1" />
+<img width="1366" height="768" alt="{F421AE11-585D-4B1A-9C2C-D135308FF1CD}" src="https://github.com/user-attachments/assets/f2d6918d-0ee7-4407-8b2b-3cde5e55ea13" />
 
-<img width="1366" height="560" alt="image" src="https://github.com/user-attachments/assets/25dc9b63-706c-41b1-b600-4bca05ec3a77" />
+<img width="1366" height="768" alt="{B89E1A0B-B545-4C42-92F4-7627704DEF02}" src="https://github.com/user-attachments/assets/019e494d-9d5c-44b1-87a8-036ee21f176f" />
 
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/750616fd-4e8e-45ce-863f-31f5b6b0b47b" />
+<img width="1366" height="768" alt="{389F569E-9AE7-4AF9-8CBA-DEC0E9F1320E}" src="https://github.com/user-attachments/assets/555c53a0-70df-4f92-aa56-ea637dc6248d" />
 
-<img width="1366" height="558" alt="image" src="https://github.com/user-attachments/assets/ed8667e6-2747-4c8b-93a1-135347678dd0" />
+<img width="1366" height="768" alt="{2F3948F8-D50C-4526-A7A7-0025E30B8CC0}" src="https://github.com/user-attachments/assets/f2e9b3f6-6558-4ffd-814a-cf48c6367c02" />
 
-<img width="1365" height="691" alt="image" src="https://github.com/user-attachments/assets/814ad037-95c0-4ead-acaa-7736e5558a66" />
+<img width="1366" height="768" alt="{7130A011-7FBB-4410-9F6C-147722B820F9}" src="https://github.com/user-attachments/assets/38ded60d-589c-49b3-8dca-fd76dac81129" />
 
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/1348ff16-4233-44dc-852d-3328fd6004a0" />
+<img width="1366" height="743" alt="{D1F5997A-1932-43FB-8B74-5D697B1416A9}" src="https://github.com/user-attachments/assets/72d7ede3-01bf-4b4a-9548-2b943c2a2c5a" />
 
-<img width="1366" height="762" alt="image" src="https://github.com/user-attachments/assets/6b47fad8-f63f-4e8f-ba47-9de2467645f3" />
-
-<img width="1366" height="754" alt="image" src="https://github.com/user-attachments/assets/4bb54cca-8388-4378-8e4a-023702c46831" />
-
+<img width="1366" height="768" alt="{D46A52AD-14E3-4630-B0A3-B269A39A2634}" src="https://github.com/user-attachments/assets/f08df9fc-cc90-47b5-b715-4cf6dc84f010" />
 </details>
 
 <div align="center">
