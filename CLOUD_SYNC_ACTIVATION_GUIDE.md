@@ -3,7 +3,7 @@
 
 # EHSAAN PLAY • Cloud Sync Activation Guide
 # visit the video guide [-click here-](https://docs.google.com/videos/d/19Pf4ygSsrRM0vZKS1dHJrNRzNFZZ9_7SERHWRFxTJ-I/play?usp=sharing)
-<img width="1357" height="713" alt="{139B9B11-0B59-487C-A6D7-3D135172F493}" src="https://github.com/user-attachments/assets/d7dba4e1-ecea-410e-92a9-5d1b7f665c5c" />
+[<img width="1357" height="713" alt="{139B9B11-0B59-487C-A6D7-3D135172F493}" src="https://github.com/user-attachments/assets/d7dba4e1-ecea-410e-92a9-5d1b7f665c5c" />](https://docs.google.com/videos/d/19Pf4ygSsrRM0vZKS1dHJrNRzNFZZ9_7SERHWRFxTJ-I/play?usp=sharing)
 
 
 ---
