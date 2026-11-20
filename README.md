@@ -130,6 +130,8 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <img width="1366" height="768" alt="{38698B08-0BC3-410E-907B-224AC72F195C}" src="https://github.com/user-attachments/assets/a646b400-2f32-42b1-a165-ae767e905239" />
 </p>
 
+<img width="1366" height="768" alt="{F421AE11-585D-4B1A-9C2C-D135308FF1CD}" src="https://github.com/user-attachments/assets/f2d6918d-0ee7-4407-8b2b-3cde5e55ea13" />
+
 <!-- Mobile Screenshots -->
 
 <table>
@@ -168,8 +170,6 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 </table>
 <details>
 <summary>View More Screenshots</summary>
-
-<img width="1366" height="768" alt="{F421AE11-585D-4B1A-9C2C-D135308FF1CD}" src="https://github.com/user-attachments/assets/f2d6918d-0ee7-4407-8b2b-3cde5e55ea13" />
 
 <img width="1366" height="768" alt="{B89E1A0B-B545-4C42-92F4-7627704DEF02}" src="https://github.com/user-attachments/assets/019e494d-9d5c-44b1-87a8-036ee21f176f" />
 
