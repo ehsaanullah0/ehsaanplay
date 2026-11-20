@@ -130,7 +130,8 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <img width="1366" height="768" alt="{38698B08-0BC3-410E-907B-224AC72F195C}" src="https://github.com/user-attachments/assets/a646b400-2f32-42b1-a165-ae767e905239" />
 </p>
 
-<img width="1366" height="768" alt="{F421AE11-585D-4B1A-9C2C-D135308FF1CD}" src="https://github.com/user-attachments/assets/f2d6918d-0ee7-4407-8b2b-3cde5e55ea13" />
+<img width="1366" height="768" alt="{7130A011-7FBB-4410-9F6C-147722B820F9}" src="https://github.com/user-attachments/assets/38ded60d-589c-49b3-8dca-fd76dac81129" />
+
 
 <!-- Mobile Screenshots -->
 
@@ -171,13 +172,13 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <details>
 <summary>View More Screenshots</summary>
 
+<img width="1366" height="768" alt="{F421AE11-585D-4B1A-9C2C-D135308FF1CD}" src="https://github.com/user-attachments/assets/f2d6918d-0ee7-4407-8b2b-3cde5e55ea13" />
+
 <img width="1366" height="768" alt="{B89E1A0B-B545-4C42-92F4-7627704DEF02}" src="https://github.com/user-attachments/assets/019e494d-9d5c-44b1-87a8-036ee21f176f" />
 
 <img width="1366" height="768" alt="{389F569E-9AE7-4AF9-8CBA-DEC0E9F1320E}" src="https://github.com/user-attachments/assets/555c53a0-70df-4f92-aa56-ea637dc6248d" />
 
 <img width="1366" height="768" alt="{2F3948F8-D50C-4526-A7A7-0025E30B8CC0}" src="https://github.com/user-attachments/assets/f2e9b3f6-6558-4ffd-814a-cf48c6367c02" />
-
-<img width="1366" height="768" alt="{7130A011-7FBB-4410-9F6C-147722B820F9}" src="https://github.com/user-attachments/assets/38ded60d-589c-49b3-8dca-fd76dac81129" />
 
 <img width="1366" height="743" alt="{D1F5997A-1932-43FB-8B74-5D697B1416A9}" src="https://github.com/user-attachments/assets/72d7ede3-01bf-4b4a-9548-2b943c2a2c5a" />
 
