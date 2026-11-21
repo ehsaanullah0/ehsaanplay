@@ -106,7 +106,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <p align="center">Take a quick tour of the interface, discover the library experience, and see EHSAAN PLAY in action.</p>
 
 <p align="center">
-  <a href="https://docs.google.com/videos/d/1x2UayWSDYN6uxlxkJNjiuLao7D6nb-Lcd2zSTQEbaZs/play?usp=sharing">
+  <a href="https://docs.google.com/videos/d/1mN3ckbE0T9zak7DC9GC1HNdonjW8Sy84P2Gqxpf9lIo/play?usp=sharing">
 <img width="350" height="135" alt="Google Vids Demo Badge" src="https://github.com/user-attachments/assets/5699d9dc-4c54-4c03-bf1c-5815453fd7a5" />
 </p>
 
