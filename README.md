@@ -119,6 +119,10 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 <!-- Desktop Screenshots -->
 
 <p align="center">
+  <img width="2172" height="724" alt="Ehsaан Play Peach App Banner" src="https://github.com/user-attachments/assets/f8f55e3e-fe9f-4b6f-aa63-f16c874c034f" />
+</p>
+
+<p align="center">
 <img width="1366" height="768" alt="{350088C5-A0A4-4339-A9C2-010760E3A0F4}" src="https://github.com/user-attachments/assets/ec77858f-2512-4fca-86ea-f2ae5d009809" />
 </p>
 
