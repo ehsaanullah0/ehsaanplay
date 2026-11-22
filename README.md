@@ -293,7 +293,7 @@ EHSAAN COLOUR
 ---
 
 <div align="center">
- this app is made through google ai studio but does not endorsed by them. this is indipendent project.
+This app is made by using different ai models and my creativity.
 </div>
 
 <div align="center">
