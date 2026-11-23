@@ -268,12 +268,10 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
   </a>
 </p>
 
+ <div align="center">
+
 ## MORE FROM EHSAAN
 
-[EHSAAN QR](https://ehsaanqr.ai.studio) |
-[EHSAAN FLOW](https://ehsaanflow.ai.studio) |
-[EHSAAAN COMPRESS](https://ehsaancompress.ai.studio) |
-[EHSAAN COLOUR](https://ehsaancolour.ai.studio)
 
 <p align="center">
   <a href="https://instagram.com/cs.ehsaan">
@@ -289,6 +287,11 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
     <img src="https://img.shields.io/badge/YOUTUBE-D3D3D3?style=for-the-badge&logo=youtube&logoColor=111111&labelColor=D3D3D3" />
   </a>
 </p>
+
+[EHSAAN QR](https://ehsaanqr.ai.studio) |
+[EHSAAN FLOW](https://ehsaanflow.ai.studio) |
+[EHSAAAN COMPRESS](https://ehsaancompress.ai.studio) |
+[EHSAAN COLOUR](https://ehsaancolour.ai.studio)
 
 ---
 
