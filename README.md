@@ -270,10 +270,10 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
 
 ## MORE FROM EHSAAN
 
-EHSAAN QR |
-EHSAAN FLOW |
-EHSAAAN COMPRESS |
-EHSAAN COLOUR 
+[EHSAAN QR](https://ehsaanqr.ai.studio) |
+[EHSAAN FLOW](https://ehsaanflow.ai.studio) |
+[EHSAAAN COMPRESS](https://ehsaancompress.ai.studio) |
+[EHSAAN COLOUR](https://ehsaancolour.ai.studio)
 
 <p align="center">
   <a href="https://instagram.com/cs.ehsaan">
