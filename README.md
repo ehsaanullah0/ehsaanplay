@@ -1,5 +1,5 @@
 <p align="center">
-<img width="1774" height="887" alt="Warm Cream EHSAAN PLAY Dashboard" src="https://github.com/user-attachments/assets/3ee7e37d-da0b-48f3-827f-50f6a18dca4b" />
+<img width="1920" height="1080" alt="EHSAAN PLAY" src="https://github.com/user-attachments/assets/bf225c38-699f-4357-9ab5-b90b418a52ae" />
 </p>
 
 </p>
