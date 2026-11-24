@@ -2,7 +2,7 @@ name: Update Star History
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: "17 0 * * *"
   watch:
     types: [started]
   workflow_dispatch:
@@ -15,12 +15,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  star-history:
+  update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-      - name: Generate and update Star History
-        uses: narayann7/star-history-action@v1
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          repos: ${{ github.repository }}
+          python-version: "3.x"
+      - name: Generate branded star-history graphics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/update_star_history.py
+      - name: Commit updated graphics
+        run: |
+          if git diff --quiet -- assets/star-history/star-history-dark.svg assets/star-history/star-history-light.svg; then
+            echo "Star history is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/star-history/star-history-dark.svg assets/star-history/star-history-light.svg
+          git commit -m "chore: update branded star history [skip ci]"
+          git push
