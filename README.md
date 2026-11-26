@@ -1,5 +1,5 @@
 <p align="center">
-<img width="1920" height="1080" alt="EHSAAN PLAY" src="https://github.com/user-attachments/assets/bf225c38-699f-4357-9ab5-b90b418a52ae" />
+<img width="1920" height="1080" alt="EHSAAN PLAY (1)" src="https://github.com/user-attachments/assets/b5b7effc-6272-4b84-952f-e089a97d36fd" />
 </p>
 
 </p>
