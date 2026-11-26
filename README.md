@@ -271,7 +271,7 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
   <a href="https://facebook.com/csehsaan">
     <img src="https://img.shields.io/badge/FACEBOOK-D3D3D3?style=for-the-badge&logo=facebook&logoColor=111111&labelColor=D3D3D3" />
   </a>
-  <a href="https://x.com/ehsaanullah0">
+  <a href="https://x.com/csehsaan">
     <img src="https://img.shields.io/badge/X_TWITTER-D3D3D3?style=for-the-badge&logo=x&logoColor=111111&labelColor=D3D3D3" />
   </a>
   <a href="https://youtube.com/@csehsaan">
