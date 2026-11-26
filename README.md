@@ -265,16 +265,16 @@ EHSAAN PLAY is independently developed. If you find it useful, your support help
 
 
 <p align="center">
-  <a href="https://instagram.com/cs.ehsaan">
+  <a href="https://instagram.com/csehsaan">
     <img src="https://img.shields.io/badge/INSTAGRAM-D3D3D3?style=for-the-badge&logo=instagram&logoColor=111111&labelColor=D3D3D3" />
   </a>
-  <a href="https://facebook.com/cs.ehsaan">
+  <a href="https://facebook.com/csehsaan">
     <img src="https://img.shields.io/badge/FACEBOOK-D3D3D3?style=for-the-badge&logo=facebook&logoColor=111111&labelColor=D3D3D3" />
   </a>
   <a href="https://x.com/ehsaanullah0">
     <img src="https://img.shields.io/badge/X_TWITTER-D3D3D3?style=for-the-badge&logo=x&logoColor=111111&labelColor=D3D3D3" />
   </a>
-  <a href="https://youtube.com/@worsmon">
+  <a href="https://youtube.com/@csehsaan">
     <img src="https://img.shields.io/badge/YOUTUBE-D3D3D3?style=for-the-badge&logo=youtube&logoColor=111111&labelColor=D3D3D3" />
   </a>
 </p>
