@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { ActiveTab, MediaItem, DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_APP_TWEAKS, GenreMixBottomBarAction, CustomList } from './types/movie';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { ActiveTab, MediaItem, DEFAULT_KEYBOARD_SHORTCUTS, DEFAULT_APP_TWEAKS, GenreMixBottomBarAction, CustomList, HomeSectionsConfig } from './types/movie';
 import { useMediaLibrary } from './hooks/useMediaLibrary';
 import { loadCustomLists, saveCustomLists } from './services/storage';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
+import { FloatingBackButton } from './components/layout/FloatingBackButton';
 import { OfflineToast } from './components/layout/OfflineToast';
 import { HomeView } from './components/home/HomeView';
 import { WatchlistView } from './components/watchlist/WatchlistView';
@@ -19,11 +20,12 @@ import { SearchModal } from './components/search/SearchModal';
 import { ImdbPreviewModal } from './components/imdb/ImdbPreviewModal';
 import { RandomModal } from './components/watchlist/RandomModal';
 import { StartGuideModal } from './components/onboarding/StartGuideModal';
+import { StarterBundleModal, STARTER_BUNDLE_SEEN_KEY } from './components/onboarding/StarterBundleModal';
 import { LicenseModal } from './components/common/LicenseModal';
 import { UpdateNotification } from './components/layout/UpdateNotification';
 import { SwapNavModal } from './components/common/SwapNavModal';
 import { usePWAUpdate } from './hooks/usePWAInstall';
-import { reassertFullscreen } from './hooks/useFullscreen';
+import { useBackNavigation } from './contexts/BackNavigationContext';
 import { deviceTransferService, IncomingTransferEvent } from './services/deviceTransfer';
 import { applyRecentChanges } from './services/recentChanges';
 import { triggerBackgroundSync } from './services/supabase/syncService';
@@ -94,12 +96,34 @@ export default function App() {
     settings: 0,
   });
 
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktopViewport(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
+  }, []);
+
+  const settingsTweaksRef = useRef(settings.tweaks);
+  settingsTweaksRef.current = settings.tweaks;
+
   useEffect(() => {
     return () => {
       if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
       if (backToastTimerRef.current) clearTimeout(backToastTimerRef.current);
     };
   }, []);
+
+  const { hasRegisteredBackAction, triggerTopBackAction } = useBackNavigation();
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
     try {
@@ -108,7 +132,22 @@ export default function App() {
       return false;
     }
   });
+  const [isStarterBundleOpen, setIsStarterBundleOpen] = useState<boolean>(false);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState<boolean>(false);
+
+  // Show Starter Bundle popup once after entering the Home page for the first time (strictly separate from Start Guide)
+  useEffect(() => {
+    if (!isInitialized || isOnboardingOpen || activeTab !== 'home') return;
+    try {
+      if (localStorage.getItem(STARTER_BUNDLE_SEEN_KEY) === 'true') return;
+    } catch {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsStarterBundleOpen(true);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [isInitialized, isOnboardingOpen, activeTab]);
 
   useEffect(() => {
     // Listen for incoming Wi-Fi transfers across all screens persistently
@@ -184,7 +223,10 @@ export default function App() {
   const isLicenseModalOpenRef = useRef<boolean>(false);
   const isSwapNavConfirmOpenRef = useRef<boolean>(false);
   const isOnboardingOpenRef = useRef<boolean>(false);
+  const isStarterBundleOpenRef = useRef<boolean>(false);
   const moviePreviewBackHandlerRef = useRef<(() => boolean) | null>(null);
+  const listsBackHandlerRef = useRef<(() => boolean) | null>(null);
+  const tabHistoryRef = useRef<ActiveTab[]>([]);
 
   // Keep refs synchronized
   useEffect(() => {
@@ -223,6 +265,10 @@ export default function App() {
     isOnboardingOpenRef.current = isOnboardingOpen;
   }, [isOnboardingOpen]);
 
+  useEffect(() => {
+    isStarterBundleOpenRef.current = isStarterBundleOpen;
+  }, [isStarterBundleOpen]);
+
   // Universal & Custom Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -246,19 +292,25 @@ export default function App() {
         pKey === normalize(shortcuts.goBack) ||
         (shortcuts.goBack === 'Escape' && pressedKey === 'Escape')
       ) {
+        if (isStarterBundleOpenRef.current) return;
         if (isLicenseModalOpenRef.current) setIsLicenseModalOpen(false);
         else if (isSwapNavConfirmOpenRef.current) setIsSwapNavConfirmOpen(false);
         else if (isOnboardingOpenRef.current) setIsOnboardingOpen(false);
-        else if (isImdbPreviewOpenRef.current) setIsImdbPreviewOpen(false);
-        else if (isSearchOpenRef.current) setIsSearchOpen(false);
         else if (selectedMediaRef.current) {
           if (moviePreviewBackHandlerRef.current && moviePreviewBackHandlerRef.current()) {
             return;
           }
           setSelectedMedia(null);
         }
+        else if (triggerTopBackAction()) return;
+        else if (isImdbPreviewOpenRef.current) setIsImdbPreviewOpen(false);
+        else if (isSearchOpenRef.current) setIsSearchOpen(false);
         else if (randomModalItemRef.current) setRandomModalItem(null);
+        else if (activeTabRef.current === 'settings' && settingsTopicRef.current === 'resume-database') {
+          setSettingsTopic('supabase-sync');
+        }
         else if (activeTabRef.current === 'settings' && settingsTopicRef.current !== null) setSettingsTopic(null);
+        else if (activeTabRef.current === 'lists' && listsBackHandlerRef.current && listsBackHandlerRef.current()) return;
         else if (activeTabRef.current !== 'home') setActiveTab('home');
         return;
       }
@@ -308,9 +360,6 @@ export default function App() {
     }
 
     const handlePopState = () => {
-      // Reassert fullscreen if user preferred fullscreen mode
-      reassertFullscreen();
-
       // 1. If License modal is open, close license modal
       if (isLicenseModalOpenRef.current) {
         setIsLicenseModalOpen(false);
@@ -318,28 +367,39 @@ export default function App() {
         return;
       }
 
-      // 2. If Swap Nav Confirm modal is open, close it
+      // 3. If Swap Nav Confirm modal is open, close it
       if (isSwapNavConfirmOpenRef.current) {
         setIsSwapNavConfirmOpen(false);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 3. If Start Guide modal is open, close it
+      // 4. If Starter Bundle popup is open, keep it open until user clicks its top-corner red cross button
+      if (isStarterBundleOpenRef.current) {
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 5. If Start Guide modal is open, close it
       if (isOnboardingOpenRef.current) {
         setIsOnboardingOpen(false);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 4. If IMDb Preview modal is open, close IMDb preview
+      // 6. Delegate to any active stacked popup / preview / modal layer
+      if (triggerTopBackAction()) {
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 7. Fallbacks for global modals
       if (isImdbPreviewOpenRef.current) {
         setIsImdbPreviewOpen(false);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 5. If Movie/TV Preview modal is open, check if it has internal history (e.g. actor profile) or close preview
       if (selectedMediaRef.current) {
         if (moviePreviewBackHandlerRef.current && moviePreviewBackHandlerRef.current()) {
           try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
@@ -350,23 +410,32 @@ export default function App() {
         return;
       }
 
-      // 6. If Search modal is open, close search
       if (isSearchOpenRef.current) {
         setIsSearchOpen(false);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 7. If Random Pick modal is open, close random pick
       if (randomModalItemRef.current) {
         setRandomModalItem(null);
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
 
-      // 8. If in any Settings subpage, return to settings menu/previous page
+      // 8. If in any Settings subpage, return one step back
+      if (activeTabRef.current === 'settings' && settingsTopicRef.current === 'resume-database') {
+        setSettingsTopic('supabase-sync');
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
       if (activeTabRef.current === 'settings' && settingsTopicRef.current !== null) {
         setSettingsTopic(null);
+        try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
+        return;
+      }
+
+      // 8b. If inside a Lists subview, step back one level
+      if (activeTabRef.current === 'lists' && listsBackHandlerRef.current && listsBackHandlerRef.current()) {
         try { window.history.pushState({ page: 'ehsaan-app' }, ''); } catch {}
         return;
       }
@@ -401,7 +470,7 @@ export default function App() {
   }, []);
 
   // Switch primary tabs instantly (cached mount + per-tab scroll preservation)
-  const handleSelectTab = useCallback((tab: ActiveTab, options?: { scrollToTop?: boolean }) => {
+  const handleSelectTab = useCallback((tab: ActiveTab, options?: { scrollToTop?: boolean; skipHistory?: boolean }) => {
     const prevTab = activeTabRef.current;
 
     if (prevTab === tab) {
@@ -414,6 +483,14 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
       return;
+    }
+
+    if (!options?.skipHistory) {
+      const history = tabHistoryRef.current;
+      if (history[history.length - 1] !== prevTab) {
+        history.push(prevTab);
+        if (history.length > 20) history.shift();
+      }
     }
 
     if (typeof window !== 'undefined') {
@@ -441,6 +518,43 @@ export default function App() {
         window.scrollTo(0, targetY);
       });
     }
+  }, []);
+
+  // Floating wavy back arrow: goes back exactly one step (modal/popup -> subpage -> menu -> previous tab -> home)
+  const handleGoBackOnce = useCallback(() => {
+    if (triggerTopBackAction()) {
+      return;
+    }
+
+    if (activeTabRef.current === 'settings') {
+      if (settingsTopicRef.current === 'resume-database') {
+        setSettingsTopic('supabase-sync');
+        return;
+      }
+      const isMobileSettingsView = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (isMobileSettingsView && settingsTopicRef.current !== null) {
+        setSettingsTopic(null);
+        return;
+      }
+    }
+
+    if (activeTabRef.current === 'lists' && listsBackHandlerRef.current && listsBackHandlerRef.current()) {
+      return;
+    }
+
+    let previousTab: ActiveTab = 'home';
+    while (tabHistoryRef.current.length > 0) {
+      const popped = tabHistoryRef.current.pop()!;
+      if (popped !== activeTabRef.current) {
+        previousTab = popped;
+        break;
+      }
+    }
+    handleSelectTab(previousTab, { skipHistory: true });
+  }, [handleSelectTab, triggerTopBackAction]);
+
+  const handleRegisterListsBackHandler = useCallback((handler: (() => boolean) | null) => {
+    listsBackHandlerRef.current = handler;
   }, []);
 
   // Open IMDb Link Preview Modal with optional initial link/ID
@@ -597,24 +711,93 @@ export default function App() {
     setSettingsTopic('app');
   }, [handleSelectTab]);
 
+  const handleOpenSearch = useCallback(() => setIsSearchOpen(true), []);
+  const handleCloseSearch = useCallback(() => setIsSearchOpen(false), []);
+  const handleTriggerSwapConfirm = useCallback(() => setIsSwapNavConfirmOpen(true), []);
+  const handleCloseSwapConfirm = useCallback(() => setIsSwapNavConfirmOpen(false), []);
+  const handleNavigateToDiscover = useCallback(() => handleSelectTab('home', { scrollToTop: true }), [handleSelectTab]);
+  const handleNavigateToSettingsTopic = useCallback((topic: SettingsTopicId) => {
+    handleSelectTab('settings', { scrollToTop: true });
+    setSettingsTopic(topic);
+  }, [handleSelectTab]);
+  const handleUpdateHomeSections = useCallback((sections: HomeSectionsConfig) => {
+    updateSettings({ homeSections: sections });
+  }, [updateSettings]);
+  const handleReplayGuide = useCallback(() => setIsOnboardingOpen(true), []);
+  const handleCloseOnboarding = useCallback(() => setIsOnboardingOpen(false), []);
+  const handleCloseStarterBundle = useCallback(() => {
+    try {
+      localStorage.setItem(STARTER_BUNDLE_SEEN_KEY, 'true');
+    } catch {
+      // ignore
+    }
+    setIsStarterBundleOpen(false);
+  }, []);
+  const handleOpenLicense = useCallback(() => setIsLicenseModalOpen(true), []);
+  const handleCloseLicense = useCallback(() => setIsLicenseModalOpen(false), []);
+  const handleClosePreview = useCallback(() => setSelectedMedia(null), []);
+  const handleCloseImdbPreview = useCallback(() => setIsImdbPreviewOpen(false), []);
+  const handleCloseRandomModal = useCallback(() => setRandomModalItem(null), []);
+  const handleRegisterPreviewBackHandler = useCallback((handler: (() => boolean) | null) => {
+    moviePreviewBackHandlerRef.current = handler;
+  }, []);
+  const handleTogglePosterGlow = useCallback((enabled: boolean) => {
+    updateSettings({
+      tweaks: {
+        ...DEFAULT_APP_TWEAKS,
+        ...settingsTweaksRef.current,
+        previewPosterGlow: enabled,
+      },
+    });
+  }, [updateSettings]);
+  const handleChangePosterGlowContrast = useCallback((contrast: number) => {
+    updateSettings({
+      tweaks: {
+        ...DEFAULT_APP_TWEAKS,
+        ...settingsTweaksRef.current,
+        previewPosterGlowContrast: contrast,
+      },
+    });
+  }, [updateSettings]);
+  const handleToggleShowPosterCard = useCallback((show: boolean) => {
+    updateSettings({
+      tweaks: {
+        ...DEFAULT_APP_TWEAKS,
+        ...settingsTweaksRef.current,
+        ...(isDesktopViewport
+          ? { previewShowPosterCardDesktop: show }
+          : { previewShowPosterCard: show }),
+      },
+    });
+  }, [updateSettings, isDesktopViewport]);
+
+  const effectiveShowPosterCard = isDesktopViewport
+    ? settings.tweaks?.previewShowPosterCardDesktop === true
+    : settings.tweaks?.previewShowPosterCard !== false;
+
+  const selectedMediaState = useMemo(
+    () => (selectedMedia ? resolveStateForMediaItem(selectedMedia, userStates, mediaItems) : undefined),
+    [selectedMedia, userStates, mediaItems]
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200 selection:bg-[var(--accent-primary)] selection:text-[var(--bg-primary)]">
       {/* Top Bar Navigation */}
       <Header
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={handleOpenSearch}
         onRandomPick={handleTriggerRandomGlobal}
         onOpenImdbPreview={handleOpenImdbPreview}
         autoHideHeader={settings.tweaks?.autoHideHeader !== false}
         swapSearchAndLists={isSwappedNav}
-        onTriggerSwapConfirm={() => setIsSwapNavConfirmOpen(true)}
+        onTriggerSwapConfirm={handleTriggerSwapConfirm}
       />
 
-      {/* Main Content Area (Visited tabs remain mounted for instant zero-lag switching) */}
+      {/* Main Content Area (Visited tabs remain mounted for instant zero-lag switching with smooth entrance animation) */}
       <main className="flex-1 w-full">
         {visitedTabs.has('home') && (
-          <div className={activeTab === 'home' ? 'block' : 'hidden'}>
+          <div className={activeTab === 'home' ? 'block animate-page-switch' : 'hidden'}>
             <HomeView
               mediaItems={mediaItems}
               userStates={userStates}
@@ -623,7 +806,7 @@ export default function App() {
               onNavigateTab={handleSelectTab}
               onNavigateToWatchlistWithFilter={handleNavigateToWatchlistWithFilter}
               homeSections={settings.homeSections}
-              onUpdateHomeSections={sections => updateSettings({ homeSections: sections })}
+              onUpdateHomeSections={handleUpdateHomeSections}
               onRemoveFromWatchlist={removeFromWatchlist}
               onDismissFromWatching={dismissFromWatching}
               onMarkWatching={markWatching}
@@ -635,17 +818,18 @@ export default function App() {
               onAddItemToList={addItemToList}
               onRemoveItemFromList={removeItemFromList}
               onOpenChangelog={handleOpenChangelog}
-              onOpenLicense={() => setIsLicenseModalOpen(true)}
+              onOpenLicense={handleOpenLicense}
               onRandomPick={handleRandomPickFromItems}
               tweaks={settings.tweaks}
               settings={settings}
               onUpdateSettings={updateSettings}
+              onOpenSearch={() => setIsSearchOpen(true)}
             />
           </div>
         )}
 
         {visitedTabs.has('watchlist') && (
-          <div className={activeTab === 'watchlist' ? 'block' : 'hidden'}>
+          <div className={activeTab === 'watchlist' ? 'block animate-page-switch' : 'hidden'}>
             <WatchlistView
               mediaItems={mediaItems}
               userStates={userStates}
@@ -657,7 +841,7 @@ export default function App() {
               onDismissFromWatching={dismissFromWatching}
               onToggleWatchlist={toggleWatchlist}
               onToggleFavorite={toggleFavorite}
-              onNavigateToDiscover={() => handleSelectTab('home', { scrollToTop: true })}
+              onNavigateToDiscover={handleNavigateToDiscover}
               settings={settings}
               customLists={customLists}
               onAddItemToList={addItemToList}
@@ -668,7 +852,7 @@ export default function App() {
         )}
 
         {visitedTabs.has('lists') && (
-          <div className={activeTab === 'lists' ? 'block' : 'hidden'}>
+          <div className={activeTab === 'lists' ? 'block animate-page-switch' : 'hidden'}>
             <ListsView
               customLists={customLists}
               mediaItems={mediaItems}
@@ -693,24 +877,22 @@ export default function App() {
               onAutoSaveAiList={handleSaveAiList}
               onManualSaveList={handleManualSaveList}
               resetSignal={listsResetSignal}
-              onNavigateToSettingsTopic={topic => {
-                handleSelectTab('settings', { scrollToTop: true });
-                setSettingsTopic(topic);
-              }}
+              onNavigateToSettingsTopic={handleNavigateToSettingsTopic}
+              onRegisterBackHandler={handleRegisterListsBackHandler}
             />
           </div>
         )}
 
         {visitedTabs.has('settings') && (
-          <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+          <div className={activeTab === 'settings' ? 'block animate-page-switch' : 'hidden'}>
             <SettingsView
               settings={settings}
               onUpdateSettings={updateSettings}
               onDeleteAllData={deleteAllData}
               onRestoreBackup={restoreBackup}
               onClearCachedTitlesAndImages={clearCachedTitlesAndImages}
-              onReplayGuide={() => setIsOnboardingOpen(true)}
-              onOpenLicense={() => setIsLicenseModalOpen(true)}
+              onReplayGuide={handleReplayGuide}
+              onOpenLicense={handleOpenLicense}
               mediaItems={mediaItems}
               activeTopicId={settingsTopic}
               onSelectTopic={setSettingsTopic}
@@ -728,15 +910,26 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         swapSearchAndLists={isSwappedNav}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onTriggerSwapConfirm={() => setIsSwapNavConfirmOpen(true)}
+        onOpenSearch={handleOpenSearch}
+        onTriggerSwapConfirm={handleTriggerSwapConfirm}
         genreMixAction={activeTab === 'lists' ? genreMixAction : null}
+      />
+
+      {/* Floating Wavy Circular Back Arrow at Bottom-Left (visible everywhere except Home base, Start Guide, and Starter Bundle) */}
+      <FloatingBackButton
+        visible={
+          !isOnboardingOpen &&
+          !isStarterBundleOpen &&
+          (activeTab !== 'home' || hasRegisteredBackAction)
+        }
+        onBack={handleGoBackOnce}
+        isGenreMixing={activeTab === 'lists' && Boolean(genreMixAction && genreMixAction.genreCount > 0) && !hasRegisteredBackAction}
       />
 
       {/* Swap Navigation Layout Confirmation Modal */}
       <SwapNavModal
         isOpen={isSwapNavConfirmOpen}
-        onClose={() => setIsSwapNavConfirmOpen(false)}
+        onClose={handleCloseSwapConfirm}
         onConfirmSwap={handleConfirmSwapNav}
         isCurrentlySwapped={isSwappedNav}
       />
@@ -763,13 +956,20 @@ export default function App() {
       <MoviePreviewModal
         item={selectedMedia}
         isOpen={selectedMedia !== null}
-        onClose={() => setSelectedMedia(null)}
-        userState={selectedMedia ? resolveStateForMediaItem(selectedMedia, userStates) : undefined}
+        onClose={handleClosePreview}
+        userState={selectedMediaState}
         customLists={customLists}
         backdropOpacity={settings.backdropOpacity}
+        colorScheme={settings.colorScheme}
+        appTheme={settings.theme}
         onHydrateDetails={hydrateMediaDetails}
         onToggleWatchlist={toggleWatchlist}
         onToggleWatched={toggleWatched}
+        onMarkWatched={markWatched}
+        onMarkWatching={markWatching}
+        onRemoveFromWatchlist={removeFromWatchlist}
+        onDismissFromWatching={dismissFromWatching}
+        onAddMediaToLibrary={addMediaToLibrary}
         onToggleFavorite={toggleFavorite}
         onSetRating={setPersonalRating}
         onSetNotes={setNotes}
@@ -782,45 +982,19 @@ export default function App() {
         mediaItems={mediaItems}
         userStates={userStates}
         onSelectMedia={setSelectedMedia}
-        onRegisterBackHandler={(handler) => {
-          moviePreviewBackHandlerRef.current = handler;
-        }}
+        onRegisterBackHandler={handleRegisterPreviewBackHandler}
         posterGlowEnabled={settings.tweaks?.previewPosterGlow !== false}
-        onTogglePosterGlow={(enabled) => {
-          updateSettings({
-            tweaks: {
-              ...DEFAULT_APP_TWEAKS,
-              ...settings.tweaks,
-              previewPosterGlow: enabled,
-            },
-          });
-        }}
+        onTogglePosterGlow={handleTogglePosterGlow}
         posterGlowContrast={settings.tweaks?.previewPosterGlowContrast ?? 1.0}
-        onChangePosterGlowContrast={(contrast) => {
-          updateSettings({
-            tweaks: {
-              ...DEFAULT_APP_TWEAKS,
-              ...settings.tweaks,
-              previewPosterGlowContrast: contrast,
-            },
-          });
-        }}
-        showPosterCard={settings.tweaks?.previewShowPosterCard !== false}
-        onToggleShowPosterCard={(show) => {
-          updateSettings({
-            tweaks: {
-              ...DEFAULT_APP_TWEAKS,
-              ...settings.tweaks,
-              previewShowPosterCard: show,
-            },
-          });
-        }}
+        onChangePosterGlowContrast={handleChangePosterGlowContrast}
+        showPosterCard={effectiveShowPosterCard}
+        onToggleShowPosterCard={handleToggleShowPosterCard}
       />
 
       {/* Universal Search Modal with Plus/Tick Actions */}
       <SearchModal
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={handleCloseSearch}
         onSelectMedia={setSelectedMedia}
         localMediaItems={mediaItems}
         tmdbApiKey={settings.tmdbApiKey}
@@ -835,7 +1009,7 @@ export default function App() {
       {/* IMDb Movie & TV Series Link Preview Modal */}
       <ImdbPreviewModal
         isOpen={isImdbPreviewOpen}
-        onClose={() => setIsImdbPreviewOpen(false)}
+        onClose={handleCloseImdbPreview}
         initialInput={imdbPreviewInput}
         customApiKey={settings.omdbApiKey}
         onSelectMedia={setSelectedMedia}
@@ -849,7 +1023,7 @@ export default function App() {
       <RandomModal
         item={randomModalItem}
         isOpen={randomModalItem !== null}
-        onClose={() => setRandomModalItem(null)}
+        onClose={handleCloseRandomModal}
         onSelectMedia={setSelectedMedia}
         onPickAnother={handleTriggerRandomGlobal}
         userState={randomModalItem ? resolveStateForMediaItem(randomModalItem, userStates) : undefined}
@@ -912,20 +1086,27 @@ export default function App() {
         </div>
       )}
 
-      {/* First Visit Start Guide / Onboarding Flow */}
+      {/* First Visit Start Guide / Onboarding Flow (includes Fullscreen Launch as Page 1) */}
       <StartGuideModal
         isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
+        onClose={handleCloseOnboarding}
         settings={settings}
         onUpdateSettings={updateSettings}
         onRestoreBackup={restoreBackup}
-        onOpenLicense={() => setIsLicenseModalOpen(true)}
+        onOpenLicense={handleOpenLicense}
+      />
+
+      {/* Separate First-Visit Home Starter Bundle Download Proposal */}
+      <StarterBundleModal
+        isOpen={isStarterBundleOpen}
+        onClose={handleCloseStarterBundle}
+        onRestoreBackup={restoreBackup}
       />
 
       {/* GNU General Public License v3.0 Modal */}
       <LicenseModal
         isOpen={isLicenseModalOpen}
-        onClose={() => setIsLicenseModalOpen(false)}
+        onClose={handleCloseLicense}
       />
     </div>
   );

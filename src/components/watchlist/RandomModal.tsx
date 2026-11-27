@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MediaItem, PersonalMediaState, CustomList } from '../../types/movie';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { SafeImage } from '../common/SafeImage';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import {
   Sparkles,
   X,
@@ -117,6 +119,8 @@ export const RandomModal: React.FC<RandomModalProps> = ({
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shuffleOutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shuffleInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasOpenRef = useRef<boolean>(false);
+  const lastInitialIdRef = useRef<string | null>(null);
 
   const clearAllTimers = useCallback(() => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -189,9 +193,11 @@ export const RandomModal: React.FC<RandomModalProps> = ({
     return unwatched.length > 0 ? unwatched : sourcePool;
   }, [candidatePool, isItemWatched]);
 
-  // Sync current item whenever modal opens or initialItem changes
+  // Sync current item only when modal opens fresh or initialItem ID changes
   useEffect(() => {
     if (!isOpen) {
+      wasOpenRef.current = false;
+      lastInitialIdRef.current = null;
       clearAllTimers();
       setIsShuffling(false);
       setFlipStage('idle');
@@ -203,6 +209,12 @@ export const RandomModal: React.FC<RandomModalProps> = ({
       setToastMessage(null);
       return;
     }
+
+    const nextInitialId = initialItem?.id || null;
+    const isFreshOpen = !wasOpenRef.current || nextInitialId !== lastInitialIdRef.current;
+    wasOpenRef.current = true;
+    lastInitialIdRef.current = nextInitialId;
+    if (!isFreshOpen) return;
 
     // Ensure initial title is not watched
     let candidate = initialItem;
@@ -226,7 +238,7 @@ export const RandomModal: React.FC<RandomModalProps> = ({
       const key = resolved.id || resolved.title.toLowerCase().trim();
       setSeenKeys([key]);
     }
-  }, [isOpen, initialItem, isItemWatched, getUnwatchedPool]);
+  }, [isOpen, initialItem, isItemWatched, getUnwatchedPool, clearAllTimers]);
 
   // Handle Shuffle Again with 3D Card Flip Animation (Never repeat titles & exclude watched)
   const handleShuffle = useCallback(() => {
@@ -455,6 +467,18 @@ export const RandomModal: React.FC<RandomModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentItem, onClose, onSelectMedia, handleShuffle, isListPickerOpen]);
 
+  useRegisterBackAction(
+    isOpen && currentItem !== null,
+    () => {
+      if (isListPickerOpen) {
+        setIsListPickerOpen(false);
+        return;
+      }
+      onClose();
+    },
+    35
+  );
+
   if (!isOpen || !currentItem) return null;
 
   const item = currentItem;
@@ -493,7 +517,7 @@ export const RandomModal: React.FC<RandomModalProps> = ({
         {/* Top Header Bar */}
         <div className="w-full flex items-center justify-between pb-4 border-b border-[var(--border-subtle)] mb-5">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--accent-primary)] font-sans">
-            <Sparkles className="w-4 h-4 text-[var(--accent-primary)] fill-current" />
+            <Sparkles className="w-4 h-4 text-[var(--accent-primary)] fill-current ui-sparkle-alive" />
             <span>Random Pick</span>
           </div>
 
@@ -736,15 +760,30 @@ export const RandomModal: React.FC<RandomModalProps> = ({
             </span>
             <span aria-hidden="true">·</span>
             <span>{item.year || '2024'}</span>
-            {rating > 0 && (
+            {item.imdbRating && item.imdbRating > 0 ? (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1 font-bold text-[var(--accent-primary)]">
+                <a
+                  href={getImdbRatingPageUrl(item)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`Open IMDb ratings page (${item.imdbRating.toFixed(1)}/10)`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] text-[11px] font-black leading-none tabular-nums border border-[#DFB00F] shadow-2xs transition active:scale-95"
+                >
+                  <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                  <span>{item.imdbRating.toFixed(1)}</span>
+                </a>
+              </>
+            ) : rating > 0 ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1 font-bold text-[var(--accent-primary)] tabular-nums">
                   <Star className="w-3.5 h-3.5 fill-current text-[var(--accent-primary)]" />
                   {rating.toFixed(1)}
                 </span>
               </>
-            )}
+            ) : null}
             {item.genres && item.genres.length > 0 && (
               <>
                 <span aria-hidden="true">·</span>
@@ -763,11 +802,11 @@ export const RandomModal: React.FC<RandomModalProps> = ({
 
         {/* Action Buttons: Shuffle Again in Secondary Color & Open Preview in Primary Color */}
         <div className="mt-6 flex items-center justify-center gap-3 w-full">
-          {/* Shuffle Again in Secondary Color */}
+          {/* Shuffle Again in Secondary Color (IMDb Yellow in Mint) */}
           <button
             onClick={handleShuffle}
             disabled={isShuffling}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] hover:opacity-90 active:scale-95 text-xs sm:text-sm font-bold border border-[var(--border-subtle)] transition shadow-2xs cursor-pointer disabled:opacity-50"
+            className="random-pick-btn flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] hover:opacity-90 active:scale-95 text-xs sm:text-sm font-bold border border-[var(--border-subtle)] transition shadow-2xs cursor-pointer disabled:opacity-50"
           >
             <RotateCw className={`w-4 h-4 ${isShuffling ? 'animate-spin' : ''}`} />
             <span>Shuffle Again</span>

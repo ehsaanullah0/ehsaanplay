@@ -94,20 +94,33 @@ export function useMediaLibrary() {
       localStorage.setItem('ehsaan_clean_start_v8', 'true');
     }
 
-    // One-time non-destructive migration: hide homepage slideshow by default on existing installs
+    // One-time non-destructive migration: set Daily Mix hidden by default & initialize home section order for v2.4.5
     let effectiveSettings = loadedSettings;
     try {
-      if (!localStorage.getItem('ehsaan_slideshow_default_hidden_v1')) {
+      if (!localStorage.getItem('ehsaan_daily_mix_default_hidden_v245')) {
         effectiveSettings = {
           ...loadedSettings,
           homeSections: {
             ...DEFAULT_HOME_SECTIONS,
             ...loadedSettings.homeSections,
             showHeroSlideshow: false,
+            showDailyMix: false,
+            showDashboard: loadedSettings.homeSections?.showDashboard ?? true,
+            sectionOrder: loadedSettings.homeSections?.sectionOrder || DEFAULT_HOME_SECTIONS.sectionOrder,
           },
         };
         saveUserSettings(effectiveSettings);
-        localStorage.setItem('ehsaan_slideshow_default_hidden_v1', 'true');
+        localStorage.setItem('ehsaan_daily_mix_default_hidden_v245', 'true');
+      }
+      if (!localStorage.getItem('ehsaan_default_orange_migrated_v1')) {
+        localStorage.setItem('ehsaan_default_orange_migrated_v1', 'true');
+        if (!effectiveSettings.colorScheme || effectiveSettings.colorScheme === 'olive' || effectiveSettings.colorScheme === 'default') {
+          effectiveSettings = {
+            ...effectiveSettings,
+            colorScheme: 'orange',
+          };
+          saveUserSettings(effectiveSettings);
+        }
       }
     } catch {
       // ignore storage migration errors
@@ -118,8 +131,9 @@ export function useMediaLibrary() {
     setCustomLists(loadedLists);
     setSettings(effectiveSettings);
     document.documentElement.setAttribute('data-theme', effectiveSettings.theme);
-    document.documentElement.setAttribute('data-color-scheme', effectiveSettings.colorScheme || 'olive');
+    document.documentElement.setAttribute('data-color-scheme', effectiveSettings.colorScheme || 'orange');
     document.documentElement.setAttribute('data-font', effectiveSettings.tweaks?.fontFamily || 'google-sans-flex');
+    document.documentElement.setAttribute('data-rounded-text', effectiveSettings.tweaks?.roundedText ? 'true' : 'false');
 
     const initCatalog = async () => {
       let fetchedCatalog: MediaItem[] = [];
@@ -298,6 +312,7 @@ export function useMediaLibrary() {
       if (updated.tweaks?.fontFamily) {
         document.documentElement.setAttribute('data-font', updated.tweaks.fontFamily);
       }
+      document.documentElement.setAttribute('data-rounded-text', updated.tweaks?.roundedText ? 'true' : 'false');
       return updated;
     });
   }, []);
@@ -531,10 +546,13 @@ export function useMediaLibrary() {
         : undefined,
     };
 
-    const updated = {
+    const updated: Record<string, PersonalMediaState> = {
       ...prev,
       [canonicalId]: updatedState,
     };
+    if (mediaId !== canonicalId && prev[mediaId]) {
+      updated[mediaId] = { ...updatedState, mediaId };
+    }
     saveUserStates(updated);
     setUserStates(updated);
     recordLibraryChange('update_state', canonicalId, {
@@ -847,10 +865,13 @@ export function useMediaLibrary() {
       tvProgress: nextTvProgress,
     };
 
-    const updated = {
+    const updated: Record<string, PersonalMediaState> = {
       ...prev,
       [canonicalId]: updatedState,
     };
+    if (mediaId !== canonicalId && prev[mediaId]) {
+      updated[mediaId] = { ...updatedState, mediaId };
+    }
     saveUserStates(updated);
     setUserStates(updated);
     recordLibraryChange('update_state', canonicalId, {
@@ -859,7 +880,7 @@ export function useMediaLibrary() {
     });
   }, [getOrCreateState, resolveTargetMediaAndId]);
 
-  // Toggle Episode for TV series - Calculates overall series progress directly from episode checks
+  // Toggle Episode for TV series - Auto-selects preceding episodes (1..N) in the season when marking an episode watched
   const toggleTVEpisode = useCallback(
     (mediaId: string, season: number, episode: number, optionalItem?: MediaItem) => {
       const { canonicalId, mediaItem } = resolveTargetMediaAndId(mediaId, optionalItem);
@@ -873,10 +894,18 @@ export function useMediaLibrary() {
       };
 
       const currentlyDone = !tvProgress.completedEpisodes[epKey];
-      const nextCompleted = {
+      const nextCompleted: Record<string, boolean> = {
         ...tvProgress.completedEpisodes,
-        [epKey]: currentlyDone,
       };
+
+      if (currentlyDone) {
+        // Auto-select episodes 1 through the selected episode in this season
+        for (let ep = 1; ep <= episode; ep++) {
+          nextCompleted[`s${season}e${ep}`] = true;
+        }
+      } else {
+        delete nextCompleted[epKey];
+      }
 
       const knownMeta = mediaItem?.id ? KNOWN_TV_SHOWS_METADATA[mediaItem.id] : undefined;
       const seasonsList = mediaItem?.seasons || knownMeta?.seasons;
@@ -1388,6 +1417,9 @@ export function useMediaLibrary() {
       const loadedSettings = loadUserSettings();
       setSettings(loadedSettings);
       document.documentElement.setAttribute('data-theme', loadedSettings.theme);
+      document.documentElement.setAttribute('data-color-scheme', loadedSettings.colorScheme || 'orange');
+      document.documentElement.setAttribute('data-font', loadedSettings.tweaks?.fontFamily || 'google-sans-flex');
+      document.documentElement.setAttribute('data-rounded-text', loadedSettings.tweaks?.roundedText ? 'true' : 'false');
     }
     return result;
   }, []);

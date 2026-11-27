@@ -21,6 +21,7 @@ import {
   SupabaseVerificationStatus,
 } from '../../services/supabase/config';
 import { testSupabaseConnection } from '../../services/supabase/verification';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 
 interface ResumeDatabaseModalProps {
   isOpen: boolean;
@@ -113,6 +114,8 @@ export const ResumeDatabaseModal: React.FC<ResumeDatabaseModalProps> = ({
       }
     };
   }, [isOpen, isRestored, performCheck]);
+
+  useRegisterBackAction(isOpen, onClose, 35);
 
   if (!isOpen) return null;
 

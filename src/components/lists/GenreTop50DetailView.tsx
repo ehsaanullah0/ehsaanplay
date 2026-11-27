@@ -8,9 +8,11 @@ import {
   CustomList,
 } from '../../types/movie';
 import { resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { GENRE_CATEGORIES } from '../../data/genreCategories';
 import { SafeImage } from '../common/SafeImage';
 import { MoviePoster } from '../common/MoviePoster';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import {
   fetchAndVerifyGenreTop50,
   getCachedGenreCollection,
@@ -108,6 +110,7 @@ export const GenreTop50DetailView: React.FC<GenreTop50DetailViewProps> = ({
 
   // Manual Save / Rename Modal States
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  useRegisterBackAction(isSaveModalOpen, () => setIsSaveModalOpen(false), 25);
   const [saveTitleInput, setSaveTitleInput] = useState('');
   const [saveDescInput, setSaveDescInput] = useState('');
   const [selectedTargetListId, setSelectedTargetListId] = useState<string>('');
@@ -651,12 +654,24 @@ export const GenreTop50DetailView: React.FC<GenreTop50DetailViewProps> = ({
                       </div>
 
                       <div className="mt-1 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] flex-wrap">
-                        {rating > 0 && (
-                          <span className="flex items-center gap-1 font-bold text-amber-500">
+                        {item.imdbRating && item.imdbRating > 0 ? (
+                          <a
+                            href={getImdbRatingPageUrl(item)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Open IMDb ratings page (${item.imdbRating.toFixed(1)}/10)`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] text-[11px] font-black leading-none tabular-nums border border-[#DFB00F] shadow-2xs transition active:scale-95"
+                          >
+                            <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                            <span>{item.imdbRating.toFixed(1)}</span>
+                          </a>
+                        ) : rating > 0 ? (
+                          <span className="flex items-center gap-1 font-bold text-amber-500 tabular-nums">
                             <Star className="w-3.5 h-3.5 fill-current" />
                             <span>{rating.toFixed(1)}</span>
                           </span>
-                        )}
+                        ) : null}
                         {item.genres && item.genres.length > 0 && (
                           <>
                             <span aria-hidden="true">·</span>

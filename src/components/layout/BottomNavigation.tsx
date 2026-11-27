@@ -55,9 +55,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     lastScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
   }, [activeTab]);
 
-  // Long press detection on tabs (search/lists swap confirm) using unified Pointer Events & timestamp guard
+  // Long press detection on tabs (search/lists swap confirm) using unified Pointer Events & boolean guard
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTriggeredAtRef = useRef<number>(0);
+  const didTriggerLongPressRef = useRef<boolean>(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -79,13 +79,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const handlePointerDown = (tabId: string, e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     cancelPress();
+    didTriggerLongPressRef.current = false;
     startPosRef.current = { x: e.clientX, y: e.clientY };
 
     if (tabId === 'lists' || tabId === 'search') {
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
         startPosRef.current = null;
-        longPressTriggeredAtRef.current = Date.now();
+        didTriggerLongPressRef.current = true;
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           try {
             navigator.vibrate(40);
@@ -107,57 +108,64 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     }
   };
 
-  // Directional scroll detection
+  // Directional scroll detection (rAF-throttled)
   useEffect(() => {
     let accumulatedDelta = 0;
+    let rafId: number | null = null;
 
     const handleScroll = () => {
-      // While mixing genres, always keep the bar visible so the user never loses the Generate button
-      if (isMixing) {
-        setIsVisible(true);
-        return;
-      }
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
 
-      const currentScrollY = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight;
-      const viewHeight = window.innerHeight;
+        // While mixing genres, always keep the bar visible so the user never loses the Generate button
+        if (isMixing) {
+          setIsVisible(prev => (prev ? prev : true));
+          return;
+        }
 
-      // Always show on short non-scrollable views or near top of page
-      if (docHeight <= viewHeight + 60 || currentScrollY <= 50) {
-        setIsVisible(true);
-        accumulatedDelta = 0;
+        const currentScrollY = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight;
+        const viewHeight = window.innerHeight;
+
+        // Always show on short non-scrollable views or near top of page
+        if (docHeight <= viewHeight + 60 || currentScrollY <= 50) {
+          setIsVisible(prev => (prev ? prev : true));
+          accumulatedDelta = 0;
+          lastScrollY.current = currentScrollY;
+          return;
+        }
+
+        const delta = currentScrollY - lastScrollY.current;
+
+        // Reset accumulation on directional shift
+        if ((delta > 0 && accumulatedDelta < 0) || (delta < 0 && accumulatedDelta > 0)) {
+          accumulatedDelta = 0;
+        }
+        accumulatedDelta += delta;
+
+        // Scrolling DOWN by > 12px -> cleanly hide dock
+        if (accumulatedDelta > 12 && currentScrollY > 50) {
+          setIsVisible(prev => (prev ? false : prev));
+        }
+        // Scrolling UP by > 12px -> reveal dock
+        else if (accumulatedDelta < -12) {
+          setIsVisible(prev => (prev ? prev : true));
+        }
+
+        // Keep visible if user is at the very bottom of the document
+        if (viewHeight + currentScrollY >= docHeight - 30) {
+          setIsVisible(prev => (prev ? prev : true));
+        }
+
         lastScrollY.current = currentScrollY;
-        return;
-      }
-
-      const delta = currentScrollY - lastScrollY.current;
-
-      // Reset accumulation on directional shift
-      if ((delta > 0 && accumulatedDelta < 0) || (delta < 0 && accumulatedDelta > 0)) {
-        accumulatedDelta = 0;
-      }
-      accumulatedDelta += delta;
-
-      // Scrolling DOWN by > 12px -> cleanly hide dock
-      if (accumulatedDelta > 12 && currentScrollY > 50) {
-        setIsVisible(false);
-      }
-      // Scrolling UP by > 12px -> reveal dock
-      else if (accumulatedDelta < -12) {
-        setIsVisible(true);
-      }
-
-      // Keep visible if user is at the very bottom of the document
-      if (viewHeight + currentScrollY >= docHeight - 30) {
-        setIsVisible(true);
-      }
-
-      lastScrollY.current = currentScrollY;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [isMixing]);
 
@@ -183,14 +191,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     cancelPress();
     const isSwapClickSuppressed =
       (tabId === 'lists' || tabId === 'search') &&
-      longPressTriggeredAtRef.current > 0 &&
-      Date.now() - longPressTriggeredAtRef.current < 1200;
+      didTriggerLongPressRef.current;
 
     if (isSwapClickSuppressed) {
-      longPressTriggeredAtRef.current = 0;
+      didTriggerLongPressRef.current = false;
       return;
     }
-    longPressTriggeredAtRef.current = 0;
+    didTriggerLongPressRef.current = false;
 
     if (isSpecialAction && tabId === 'search') {
       onOpenSearch?.();

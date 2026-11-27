@@ -17,19 +17,29 @@ export function isUserFullscreenPreferred(): boolean {
   return userWantsFullscreen;
 }
 
+function triggerRequestFullscreen() {
+  if (typeof document === 'undefined') return;
+  const docEl = document.documentElement as any;
+  if (docEl.requestFullscreen) {
+    try {
+      return Promise.resolve(docEl.requestFullscreen({ navigationUI: 'hide' })).catch(() =>
+        Promise.resolve(docEl.requestFullscreen()).catch(() => {})
+      );
+    } catch {
+      return Promise.resolve(docEl.requestFullscreen()).catch(() => {});
+    }
+  } else if (docEl.webkitRequestFullscreen) {
+    return docEl.webkitRequestFullscreen();
+  }
+}
+
 export function requestAppFullscreen(): Promise<void> | void {
   userWantsFullscreen = true;
   try {
     localStorage.setItem('ehsaan_fullscreen_preferred', 'true');
   } catch {}
-  if (typeof document === 'undefined') return;
-  const docEl = document.documentElement as any;
   if (!isFullscreenActive()) {
-    if (docEl.requestFullscreen) {
-      return docEl.requestFullscreen().catch(() => {});
-    } else if (docEl.webkitRequestFullscreen) {
-      return docEl.webkitRequestFullscreen();
-    }
+    return triggerRequestFullscreen();
   }
 }
 
@@ -50,20 +60,14 @@ export function exitAppFullscreen(): Promise<void> | void {
 }
 
 /**
- * Reasserts fullscreen mode if the user previously enabled fullscreen and an OS-level
- * gesture (such as Android back button/gesture) triggered an unwanted browser exit.
+ * Explicit helper if needed without auto-retriggering browser toast loops on user taps.
  */
 export function reassertFullscreen() {
   if (!userWantsFullscreen) return;
   if (typeof document === 'undefined') return;
   if (!isFullscreenActive()) {
     try {
-      const docEl = document.documentElement as any;
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen();
-      }
+      triggerRequestFullscreen();
     } catch {
       // ignore
     }
@@ -78,17 +82,11 @@ export function useFullscreen() {
       const active = isFullscreenActive();
       setIsFullscreen(active);
       listeners.forEach(fn => fn(active));
-
-      // If user enabled fullscreen but OS escaped it (e.g. via Android back gesture),
-      // arm a one-time gesture listener to restore fullscreen on the next user interaction
       if (!active && userWantsFullscreen) {
-        const restoreOnInteraction = () => {
-          reassertFullscreen();
-          window.removeEventListener('pointerdown', restoreOnInteraction, { capture: true });
-          window.removeEventListener('touchstart', restoreOnInteraction, { capture: true });
-        };
-        window.addEventListener('pointerdown', restoreOnInteraction, { capture: true, once: true });
-        window.addEventListener('touchstart', restoreOnInteraction, { capture: true, once: true });
+        userWantsFullscreen = false;
+        try {
+          localStorage.removeItem('ehsaan_fullscreen_preferred');
+        } catch {}
       }
     };
 

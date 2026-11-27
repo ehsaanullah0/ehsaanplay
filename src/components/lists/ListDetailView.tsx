@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { CustomList, MediaItem, PersonalMediaState } from '../../types/movie';
 import { findMediaItemByIdOrAlias, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { ListCoverCollage } from '../common/ListCoverCollage';
+import { StickerEmptyLists } from '../common/ExpressiveStickers';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { MoviePoster } from '../common/MoviePoster';
 import { CreateListModal } from './CreateListModal';
 import {
@@ -55,6 +57,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddMediaOpen, setIsAddMediaOpen] = useState(false);
+  useRegisterBackAction(isAddMediaOpen, () => setIsAddMediaOpen(false), 25);
   const [addSearchQuery, setAddSearchQuery] = useState('');
 
   // Get items belonging to this list (with alias resolution)
@@ -128,7 +131,7 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
             {listItems.length > 0 && (
               <button
                 onClick={() => onRandomPickFromList(listItems)}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
+                className="random-pick-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs border border-transparent"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Shuffle Pick</span>
@@ -199,7 +202,8 @@ export const ListDetailView: React.FC<ListDetailViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-center py-16 px-4 max-w-sm mx-auto">
+        <div className="flex flex-col items-center text-center py-12 px-4 max-w-sm mx-auto select-none">
+          <StickerEmptyLists className="w-40 h-32 sm:w-44 sm:h-36 mb-2" />
           <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
             This collection is empty right now. Add titles from your library to start building your shelf.
           </p>

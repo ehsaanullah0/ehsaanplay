@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CustomList } from '../../types/movie';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { X, Plus } from 'lucide-react';
 
 interface CreateListModalProps {
@@ -33,6 +34,8 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
       }
     }
   }, [isOpen, editingList]);
+
+  useRegisterBackAction(isOpen, onClose, 25);
 
   if (!isOpen) return null;
 

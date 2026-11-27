@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   CustomList,
   MediaItem,
@@ -8,12 +8,13 @@ import {
   GenreMixBottomBarAction,
 } from '../../types/movie';
 import { ListCoverCollage } from '../common/ListCoverCollage';
+import { StickerEmptyLists } from '../common/ExpressiveStickers';
 import { CreateListModal } from './CreateListModal';
 import { ListDetailView } from './ListDetailView';
 import { TrendingGenresView } from './TrendingGenresView';
 import { GenreTop50DetailView } from './GenreTop50DetailView';
 import { SettingsTopicId } from '../settings/SettingsView';
-import { Plus, Layers, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, ArrowLeft } from 'lucide-react';
 
 interface ListsViewProps {
   customLists: CustomList[];
@@ -46,6 +47,7 @@ interface ListsViewProps {
     existingListId?: string
   ) => void;
   resetSignal?: number;
+  onRegisterBackHandler?: (handler: (() => boolean) | null) => void;
 }
 
 export const ListsView: React.FC<ListsViewProps> = React.memo(({
@@ -73,6 +75,7 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
   onAutoSaveAiList,
   onManualSaveList,
   resetSignal,
+  onRegisterBackHandler,
 }) => {
   // Navigation state within Lists: 'shelves' | 'trending_genres'
   const [activeSubView, setActiveSubView] = useState<'shelves' | 'trending_genres'>('shelves');
@@ -80,6 +83,36 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
   const [selectedGenreCount, setSelectedGenreCount] = useState<number>(20);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const activeListIdRef = useRef(activeListId);
+  activeListIdRef.current = activeListId;
+  const activeGenreRef = useRef(activeGenre);
+  activeGenreRef.current = activeGenre;
+  const activeSubViewRef = useRef(activeSubView);
+  activeSubViewRef.current = activeSubView;
+  const onGenreMixActionChangeRef = useRef(onGenreMixActionChange);
+  onGenreMixActionChangeRef.current = onGenreMixActionChange;
+
+  useEffect(() => {
+    if (!onRegisterBackHandler) return;
+    onRegisterBackHandler(() => {
+      if (activeListIdRef.current) {
+        setActiveListId(null);
+        return true;
+      }
+      if (activeGenreRef.current) {
+        setActiveGenre(null);
+        return true;
+      }
+      if (activeSubViewRef.current === 'trending_genres') {
+        setActiveSubView('shelves');
+        onGenreMixActionChangeRef.current?.(null);
+        return true;
+      }
+      return false;
+    });
+    return () => onRegisterBackHandler(null);
+  }, [onRegisterBackHandler]);
 
   useEffect(() => {
     if (resetSignal && resetSignal > 0) {
@@ -111,35 +144,37 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
   const activeList = customLists.find(l => l.id === activeListId);
   if (activeList) {
     return (
-      <ListDetailView
-        list={activeList}
-        allItems={mediaItems}
-        userStates={userStates}
-        customLists={customLists}
-        onBack={() => setActiveListId(null)}
-        onSelectMedia={onSelectMedia}
-        onUpdateList={onUpdateList}
-        onDeleteList={id => {
-          onDeleteList(id);
-          setActiveListId(null);
-        }}
-        onAddItemToList={onAddItemToList}
-        onRemoveItemFromList={onRemoveItemFromList}
-        onRandomPickFromList={onRandomPick}
-        onRemoveFromWatchlist={onRemoveFromWatchlist}
-        onMarkWatching={onMarkWatching}
-        onMarkWatched={onMarkWatched}
-        onDismissFromWatching={onDismissFromWatching}
-        onToggleWatchlist={onToggleWatchlist}
-        onToggleFavorite={onToggleFavorite}
-      />
+      <div className="animate-page-switch">
+        <ListDetailView
+          list={activeList}
+          allItems={mediaItems}
+          userStates={userStates}
+          customLists={customLists}
+          onBack={() => setActiveListId(null)}
+          onSelectMedia={onSelectMedia}
+          onUpdateList={onUpdateList}
+          onDeleteList={id => {
+            onDeleteList(id);
+            setActiveListId(null);
+          }}
+          onAddItemToList={onAddItemToList}
+          onRemoveItemFromList={onRemoveItemFromList}
+          onRandomPickFromList={onRandomPick}
+          onRemoveFromWatchlist={onRemoveFromWatchlist}
+          onMarkWatching={onMarkWatching}
+          onMarkWatched={onMarkWatched}
+          onDismissFromWatching={onDismissFromWatching}
+          onToggleWatchlist={onToggleWatchlist}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </div>
     );
   }
 
   // If an AI Top Genre is opened, show its detail view
   if (activeSubView === 'trending_genres' && activeGenre) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-28 md:pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-28 md:pb-16 animate-page-switch">
         <GenreTop50DetailView
           genre={activeGenre}
           geminiApiKey={settings?.geminiApiKey}
@@ -192,40 +227,47 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
           </p>
         </div>
 
-        {/* Action Buttons: Create New Shelf & Trending Genres (Placed side-by-side with matching styles) */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
-          {/* Create New Shelf Button */}
-          <button
-            onClick={() => {
-              if (activeSubView !== 'shelves') {
+        {/* Action Buttons: Create New Shelf (or Back to Shelf in Trending Genres) & Filled Trending Genres */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto shrink-0">
+          {activeSubView === 'trending_genres' ? (
+            <button
+              type="button"
+              onClick={() => {
                 setActiveSubView('shelves');
-              }
-              setIsCreateModalOpen(true);
-            }}
-            className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-xs active:scale-95 cursor-pointer ${
-              activeSubView === 'shelves'
-                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90'
-                : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]/40'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Shelf</span>
-          </button>
+                setActiveGenre(null);
+                onGenreMixActionChange?.(null);
+              }}
+              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-xs active:scale-95 cursor-pointer bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-elevated)]"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Shelf</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-xs active:scale-95 cursor-pointer bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create New Shelf</span>
+            </button>
+          )}
 
-          {/* Trending Genres Button */}
+          {/* Trending Genres Filled Themed Button */}
           <button
+            type="button"
             onClick={() => {
               setActiveSubView(prev => (prev === 'shelves' ? 'trending_genres' : 'shelves'));
               setActiveGenre(null);
             }}
             className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-xs active:scale-95 cursor-pointer ${
               activeSubView === 'trending_genres'
-                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90'
-                : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--border-subtle)]/40'
+                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] ring-2 ring-[var(--accent-primary)]/30 hover:opacity-90'
+                : 'bg-[var(--accent-primary)] text-[var(--bg-primary)] hover:opacity-90'
             }`}
             title="Browse AI-Curated Top 50 Genre Collections"
           >
-            <Sparkles className="w-4 h-4 fill-current text-amber-300" />
+            <Sparkles className="w-4 h-4 fill-current" />
             <span>Trending Genres</span>
           </button>
         </div>
@@ -235,7 +277,7 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
       <div className="relative">
         {/* View 1: Custom Shelves */}
         {activeSubView === 'shelves' && (
-          <div className="animate-fade-in transition-all duration-300">
+          <div className="animate-page-switch">
             {customLists.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {customLists.map(list => {
@@ -295,11 +337,9 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
                 })}
               </div>
             ) : (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-sm mx-auto">
-                <div className="w-16 h-16 rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] flex items-center justify-center mb-4 border border-[var(--border-subtle)] shadow-xs">
-                  <Layers className="w-7 h-7 stroke-[2]" />
-                </div>
+              /* Material Expressive Empty Shelf State */
+              <div className="flex flex-col items-center justify-center py-14 sm:py-20 px-4 text-center max-w-sm mx-auto select-none">
+                <StickerEmptyLists className="w-44 h-36 sm:w-52 sm:h-40 mb-3" />
                 <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
                   Make your own little shelf.
                 </h3>
@@ -315,9 +355,9 @@ export const ListsView: React.FC<ListsViewProps> = React.memo(({
                   </button>
                   <button
                     onClick={() => setActiveSubView('trending_genres')}
-                    className="px-5 py-2.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)] text-xs font-bold hover:bg-[var(--border-subtle)]/40 transition shadow-xs active:scale-95 cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 cursor-pointer flex items-center gap-1.5"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-current" />
+                    <Sparkles className="w-3.5 h-3.5 fill-current ui-sparkle-alive" />
                     <span>Explore Trending Genres</span>
                   </button>
                 </div>

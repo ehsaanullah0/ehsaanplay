@@ -19,11 +19,6 @@ export default defineConfig(() => {
       },
       dedupe: ['react', 'react-dom'],
     },
-    server: {
-      // HMR is disabled in AI Studio preview environment
-      hmr: false,
-      watch: null,
-    },
   };
 });
 

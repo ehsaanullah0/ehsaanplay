@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, X, GitCommit, CheckCircle2, Coffee, ExternalLink, Mail } from 'lucide-react';
 import { CHANGELOG_VERSIONS } from '../../data/changelogData';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 
 interface ChangelogModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
+  useRegisterBackAction(isOpen, onClose, 35);
+
   if (!isOpen) return null;
 
   return (
@@ -35,7 +38,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           {/* Scrollable Modal Header */}
           <div className="p-5 sm:p-7 pr-14 sm:pr-16 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--accent-primary)] mb-1">
-              <Sparkles className="w-4 h-4 text-[var(--accent-primary)]" />
+              <Sparkles className="w-4 h-4 text-[var(--accent-primary)] ui-sparkle-alive" />
               <span>Changelog & Version History</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">

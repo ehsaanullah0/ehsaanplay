@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { Camera, AlertTriangle, Key, X } from 'lucide-react';
 import { QRPairingPayload } from '../../services/deviceTransfer';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -116,6 +117,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       stopCamera();
     };
   }, [isOpen]);
+
+  useRegisterBackAction(isOpen, onClose, 38);
 
   if (!isOpen) return null;
 

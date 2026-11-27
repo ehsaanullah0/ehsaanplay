@@ -11,7 +11,7 @@ import {
 import { KNOWN_TV_SHOWS_METADATA } from '../../data/curatedCatalog';
 import { fetchDetailsWithFallback } from '../../services/metadataFallback';
 import { loadUserSettings, saveUserSettings, saveMediaCache, loadMediaCache } from '../../services/storage';
-import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { areMediaItemsSame, findMediaItemByIdOrAlias, resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { SafeImage } from '../common/SafeImage';
 import { MoviePoster } from '../common/MoviePoster';
 import { PosterAmbientGlow } from './PosterAmbientGlow';
@@ -19,16 +19,19 @@ import { StarRating } from '../common/StarRating';
 import { StreamingBrandIcon } from '../common/StreamingBrandIcon';
 import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
 import { openStreamingPlatform } from '../../services/streamingDirectUrls';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import {
   getCachedSimilarTitles,
   getSimilarTitlesForMedia,
   rankLocalSimilarTitles,
 } from '../../services/similarTitles';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import {
   X,
   ArrowLeft,
   Bookmark,
   Check,
+  Copy,
   Heart,
   Star,
   Play,
@@ -60,11 +63,14 @@ import {
 
 export type PreviewCardId =
   | 'journal'
+  | 'notes'
+  | 'progress'
   | 'episodes'
   | 'overview'
   | 'production'
   | 'where_to_watch'
-  | 'cast_crew';
+  | 'cast_crew'
+  | 'similar_titles';
 
 export interface PreviewCardItem {
   id: PreviewCardId;
@@ -76,8 +82,20 @@ export interface PreviewCardItem {
 const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
   {
     id: 'journal',
-    label: 'Personal Rating & Reflections',
-    description: 'Star rating, watch progress slider, and personal reflections note',
+    label: 'Personal Rating',
+    description: 'Your Verdict rating tier selector',
+    visible: true,
+  },
+  {
+    id: 'notes',
+    label: 'Personal Notes & Reflections',
+    description: 'Private journal notes, quotes, and reflections',
+    visible: true,
+  },
+  {
+    id: 'progress',
+    label: 'Movie Watch Progress',
+    description: 'Independent watch progress bar for movies only',
     visible: true,
   },
   {
@@ -95,7 +113,13 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
   {
     id: 'overview',
     label: 'Story Overview',
-    description: 'Plot synopsis and storyline summary',
+    description: 'Plot synopsis and compact Watch Trailer action',
+    visible: true,
+  },
+  {
+    id: 'production',
+    label: 'Title & Production Details',
+    description: 'Most loved episode, length, release date, cast/crew & studio info',
     visible: true,
   },
   {
@@ -105,9 +129,9 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
     visible: true,
   },
   {
-    id: 'production',
-    label: 'Production Details',
-    description: 'Release date, runtime, budget, box office, and studio info',
+    id: 'similar_titles',
+    label: 'Similar Titles',
+    description: 'Recommended movies and series matching this title',
     visible: true,
   },
 ];
@@ -115,6 +139,7 @@ const DEFAULT_CARD_SECTIONS: PreviewCardItem[] = [
 export interface HeroCustomizerConfig {
   artOn: boolean;
   opacity: number;
+  desktopOpacity?: number;
   forceDarkMode: boolean;
   showTitleBackgroundCard: boolean;
   showTaglineQuote: boolean;
@@ -135,6 +160,7 @@ export interface HeroCustomizerConfig {
 const DEFAULT_HERO_CUSTOMIZER: HeroCustomizerConfig = {
   artOn: true,
   opacity: 1.0,
+  desktopOpacity: 0.95,
   forceDarkMode: false,
   showTitleBackgroundCard: false,
   showTaglineQuote: true,
@@ -162,9 +188,16 @@ interface MoviePreviewModalProps {
   userState?: PersonalMediaState;
   customLists: CustomList[];
   backdropOpacity: number;
+  colorScheme?: string;
+  appTheme?: 'cream' | 'dark-olive' | 'oled-black';
   onHydrateDetails?: (item: MediaItem) => Promise<MediaItem | undefined>;
   onToggleWatchlist: (id: string, item?: MediaItem) => void;
   onToggleWatched: (id: string, item?: MediaItem) => void;
+  onMarkWatched?: (id: string, item?: MediaItem) => void;
+  onMarkWatching?: (id: string, item?: MediaItem) => void;
+  onRemoveFromWatchlist?: (id: string) => void;
+  onDismissFromWatching?: (id: string) => void;
+  onAddMediaToLibrary?: (item: MediaItem) => void;
   onToggleFavorite: (id: string, item?: MediaItem) => void;
   onSetRating: (id: string, rating: number | undefined, ratingTag?: RatingTagId, item?: MediaItem) => void;
   onSetNotes: (id: string, notes: string, item?: MediaItem) => void;
@@ -198,9 +231,16 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   userState,
   customLists,
   backdropOpacity: defaultOpacity,
+  colorScheme,
+  appTheme,
   onHydrateDetails,
   onToggleWatchlist,
   onToggleWatched,
+  onMarkWatched,
+  onMarkWatching,
+  onRemoveFromWatchlist,
+  onDismissFromWatching,
+  onAddMediaToLibrary,
   onToggleFavorite,
   onSetRating,
   onSetNotes,
@@ -209,7 +249,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   onToggleSeasonEpisodes,
   onAddItemToList,
   onRemoveItemFromList,
-  onOpenImdbPreview,
+  onOpenImdbPreview: _onOpenImdbPreview,
   mediaItems = [],
   userStates = {},
   onSelectMedia,
@@ -234,7 +274,58 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const [reloadFeedback, setReloadFeedback] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<SelectedPersonInfo | null>(null);
   const [showAllCast, setShowAllCast] = useState(false);
+  const [isTitleCopied, setIsTitleCopied] = useState(false);
+  const titleCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [similarTitles, setSimilarTitles] = useState<MediaItem[]>([]);
+
+  useEffect(() => {
+    setIsTitleCopied(false);
+    if (titleCopyTimerRef.current) {
+      clearTimeout(titleCopyTimerRef.current);
+      titleCopyTimerRef.current = null;
+    }
+    return () => {
+      if (titleCopyTimerRef.current) {
+        clearTimeout(titleCopyTimerRef.current);
+        titleCopyTimerRef.current = null;
+      }
+    };
+  }, [item?.id]);
+
+  const handleCopyTitle = async (titleToCopy: string) => {
+    if (!titleToCopy) return;
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(titleToCopy);
+        copied = true;
+      }
+    } catch {
+      // Fallback below
+    }
+    if (!copied) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = titleToCopy;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        // ignore
+      }
+    }
+    if (copied) {
+      setIsTitleCopied(true);
+      if (titleCopyTimerRef.current) clearTimeout(titleCopyTimerRef.current);
+      titleCopyTimerRef.current = setTimeout(() => setIsTitleCopied(false), 1800);
+    }
+  };
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [similarCanScrollLeft, setSimilarCanScrollLeft] = useState(false);
   const [similarCanScrollRight, setSimilarCanScrollRight] = useState(false);
@@ -249,6 +340,36 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   }, [mediaItems]);
   const lastOpenedItemIdRef = useRef<string | null>(null);
   const wasOpenRef = useRef<boolean>(false);
+  const reloadFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const similarScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const similarScrollRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (reloadFeedbackTimerRef.current) clearTimeout(reloadFeedbackTimerRef.current);
+      if (savedFeedbackTimerRef.current) clearTimeout(savedFeedbackTimerRef.current);
+      if (similarScrollTimerRef.current) clearTimeout(similarScrollTimerRef.current);
+      if (similarScrollRafRef.current !== null) cancelAnimationFrame(similarScrollRafRef.current);
+    };
+  }, []);
+
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktopViewport(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
+  }, []);
 
   // Navigation History Stack (supports returning back to Actor Profile when credit is opened)
   const [previewHistory, setPreviewHistory] = useState<PreviewHistoryEntry[]>([]);
@@ -321,8 +442,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
   // Handle going back in history (returns to actor profile if opened from one)
   const handleBackClick = () => {
-    if (previewHistory.length > 0) {
-      const prevEntry = previewHistory[previewHistory.length - 1];
+    const history = previewHistoryRef.current;
+    if (history.length > 0) {
+      const prevEntry = history[history.length - 1];
       setPreviewHistory((prev) => prev.slice(0, -1));
       setShowCustomizer(false);
       setIsAddingToList(false);
@@ -343,6 +465,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     }
     onClose();
   };
+
+  const handleBackClickRef = useRef(handleBackClick);
+  handleBackClickRef.current = handleBackClick;
 
   // Register back navigation handler with parent App (for Android back gesture and shortcuts)
   useEffect(() => {
@@ -365,7 +490,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           return true;
         }
         if (previewHistoryRef.current.length > 0) {
-          handleBackClick();
+          handleBackClickRef.current();
           return true;
         }
         return false;
@@ -376,7 +501,35 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         onRegisterBackHandler(null);
       }
     };
-  }, [onRegisterBackHandler, previewHistory, selectedPerson, showCustomizer, showRearrangeModal, isAddingToList]);
+  }, [onRegisterBackHandler]);
+
+  useRegisterBackAction(
+    isOpen && item !== null,
+    () => {
+      if (showCustomizerRef.current) {
+        setShowCustomizer(false);
+        return;
+      }
+      if (showRearrangeModalRef.current) {
+        setShowRearrangeModal(false);
+        return;
+      }
+      if (isAddingToListRef.current) {
+        setIsAddingToList(false);
+        return;
+      }
+      if (selectedPersonRef.current) {
+        setSelectedPerson(null);
+        return;
+      }
+      if (previewHistoryRef.current.length > 0) {
+        handleBackClickRef.current();
+        return;
+      }
+      onClose();
+    },
+    50
+  );
 
   // Local Escape key interceptor (stops propagation when sub-views or history are active)
   useEffect(() => {
@@ -490,13 +643,15 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
           ? 'Banner reloaded'
           : 'Poster & Banner reloaded';
       setReloadFeedback(msg);
-      setTimeout(() => {
+      if (reloadFeedbackTimerRef.current) clearTimeout(reloadFeedbackTimerRef.current);
+      reloadFeedbackTimerRef.current = setTimeout(() => {
         setReloadFeedback(null);
       }, 3500);
     } catch (err) {
       console.warn('Failed to reload artwork for title:', err);
       setReloadFeedback('Reload failed');
-      setTimeout(() => {
+      if (reloadFeedbackTimerRef.current) clearTimeout(reloadFeedbackTimerRef.current);
+      reloadFeedbackTimerRef.current = setTimeout(() => {
         setReloadFeedback(null);
       }, 3000);
     } finally {
@@ -547,7 +702,10 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   });
   const [localShowPosterCard, setLocalShowPosterCard] = useState<boolean>(() => {
     if (typeof showPosterCard === 'boolean') return showPosterCard;
-    return loadUserSettings().tweaks?.previewShowPosterCard !== false;
+    const tweaks = loadUserSettings().tweaks;
+    return isDesktopViewport
+      ? tweaks?.previewShowPosterCardDesktop === true
+      : tweaks?.previewShowPosterCard !== false;
   });
 
   useEffect(() => {
@@ -573,16 +731,25 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       const settings = loadUserSettings();
       setLocalPosterGlow(settings.tweaks?.previewPosterGlow !== false);
       setLocalPosterGlowContrast(settings.tweaks?.previewPosterGlowContrast ?? 1.0);
-      setLocalShowPosterCard(settings.tweaks?.previewShowPosterCard !== false);
+      setLocalShowPosterCard(
+        isDesktopViewport
+          ? settings.tweaks?.previewShowPosterCardDesktop === true
+          : settings.tweaks?.previewShowPosterCard !== false
+      );
     };
+    syncFromSettings();
     window.addEventListener('ehsaan:settings-change', syncFromSettings);
     return () => window.removeEventListener('ehsaan:settings-change', syncFromSettings);
-  }, []);
+  }, [isDesktopViewport]);
 
   const isPosterGlowEnabled = typeof posterGlowEnabled === 'boolean' ? posterGlowEnabled : localPosterGlow;
   const effectivePosterGlowContrast =
     typeof posterGlowContrast === 'number' ? posterGlowContrast : localPosterGlowContrast;
   const isPosterCardVisible = typeof showPosterCard === 'boolean' ? showPosterCard : localShowPosterCard;
+
+  const effectiveArtOpacity = isDesktopViewport
+    ? (heroCustomizer.desktopOpacity ?? 0.95)
+    : heroCustomizer.opacity;
 
   const handleToggleShowPosterCard = () => {
     const nextShow = !isPosterCardVisible;
@@ -596,7 +763,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         tweaks: {
           ...DEFAULT_APP_TWEAKS,
           ...current.tweaks,
-          previewShowPosterCard: nextShow,
+          ...(isDesktopViewport
+            ? { previewShowPosterCardDesktop: nextShow }
+            : { previewShowPosterCard: nextShow }),
         },
       });
     }
@@ -638,14 +807,59 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
     }
   };
 
-  // Load customizable card section order
+  // Load customizable card section order (with seamless migration when new sections are added)
   const [cardSections, setCardSections] = useState<PreviewCardItem[]>(() => {
     try {
       const saved = localStorage.getItem(PREVIEW_SECTIONS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === DEFAULT_CARD_SECTIONS.length) {
-          return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const defaultMap = new Map(DEFAULT_CARD_SECTIONS.map(s => [s.id, s]));
+          const merged: PreviewCardItem[] = [];
+          const seen = new Set<PreviewCardId>();
+
+          for (const raw of parsed) {
+            if (raw && typeof raw.id === 'string' && defaultMap.has(raw.id as PreviewCardId) && !seen.has(raw.id as PreviewCardId)) {
+              const def = defaultMap.get(raw.id as PreviewCardId)!;
+              merged.push({
+                ...def,
+                visible: typeof raw.visible === 'boolean' ? raw.visible : def.visible,
+              });
+              seen.add(def.id);
+            }
+          }
+
+          // Insert any newly introduced default sections in their natural slot
+          for (const def of DEFAULT_CARD_SECTIONS) {
+            if (!seen.has(def.id)) {
+              if (def.id === 'notes') {
+                const journalIdx = merged.findIndex(s => s.id === 'journal');
+                const inheritedVisible = journalIdx >= 0 ? merged[journalIdx].visible : def.visible;
+                const notesEntry = { ...def, visible: inheritedVisible };
+                if (journalIdx >= 0) {
+                  merged.splice(journalIdx + 1, 0, notesEntry);
+                } else {
+                  merged.unshift(notesEntry);
+                }
+              } else if (def.id === 'progress') {
+                const anchorIdx = merged.findIndex(s => s.id === 'notes');
+                const fallbackIdx = merged.findIndex(s => s.id === 'journal');
+                const insertAfter = anchorIdx >= 0 ? anchorIdx : fallbackIdx;
+                if (insertAfter >= 0) {
+                  merged.splice(insertAfter + 1, 0, def);
+                } else {
+                  merged.unshift(def);
+                }
+              } else {
+                merged.push(def);
+              }
+              seen.add(def.id);
+            }
+          }
+
+          if (merged.length === DEFAULT_CARD_SECTIONS.length) {
+            return merged;
+          }
         }
       }
     } catch {
@@ -800,15 +1014,23 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   }, [isOpen, item?.id, item?.tmdbId, item?.imdbId]);
 
   const updateSimilarScrollButtons = () => {
-    const el = similarRailRef.current;
-    if (!el) return;
-    setSimilarCanScrollLeft(el.scrollLeft > 12);
-    setSimilarCanScrollRight(
-      el.scrollWidth > el.clientWidth + 12 && el.scrollLeft + el.clientWidth < el.scrollWidth - 12
-    );
+    if (similarScrollRafRef.current !== null) return;
+    similarScrollRafRef.current = requestAnimationFrame(() => {
+      similarScrollRafRef.current = null;
+      const el = similarRailRef.current;
+      if (!el) return;
+      const nextLeft = el.scrollLeft > 12;
+      const nextRight =
+        el.scrollWidth > el.clientWidth + 12 && el.scrollLeft + el.clientWidth < el.scrollWidth - 12;
+      setSimilarCanScrollLeft(prev => (prev === nextLeft ? prev : nextLeft));
+      setSimilarCanScrollRight(prev => (prev === nextRight ? prev : nextRight));
+    });
   };
 
+  const isSimilarSectionVisible = cardSections.some(s => s.id === 'similar_titles' && s.visible);
+
   useEffect(() => {
+    if (!isSimilarSectionVisible) return;
     const el = similarRailRef.current;
     const t1 = setTimeout(updateSimilarScrollButtons, 80);
     const t2 = setTimeout(updateSimilarScrollButtons, 320);
@@ -826,7 +1048,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       window.removeEventListener('resize', updateSimilarScrollButtons);
       observer?.disconnect();
     };
-  }, [similarTitles, isOpen]);
+  }, [similarTitles, isOpen, isSimilarSectionVisible]);
 
   const handleScrollSimilarRail = (direction: 'left' | 'right') => {
     const el = similarRailRef.current;
@@ -836,7 +1058,8 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       left: direction === 'left' ? -distance : distance,
       behavior: 'smooth',
     });
-    setTimeout(updateSimilarScrollButtons, 340);
+    if (similarScrollTimerRef.current) clearTimeout(similarScrollTimerRef.current);
+    similarScrollTimerRef.current = setTimeout(updateSimilarScrollButtons, 340);
   };
 
   const handleSelectSimilarTitle = (similarItem: MediaItem) => {
@@ -900,12 +1123,12 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const isWatching = !isWatched && progressPercent > 0;
   const personalRating = activeUserState?.personalRating || 0;
 
-  // Helper for alias-aware list membership
+  // Helper for alias-aware list membership (O(1) via WeakMap media index)
   const isItemInCustomList = (list: CustomList) =>
     list.itemIds.some(id => {
       if (id === item.id || (item.imdbId && id === item.imdbId)) return true;
       if (item.tmdbId && id === `tmdb-${item.type || 'movie'}-${item.tmdbId}`) return true;
-      const existing = mediaItems.find(m => m.id === id);
+      const existing = findMediaItemByIdOrAlias(id, mediaItems);
       return Boolean(existing && areMediaItemsSame(existing, item));
     });
 
@@ -940,6 +1163,112 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
       8
   );
 
+  // Format total duration in hours and minutes (e.g. "2h 28m" or "46h 30m")
+  const formatHoursMinutes = (mins: number): string => {
+    const rounded = Math.max(0, Math.round(mins));
+    const h = Math.floor(rounded / 60);
+    const m = rounded % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  };
+
+  // Format release date nicely (e.g. "Jul 16, 2010")
+  const formattedReleaseDate = (() => {
+    if (item.releaseDate) {
+      const parsed = new Date(`${item.releaseDate}T00:00:00`);
+      if (!Number.isNaN(parsed.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(item.releaseDate)) {
+        return parsed.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+      return item.releaseDate;
+    }
+    return item.year ? String(item.year) : undefined;
+  })();
+
+  // Aggregate unique episode details across item.episodesList & seasons[].episodes
+  const allEpisodeDetails = (() => {
+    if (item.type !== 'tv') return [];
+    const seen = new Map<string, NonNullable<MediaItem['episodesList']>[number]>();
+    const addEps = (eps?: MediaItem['episodesList']) => {
+      if (!Array.isArray(eps)) return;
+      for (const ep of eps) {
+        if (!ep) continue;
+        const key = `s${ep.seasonNumber}e${ep.episodeNumber}`;
+        const prev = seen.get(key);
+        if (!prev || ((ep.rating || 0) > (prev.rating || 0))) {
+          seen.set(key, ep);
+        }
+      }
+    };
+    addEps(item.episodesList);
+    for (const s of seasonsList) {
+      addEps(s.episodes);
+    }
+    return Array.from(seen.values());
+  })();
+
+  // Most loved episode (highest rated episode for TV series, when available)
+  const mostLovedEpisode = (() => {
+    if (item.type !== 'tv' || allEpisodeDetails.length === 0) return null;
+    let best = null as (typeof allEpisodeDetails)[number] | null;
+    for (const ep of allEpisodeDetails) {
+      if (typeof ep.rating === 'number' && ep.rating > 0) {
+        if (!best || ep.rating > (best.rating || 0)) {
+          best = ep;
+        }
+      }
+    }
+    return best;
+  })();
+
+  // Total duration label in hours & minutes for both movies and TV series
+  const totalLengthLabel = (() => {
+    if (item.type === 'movie') {
+      return item.runtime && item.runtime > 0 ? formatHoursMinutes(item.runtime) : undefined;
+    }
+    // TV series total runtime calculation
+    const timedEpisodes = allEpisodeDetails.filter(ep => typeof ep.runtime === 'number' && ep.runtime > 0);
+    const epCount = totalEpisodesCount || allEpisodeDetails.length || 0;
+    if (timedEpisodes.length > 0 && epCount > 0 && timedEpisodes.length >= epCount) {
+      const exactTotal = timedEpisodes.reduce((sum, ep) => sum + (ep.runtime || 0), 0);
+      return `${formatHoursMinutes(exactTotal)} (${epCount} eps)`;
+    }
+    const avgRuntime = timedEpisodes.length > 0
+      ? Math.round(timedEpisodes.reduce((sum, ep) => sum + (ep.runtime || 0), 0) / timedEpisodes.length)
+      : (item.runtime && item.runtime > 0 ? item.runtime : 45);
+    if (epCount > 0 && avgRuntime > 0) {
+      return `~${formatHoursMinutes(epCount * avgRuntime)} (${epCount} eps · ~${avgRuntime}m/ep)`;
+    }
+    return undefined;
+  })();
+
+  // Key crew (Director / Creator / Showrunner / Writers) and top cast summary
+  const topCrewSummary = (() => {
+    if (!item.crew || item.crew.length === 0) return null;
+    const priorityRoles = ['Creator', 'Director', 'Showrunner', 'Writer', 'Screenplay'];
+    const preferred = item.crew.filter(c => priorityRoles.includes(c.job));
+    const chosen = (preferred.length > 0 ? preferred : item.crew).slice(0, 3);
+    const uniqueNames = Array.from(new Set(chosen.map(c => c.name).filter(Boolean)));
+    if (uniqueNames.length === 0) return null;
+    const primaryRole = preferred[0]?.job || chosen[0]?.job || 'Crew';
+    const label = primaryRole === 'Creator'
+      ? (uniqueNames.length > 1 ? 'Creators' : 'Creator')
+      : primaryRole === 'Director'
+      ? (uniqueNames.length > 1 ? 'Directors' : 'Director')
+      : 'Top Crew';
+    return { label, value: uniqueNames.join(', ') };
+  })();
+
+  const topActorsSummary = (() => {
+    if (!item.cast || item.cast.length === 0) return undefined;
+    const names = item.cast.slice(0, 4).map(c => c.name).filter(Boolean);
+    return names.length > 0 ? names.join(', ') : undefined;
+  })();
+
   const getYoutubeEmbedUrl = (url?: string) => {
     if (!url) return '';
     const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
@@ -949,6 +1278,14 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   const embedUrl = getYoutubeEmbedUrl(item.trailerUrl);
   const isDarkPreview = Boolean(heroCustomizer.forceDarkMode);
   const isDarkHero = Boolean(heroCustomizer.artOn || heroCustomizer.forceDarkMode);
+  const activeColorScheme =
+    colorScheme ||
+    (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-color-scheme') : null) ||
+    loadUserSettings().colorScheme ||
+    'orange';
+  const forcedDarkThemeAttr = isDarkPreview
+    ? (appTheme === 'oled-black' ? 'oled-black' : 'dark')
+    : undefined;
   const hasHeroRatingBadge = Boolean(
     heroCustomizer.showRatingBadge &&
       ((item.imdbRating && item.imdbRating > 0) || (item.tmdbRating && item.tmdbRating > 0))
@@ -962,10 +1299,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
   return (
     <div
       ref={modalScrollRef}
-      data-theme={isDarkPreview ? "dark" : undefined}
-      className={`fixed inset-0 z-50 w-full h-full overflow-y-auto animate-fade-in flex flex-col transition-colors duration-300 ${
-        isDarkPreview ? 'bg-[#0b0d10] text-[#f4f4f5]' : 'bg-[var(--modal-bg)] text-[var(--text-primary)]'
-      }`}
+      data-theme={forcedDarkThemeAttr}
+      data-color-scheme={isDarkPreview ? activeColorScheme : undefined}
+      className="fixed inset-0 z-50 w-full h-full overflow-y-auto animate-window-open flex flex-col transition-colors duration-300 bg-[var(--modal-bg)] text-[var(--text-primary)]"
     >
       
       {/* ========================================================================= */}
@@ -993,21 +1329,21 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               className={`w-full h-full object-cover ${
                 !isPosterCardVisible ? 'object-[center_20%]' : 'object-center'
               } transition-opacity duration-300`}
-              style={{ opacity: heroCustomizer.opacity }}
+              style={{ opacity: effectiveArtOpacity }}
             />
             {/* Dynamic directional gradient overlay: leaves top/right artwork crisp while ensuring bottom-left text legibility */}
             <div
               className="absolute inset-0 pointer-events-none transition-opacity duration-300"
               style={{
                 background: !isPosterCardVisible
-                  ? heroCustomizer.opacity >= 0.98
+                  ? effectiveArtOpacity >= 0.98
                     ? 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.48) 32%, rgba(0,0,0,0.08) 58%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.22) 38%, transparent 66%)'
-                    : heroCustomizer.opacity >= 0.75
+                    : effectiveArtOpacity >= 0.75
                     ? 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.58) 38%, rgba(0,0,0,0.16) 66%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.34) 42%, transparent 72%)'
                     : 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.68) 44%, rgba(0,0,0,0.24) 72%, transparent 100%), linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 45%, transparent 75%)'
-                  : heroCustomizer.opacity >= 0.98
+                  : effectiveArtOpacity >= 0.98
                   ? 'linear-gradient(to right, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.18) 30%, transparent 62%), linear-gradient(to top, rgba(0,0,0,0.60) 0%, transparent 35%)'
-                  : heroCustomizer.opacity >= 0.75
+                  : effectiveArtOpacity >= 0.75
                   ? 'linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.38) 35%, rgba(0,0,0,0.12) 70%, transparent 100%), linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 45%)'
                   : 'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.1) 100%), linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 50%)'
               }}
@@ -1174,7 +1510,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary)]">
                       <span>Backdrop Opacity:</span>
                       <span className="text-[var(--accent-primary)] font-mono font-bold">
-                        {heroCustomizer.artOn ? `${Math.round(heroCustomizer.opacity * 100)}%` : '0%'}
+                        {heroCustomizer.artOn ? `${Math.round(effectiveArtOpacity * 100)}%` : '0%'}
                       </span>
                     </div>
                     <input
@@ -1182,8 +1518,11 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       min="0.0"
                       max="1.0"
                       step="0.05"
-                      value={heroCustomizer.artOn ? heroCustomizer.opacity : 0}
-                      onChange={e => updateHeroCustomizer({ opacity: Number(e.target.value) })}
+                      value={heroCustomizer.artOn ? effectiveArtOpacity : 0}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        updateHeroCustomizer(isDesktopViewport ? { desktopOpacity: val } : { opacity: val });
+                      }}
                       disabled={!heroCustomizer.artOn}
                       className="w-full h-2 bg-[var(--chip-bg)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)] disabled:opacity-30"
                     />
@@ -1585,9 +1924,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                       </button>
                     </div>
 
-                    {/* 7. Watch Trailer Button */}
+                    {/* 7. Watch Trailer Button (in Overview) */}
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-semibold text-[var(--text-primary)]">Watch Trailer Button</span>
+                      <span className="font-semibold text-[var(--text-primary)]">Watch Trailer (Overview)</span>
                       <button
                         onClick={() => updateHeroCustomizer({ showWatchTrailerButton: !heroCustomizer.showWatchTrailerButton })}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition ${
@@ -1712,8 +2051,9 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 contrast={effectivePosterGlowContrast}
                 isDarkSurface={
                   isDarkHero ||
-                  (typeof document !== 'undefined' &&
-                    document.documentElement.getAttribute('data-theme') !== 'cream')
+                  isDarkPreview ||
+                  (appTheme ? appTheme !== 'cream' : (typeof document !== 'undefined' &&
+                    document.documentElement.getAttribute('data-theme') !== 'cream'))
                 }
                 className="w-48 xs:w-56 sm:w-64 md:w-76 lg:w-84 flex-none aspect-[2/3] select-none transition-transform duration-300 hover:scale-[1.02] self-start shrink-0"
               >
@@ -1774,18 +2114,39 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                 </div>
               )}
 
-              {/* Primary Title (Commanding Bottom-Left Typography when Poster Card is hidden) */}
-              <h1 className={`${
-                !isPosterCardVisible
-                  ? 'text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.06]'
-                  : 'text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12]'
-              } text-left ${
-                isDarkHero
-                  ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]'
-                  : 'text-[var(--text-primary)]'
-              }`}>
-                {item.title}
-              </h1>
+              {/* Primary Title + Quick Copy Title Button */}
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                <h1 className={`${
+                  !isPosterCardVisible
+                    ? 'text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.06]'
+                    : 'text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-[1.18] sm:leading-[1.12]'
+                } text-left ${
+                  isDarkHero
+                    ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]'
+                    : 'text-[var(--text-primary)]'
+                }`}>
+                  {item.title}
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => handleCopyTitle(item.title)}
+                  title={isTitleCopied ? 'Title copied!' : 'Copy title'}
+                  aria-label={isTitleCopied ? 'Title copied' : `Copy ${item.title}`}
+                  className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full border transition active:scale-90 cursor-pointer shrink-0 ${
+                    isTitleCopied
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                      : isDarkHero
+                      ? 'bg-black/45 hover:bg-black/70 text-white/90 hover:text-white border-white/20 backdrop-blur-xs'
+                      : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                  }`}
+                >
+                  {isTitleCopied ? (
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                  )}
+                </button>
+              </div>
 
               {/* Tagline Quote */}
               {heroCustomizer.showTaglineQuote && item.tagline && (
@@ -1798,27 +2159,31 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
               {/* Compact Type + Year + Rating Row */}
               <div className={`${!isPosterCardVisible ? 'mt-3' : 'mt-3.5'} flex flex-wrap items-center justify-start gap-2.5`}>
-                {/* 1. Rating Badge */}
+                {/* 1. Rating Badge (Tertiary Theme Color in Preview Window — redirects to IMDb ratings page) */}
                 {hasHeroRatingBadge && (
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
-                    isDarkHero
-                      ? 'bg-black/60 text-white border-white/20 backdrop-blur-xs'
-                      : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
-                  }`}>
-                    {item.imdbRating && item.imdbRating > 0 ? (
-                      <>
-                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                        <span className="tabular-nums font-black">{item.imdbRating.toFixed(1)}</span>
-                        <span className="text-[10px] uppercase font-bold opacity-75">IMDb</span>
-                      </>
-                    ) : (
-                      <>
-                        <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
-                        <span className="tabular-nums font-black">{(item.tmdbRating || 0).toFixed(1)}</span>
-                        <span className="text-[10px] uppercase font-bold opacity-75">TMDB</span>
-                      </>
-                    )}
-                  </span>
+                  item.imdbRating && item.imdbRating > 0 ? (
+                    <a
+                      href={getImdbRatingPageUrl(item)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Open IMDb ratings page (${item.imdbRating.toFixed(1)}/10)`}
+                      aria-label={`Open IMDb ratings page for ${item.title} (${item.imdbRating.toFixed(1)}/10)`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] border border-[var(--border-subtle)] shadow-sm hover:opacity-90 active:scale-95 transition cursor-pointer"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span className="tabular-nums font-black">{item.imdbRating.toFixed(1)}</span>
+                    </a>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                      isDarkHero
+                        ? 'bg-black/60 text-white border-white/20 backdrop-blur-xs'
+                        : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)]'
+                    }`}>
+                      <Star className="w-3.5 h-3.5 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
+                      <span className="tabular-nums font-black">{(item.tmdbRating || 0).toFixed(1)}</span>
+                      <span className="text-[10px] uppercase font-bold opacity-75">TMDB</span>
+                    </span>
+                  )
                 )}
 
                 {/* Compact Type · Year · Duration when Poster Card is Hidden */}
@@ -1878,19 +2243,6 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                   }`}>
                     4K Ultra HD
                   </span>
-                )}
-
-                {/* Watch Trailer Button in Rating Row */}
-                {heroCustomizer.showWatchTrailerButton && item.trailerUrl && !isPlayingTrailer && (
-                  <button
-                    onClick={() => setIsPlayingTrailer(true)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 ${
-                      isPosterCardVisible ? 'ml-auto sm:ml-0' : ''
-                    }`}
-                  >
-                    <Play className="w-3 h-3 fill-current ml-0.5" />
-                    <span>Trailer</span>
-                  </button>
                 )}
               </div>
 
@@ -2088,38 +2440,55 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
         {cardSections.map((section) => {
           if (!section.visible) return null;
 
-          // 1. Personal Rating & Reflections Card (FULL WIDTH)
+          // 1. Personal Rating (Your Verdict) Card — INDEPENDENT
           if (section.id === 'journal') {
             const activeRatingTag = resolveRatingTag(activeUserState);
 
             return (
-              <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
-                
-                {/* 4-Tier Rating Cards Grid */}
+              <div key="journal" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs">
+                {/* Redesigned Clean Theme-Consistent Verdict & Rating Tier Selector */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="block text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">
-                      YOUR VERDICT & RATING TIER
-                    </label>
+                  <div className="flex items-center justify-between gap-3 mb-3.5">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                      <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-tight">
+                        Your Verdict
+                      </h3>
+                      {activeRatingTag ? (
+                        <span className="text-xs font-medium text-[var(--text-secondary)] tabular-nums">
+                          · {activeRatingTag.label} · {activeRatingTag.numericRating.toFixed(1)}/10
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          · Pick a tier
+                        </span>
+                      )}
+                    </div>
                     {activeRatingTag && (
                       <button
                         type="button"
                         onClick={() => onSetRating(item.id, undefined, undefined, item)}
-                        className="text-xs font-black text-red-700 dark:text-red-500 hover:underline transition active:scale-95 cursor-pointer"
+                        className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition active:scale-95 cursor-pointer shrink-0"
                       >
-                        Reset Rating
+                        Clear
                       </button>
                     )}
                   </div>
 
-                  {/* 4-Tier Rating Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {RATING_TAGS.map(tag => {
+                  {/* Unified Segmented Verdict Tray */}
+                  <div
+                    role="radiogroup"
+                    aria-label="Rating tier"
+                    className="p-1.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5"
+                  >
+                    {RATING_TAGS.map((tag, index) => {
                       const isSelected = activeRatingTag?.id === tag.id;
+                      const tierLevel = index + 1;
                       return (
                         <button
                           key={tag.id}
                           type="button"
+                          role="radio"
+                          aria-checked={isSelected}
                           onClick={() => {
                             if (isSelected) {
                               onSetRating(item.id, undefined, undefined, item);
@@ -2127,27 +2496,57 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                               onSetRating(item.id, tag.numericRating, tag.id, item);
                             }
                           }}
-                          className={`group relative p-4.5 rounded-2xl text-left transition-all duration-200 border cursor-pointer select-none active:scale-[0.98] flex flex-col justify-between min-h-[110px] ${
+                          className={`group relative px-4 py-3.5 rounded-xl text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.98] flex flex-col justify-between min-h-[92px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
                             isSelected
-                              ? `${tag.activeBgClass} ${tag.activeBorderClass} shadow-md`
-                              : 'bg-[var(--chip-bg)] hover:bg-[var(--bg-surface-elevated)] border-[var(--border-subtle)]'
+                              ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-sm'
+                              : 'bg-transparent hover:bg-[var(--bg-surface-card)] text-[var(--text-primary)]'
                           }`}
                         >
-                          <div>
-                            {/* Card Title */}
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <h4 className={`text-base font-black tracking-tight ${tag.colorClass}`}>
-                                {tag.label}
-                              </h4>
-                              {isSelected && (
-                                <div className="w-5 h-5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] flex items-center justify-center shrink-0 shadow-xs">
-                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                </div>
-                              )}
+                          {/* Top Row: Subtle 4-Step Tier Meter & Selected Check */}
+                          <div className="flex items-center justify-between gap-2 mb-2.5">
+                            <div className="flex items-center gap-1" aria-hidden="true">
+                              {[1, 2, 3, 4].map(step => (
+                                <span
+                                  key={step}
+                                  className={`h-1 w-3.5 rounded-full transition-colors ${
+                                    step <= tierLevel
+                                      ? isSelected
+                                        ? 'bg-[var(--bg-primary)]'
+                                        : 'bg-[var(--accent-primary)]/70 group-hover:bg-[var(--accent-primary)]'
+                                      : isSelected
+                                      ? 'bg-[var(--bg-primary)]/25'
+                                      : 'bg-[var(--border-subtle)]'
+                                  }`}
+                                />
+                              ))}
                             </div>
 
-                            {/* Card Description (Uses Theme Primary Color for Crisp Readability in Light & Dark Modes) */}
-                            <p className="text-xs text-[var(--text-primary)] font-semibold leading-relaxed">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isSelected && (
+                                <span className="w-5 h-5 rounded-full bg-[var(--bg-primary)]/20 text-[var(--bg-primary)] flex items-center justify-center shrink-0">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </span>
+                              )}
+                              <span className="w-7.5 h-7.5 rounded-full bg-[#F5C518] text-[#121212] border border-[#DFB00F] shadow-2xs flex items-center justify-center text-[10px] font-black tracking-tight tabular-nums leading-none shrink-0">
+                                {tag.numericRating.toFixed(1)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Tier Filled Pill Label & Description */}
+                          <div>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold tracking-tight leading-none shadow-2xs ${tag.activeBgClass} ${tag.colorClass} ${
+                                isSelected ? 'ring-1 ring-white/35' : ''
+                              }`}
+                            >
+                              {tag.label}
+                            </span>
+                            <p
+                              className={`mt-2 text-xs leading-relaxed ${
+                                isSelected ? 'text-[var(--bg-primary)]/85' : 'text-[var(--text-secondary)]'
+                              }`}
+                            >
                               {tag.description}
                             </p>
                           </div>
@@ -2156,131 +2555,198 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                     })}
                   </div>
 
-                  <p className="mt-4 text-xs text-[var(--text-secondary)] font-medium pb-2 border-b border-[var(--border-subtle)]">
+                  <p className="mt-3 text-xs text-[var(--text-muted)]">
                     Saved privately on this device.
                   </p>
                 </div>
+              </div>
+            );
+          }
 
-                {/* Watch Progress Slider */}
-                <div className="w-full">
-                  <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1.5">
-                    <span className="font-black uppercase tracking-wider">PROGRESS</span>
-                    <span className="font-bold text-[var(--text-primary)] tabular-nums">
-                      {progressPercent}%
+          // 1A. Personal Notes & Reflections Card — INDEPENDENT
+          if (section.id === 'notes') {
+            return (
+              <div key="notes" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <label className="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">
+                      PERSONAL NOTES &amp; REFLECTIONS
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 text-[11px]">
+                    {isSavedFeedback && (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-bold animate-fade-in bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Saved to journal</span>
+                      </span>
+                    )}
+                    <span className="text-[var(--text-secondary)] tabular-nums font-mono">
+                      {notesDraft.trim() ? `${notesDraft.trim().split(/\s+/).length} words · ${notesDraft.length} chars` : '0 words'}
                     </span>
                   </div>
-                    <div className="relative w-full py-1 flex items-center select-none">
-                      {/* Thick M3 Tactile Track */}
-                      <div className="relative w-full h-3 rounded-full flex items-center overflow-hidden bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
-                        <div
-                          className="h-full bg-[var(--accent-primary)] transition-all duration-75 rounded-l-full"
-                          style={{ width: `${progressPercent}%` }}
-                        />
-                        <div className="h-full flex-1 bg-[var(--chip-bg)] relative">
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/35" />
-                        </div>
-                      </div>
+                </div>
 
-                      {/* M3 Vertical Pill Thumb */}
-                      <div
-                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-75 flex items-center justify-center z-10"
-                        style={{ left: `${progressPercent}%` }}
-                      >
-                        <div className="w-1.5 h-5 rounded-full bg-[var(--accent-primary)] shadow-sm ring-2 ring-[var(--bg-primary)]" />
-                      </div>
+                <div className="relative rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] focus-within:ring-2 focus-within:ring-[var(--accent-primary)] focus-within:border-transparent transition-all p-3.5 sm:p-4">
+                  <textarea
+                    rows={4}
+                    value={notesDraft}
+                    onChange={e => setNotesDraft(e.target.value)}
+                    onBlur={() => {
+                      onSetNotes(item.id, notesDraft, item);
+                      if (notesDraft.trim()) {
+                        setIsSavedFeedback(true);
+                        if (savedFeedbackTimerRef.current) clearTimeout(savedFeedbackTimerRef.current);
+                        savedFeedbackTimerRef.current = setTimeout(() => setIsSavedFeedback(false), 2200);
+                      }
+                    }}
+                    placeholder="Write your personal reflections, memorable quotes, favorite scenes, or review notes on this title..."
+                    className="w-full bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-xs sm:text-sm leading-relaxed focus:outline-none resize-y min-h-[100px]"
+                  />
 
-                      {/* Native Range Input */}
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={progressPercent}
-                        onChange={e => onSetProgress(item.id, Number(e.target.value), item)}
-                        aria-label="Watch progress"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                      />
+                  <div className="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)] mt-2">
+                    <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                      <span>Auto-saves on blur · Stored locally</span>
                     </div>
-                  </div>
 
-                {/* Improved Personal Notes & Reflections Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[var(--accent-primary)]" />
-                      <label className="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">
-                        PERSONAL NOTES & REFLECTIONS
-                      </label>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 text-[11px]">
-                      {isSavedFeedback && (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-bold animate-fade-in bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Saved to journal</span>
-                        </span>
-                      )}
-                      <span className="text-[var(--text-secondary)] tabular-nums font-mono">
-                        {notesDraft.trim() ? `${notesDraft.trim().split(/\s+/).length} words · ${notesDraft.length} chars` : '0 words'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="relative rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] focus-within:ring-2 focus-within:ring-[var(--accent-primary)] focus-within:border-transparent transition-all p-3.5 sm:p-4">
-                    <textarea
-                      rows={4}
-                      value={notesDraft}
-                      onChange={e => setNotesDraft(e.target.value)}
-                      onBlur={() => {
-                        onSetNotes(item.id, notesDraft, item);
-                        if (notesDraft.trim()) {
-                          setIsSavedFeedback(true);
-                          setTimeout(() => setIsSavedFeedback(false), 2200);
-                        }
-                      }}
-                      placeholder="Write your personal reflections, memorable quotes, favorite scenes, or review notes on this title..."
-                      className="w-full bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-xs sm:text-sm leading-relaxed focus:outline-none resize-y min-h-[100px]"
-                    />
-
-                    <div className="flex items-center justify-between pt-3 border-t border-[var(--border-subtle)] mt-2">
-                      <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-                        <span>Auto-saves on blur · Stored locally</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {notesDraft.trim().length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm('Clear your personal reflection note for this title?')) {
-                                setNotesDraft('');
-                                onSetNotes(item.id, '', item);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-xs transition active:scale-95"
-                            title="Clear personal note"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Clear</span>
-                          </button>
-                        )}
-
+                      {notesDraft.trim().length > 0 && (
                         <button
                           type="button"
                           onClick={() => {
-                            onSetNotes(item.id, notesDraft, item);
-                            setIsSavedFeedback(true);
-                            setTimeout(() => setIsSavedFeedback(false), 2500);
+                            if (window.confirm('Clear your personal reflection note for this title?')) {
+                              setNotesDraft('');
+                              onSetNotes(item.id, '', item);
+                            }
                           }}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#7F1D1D] hover:bg-[#991B1B] text-white shadow-xs transition active:scale-95"
+                          title="Clear personal note"
                         >
-                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Save Note</span>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Clear</span>
                         </button>
-                      </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSetNotes(item.id, notesDraft, item);
+                          setIsSavedFeedback(true);
+                          if (savedFeedbackTimerRef.current) clearTimeout(savedFeedbackTimerRef.current);
+                          savedFeedbackTimerRef.current = setTimeout(() => setIsSavedFeedback(false), 2500);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-xs"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Save Note</span>
+                      </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            );
+          }
+
+          // 1B. INDEPENDENT MOVIE PROGRESS CARD (Movies Only - Hidden for TV Series)
+          if (section.id === 'progress') {
+            if (item.type !== 'movie') return null;
+
+            const remainingMins =
+              item.runtime && item.runtime > 0 && progressPercent > 0 && progressPercent < 100
+                ? Math.max(1, Math.round((item.runtime * (100 - progressPercent)) / 100))
+                : 0;
+
+            return (
+              <div
+                key="progress"
+                className="w-full p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">
+                      MOVIE PROGRESS
+                    </span>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                        isWatched || progressPercent >= 95
+                          ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border-[var(--border-subtle)]'
+                          : progressPercent > 0
+                          ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--accent-primary)]/30'
+                          : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                      }`}
+                    >
+                      {isWatched || progressPercent >= 95
+                        ? 'Completed'
+                        : progressPercent > 0
+                        ? 'In Progress'
+                        : 'Not Started'}
+                    </span>
+                    {remainingMins > 0 && (
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                        ~{formatHoursMinutes(remainingMins)} left
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="text-sm font-black text-[var(--accent-primary)] tabular-nums">
+                    {progressPercent}%
+                  </span>
+                </div>
+
+                {/* Thick M3 Tactile Track */}
+                <div className="relative w-full py-1.5 flex items-center select-none">
+                  <div className="relative w-full h-3.5 rounded-full flex items-center overflow-hidden bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
+                    <div
+                      className="h-full bg-[var(--accent-primary)] transition-all duration-75 rounded-l-full"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                    <div className="h-full flex-1 bg-[var(--chip-bg)] relative">
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/35" />
+                    </div>
+                  </div>
+
+                  {/* M3 Vertical Pill Thumb */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-75 flex items-center justify-center z-10"
+                    style={{ left: `${progressPercent}%` }}
+                  >
+                    <div className="w-2 h-6 rounded-full bg-[var(--accent-primary)] shadow-sm ring-2 ring-[var(--bg-primary)]" />
+                  </div>
+
+                  {/* Native Range Input */}
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={progressPercent}
+                    onChange={e => onSetProgress(item.id, Number(e.target.value), item)}
+                    aria-label="Movie watch progress"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                  />
+                </div>
+
+                {/* Quick Milestone Chips */}
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
+                  {[0, 25, 50, 75, 100].map(pct => {
+                    const isActive = progressPercent === pct;
+                    return (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => onSetProgress(item.id, pct, item)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold transition active:scale-95 cursor-pointer border ${
+                          isActive
+                            ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-transparent shadow-xs'
+                            : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                        }`}
+                      >
+                        {pct === 0 ? 'Reset' : pct === 100 ? '100% Done' : `${pct}%`}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -2370,89 +2836,153 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             );
           }
 
-          // 3. OVERVIEW & MERGED PRODUCTION DETAILS CARD
-          if (section.id === 'overview' || section.id === 'production') {
-            // Avoid duplicate rendering if both overview and production are enabled in cardSections
-            if (section.id === 'production' && cardSections.some(s => s.id === 'overview' && s.visible)) {
-              return null;
-            }
-
+          // 3. STORY OVERVIEW CARD — INDEPENDENT
+          if (section.id === 'overview') {
             return (
-              <div key="overview_merged" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-6">
-                {/* Full Overview Paragraph */}
-                <div>
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 tracking-tight">
+              <div key="overview" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                     Overview
                   </h3>
-                  <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
-                    {item.overview || 'No synopsis available for this title.'}
-                  </p>
+                  {heroCustomizer.showWatchTrailerButton && item.trailerUrl && embedUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPlayingTrailer(true);
+                        modalScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] text-xs font-bold hover:opacity-90 transition shadow-xs active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>{isPlayingTrailer ? 'Playing Trailer' : 'Watch Trailer'}</span>
+                    </button>
+                  )}
                 </div>
+                <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                  {item.overview || 'No synopsis available for this title.'}
+                </p>
+              </div>
+            );
+          }
 
-                {/* Merged Production Details */}
-                <div className="pt-4 border-t border-[var(--border-subtle)]">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3">
-                    Production Details
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-[var(--text-secondary)]">
-                    {item.originalTitle && item.originalTitle !== item.title && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Original Title:</span>
-                        <strong className="text-[var(--text-primary)] truncate ml-2">{item.originalTitle}</strong>
+          // 4. TITLE & PRODUCTION DETAILS CARD — INDEPENDENT
+          if (section.id === 'production') {
+            const hasProductionDetails = Boolean(
+              mostLovedEpisode ||
+              totalLengthLabel ||
+              formattedReleaseDate ||
+              (item.type === 'tv' && seasonsCount && totalEpisodesCount) ||
+              topCrewSummary ||
+              topActorsSummary ||
+              (item.originalTitle && item.originalTitle !== item.title) ||
+              item.productionCompany ||
+              item.country ||
+              item.budget ||
+              item.boxOffice ||
+              item.status
+            );
+
+            if (!hasProductionDetails) return null;
+
+            return (
+              <div key="production" className="w-full p-6 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                  Title &amp; Production Details
+                </h3>
+
+                {/* Highlight: Most Loved Episode (for TV Series when episode ratings exist) */}
+                {mostLovedEpisode && (
+                  <div className="p-3.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[var(--accent-primary)] block">
+                        Most Loved Episode
+                      </span>
+                      <div className="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] truncate mt-0.5">
+                        S{mostLovedEpisode.seasonNumber} E{mostLovedEpisode.episodeNumber} · {mostLovedEpisode.title}
                       </div>
-                    )}
-                    {item.releaseDate && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Release Date:</span>
-                        <strong className="text-[var(--text-primary)]">{item.releaseDate}</strong>
-                      </div>
-                    )}
-                    {item.productionCompany && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Production:</span>
-                        <strong className="text-[var(--text-primary)] truncate ml-2">{item.productionCompany}</strong>
-                      </div>
-                    )}
-                    {item.country && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Country:</span>
-                        <strong className="text-[var(--text-primary)]">{item.country}</strong>
-                      </div>
-                    )}
-                    {item.budget && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Budget:</span>
-                        <strong className="text-[var(--text-primary)]">{item.budget}</strong>
-                      </div>
-                    )}
-                    {item.boxOffice && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Box Office:</span>
-                        <strong className="text-[var(--text-primary)]">{item.boxOffice}</strong>
-                      </div>
-                    )}
-                    {item.status && (
-                      <div className="flex justify-between border-b border-[var(--border-subtle)] pb-1.5">
-                        <span>Status:</span>
-                        <strong className="text-[var(--text-primary)]">{item.status}</strong>
-                      </div>
-                    )}
-                    {item.imdbId && onOpenImdbPreview && (
-                      <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-1.5 sm:col-span-2 md:col-span-3 pt-1">
-                        <span className="flex items-center gap-1.5 font-bold">
-                          <span className="px-1.5 py-0.5 rounded bg-[#F5C518] text-black text-[10px] font-black">IMDb</span>
-                          <span>IMDb Link Preview:</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onOpenImdbPreview(item.imdbId!)}
-                          className="px-2.5 py-1 rounded-xl bg-[#F5C518]/20 hover:bg-[#F5C518]/35 text-[var(--text-primary)] text-xs font-bold transition active:scale-95 border border-amber-500/30 flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>Inspect {item.imdbId}</span>
-                        </button>
-                      </div>
+                    </div>
+                    {typeof mostLovedEpisode.rating === 'number' && mostLovedEpisode.rating > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#F5C518] text-[#121212] text-xs font-black tabular-nums border border-[#DFB00F] shadow-2xs shrink-0">
+                        <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                        <span>{mostLovedEpisode.rating.toFixed(1)}</span>
+                      </span>
                     )}
                   </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-[var(--text-secondary)]">
+                  {totalLengthLabel && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">{item.type === 'tv' ? 'Total Length:' : 'Length:'}</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate">{totalLengthLabel}</strong>
+                    </div>
+                  )}
+                  {formattedReleaseDate && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Release Date:</span>
+                      <strong className="text-[var(--text-primary)] text-right">{formattedReleaseDate}</strong>
+                    </div>
+                  )}
+                  {item.type === 'tv' && seasonsCount && totalEpisodesCount && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Run:</span>
+                      <strong className="text-[var(--text-primary)] text-right">
+                        {seasonsCount} {seasonsCount === 1 ? 'Season' : 'Seasons'} · {totalEpisodesCount} Eps
+                      </strong>
+                    </div>
+                  )}
+                  {topCrewSummary && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5 sm:col-span-2 md:col-span-1">
+                      <span className="shrink-0">{topCrewSummary.label}:</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate" title={topCrewSummary.value}>
+                        {topCrewSummary.value}
+                      </strong>
+                    </div>
+                  )}
+                  {topActorsSummary && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5 sm:col-span-2">
+                      <span className="shrink-0">Starring:</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate" title={topActorsSummary}>
+                        {topActorsSummary}
+                      </strong>
+                    </div>
+                  )}
+                  {item.originalTitle && item.originalTitle !== item.title && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Original Title:</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate">{item.originalTitle}</strong>
+                    </div>
+                  )}
+                  {item.productionCompany && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Production:</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate">{item.productionCompany}</strong>
+                    </div>
+                  )}
+                  {item.country && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Country:</span>
+                      <strong className="text-[var(--text-primary)] text-right truncate">{item.country}</strong>
+                    </div>
+                  )}
+                  {item.budget && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Budget:</span>
+                      <strong className="text-[var(--text-primary)] text-right">{item.budget}</strong>
+                    </div>
+                  )}
+                  {item.boxOffice && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Box Office:</span>
+                      <strong className="text-[var(--text-primary)] text-right">{item.boxOffice}</strong>
+                    </div>
+                  )}
+                  {item.status && (
+                    <div className="flex justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5">
+                      <span className="shrink-0">Status:</span>
+                      <strong className="text-[var(--text-primary)] text-right">{item.status}</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -2692,107 +3222,116 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
             );
           }
 
+          // 7. SIMILAR TITLES RECOMMENDATION CARD — INDEPENDENT
+          if (section.id === 'similar_titles') {
+            if (!isLoadingSimilar && similarTitles.length === 0) return null;
+
+            return (
+              <section
+                key="similar_titles"
+                aria-label="Similar Titles"
+                className="w-full p-5 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4"
+              >
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[var(--accent-primary)] shrink-0 ui-sparkle-alive" />
+                      <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+                        Similar Titles
+                      </h2>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5 truncate">
+                      More {item.type === 'tv' ? 'series' : 'movies'} matching the taste &amp; vibe of {item.title}
+                    </p>
+                  </div>
+
+                  {similarTitles.length > 2 && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleScrollSimilarRail('left')}
+                        disabled={!similarCanScrollLeft}
+                        aria-label="Scroll similar titles left"
+                        className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
+                          !similarCanScrollLeft
+                            ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
+                            : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
+                        }`}
+                      >
+                        <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleScrollSimilarRail('right')}
+                        disabled={!similarCanScrollRight}
+                        aria-label="Scroll similar titles right"
+                        className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
+                          !similarCanScrollRight
+                            ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
+                            : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
+                        }`}
+                      >
+                        <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {isLoadingSimilar && similarTitles.length === 0 ? (
+                  <div className="flex gap-3.5 sm:gap-5 overflow-hidden pt-1 pb-2">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="flex-none w-[134px] sm:w-[160px] md:w-[176px] aspect-[2/3] rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    ref={similarRailRef}
+                    onScroll={updateSimilarScrollButtons}
+                    className="flex gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar pb-2 pt-1 snap-x snap-mandatory"
+                  >
+                    {similarTitles.map((simItem) => {
+                      const simState = resolveStateForMediaItem(simItem, userStates, mediaItemsRef.current);
+                      return (
+                        <div
+                          key={simItem.id}
+                          className="flex-none w-[134px] sm:w-[160px] md:w-[176px] snap-start"
+                        >
+                          <MoviePoster
+                            item={simItem}
+                            userState={simState}
+                            onClick={() => handleSelectSimilarTitle(simItem)}
+                            onToggleWatchlist={onToggleWatchlist}
+                            onMarkWatched={onMarkWatched || onToggleWatched}
+                            onMarkWatching={onMarkWatching}
+                            onDismissFromWatching={onDismissFromWatching}
+                            onToggleFavorite={onToggleFavorite}
+                            onAddMediaToLibrary={onAddMediaToLibrary}
+                            onRemoveFromWatchlist={
+                              onRemoveFromWatchlist ||
+                              ((id) => {
+                                if (simState?.inWatchlist) {
+                                  onToggleWatchlist(id, simItem);
+                                }
+                              })
+                            }
+                            customLists={customLists}
+                            onAddItemToList={onAddItemToList}
+                            onRemoveItemFromList={onRemoveItemFromList}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          }
+
           return null;
         })}
-
-        {/* ========================================================================= */}
-        {/* SIMILAR TITLES RECOMMENDATION SECTION AT END OF PREVIEW WINDOW            */}
-        {/* ========================================================================= */}
-        {(isLoadingSimilar || similarTitles.length > 0) && (
-          <section
-            aria-label="Similar Titles"
-            className="w-full p-5 sm:p-7 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs space-y-4"
-          >
-            <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
-                  <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
-                    Similar Titles
-                  </h2>
-                </div>
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5 truncate">
-                  More {item.type === 'tv' ? 'series' : 'movies'} matching the taste &amp; vibe of {item.title}
-                </p>
-              </div>
-
-              {similarTitles.length > 2 && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleScrollSimilarRail('left')}
-                    disabled={!similarCanScrollLeft}
-                    aria-label="Scroll similar titles left"
-                    className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
-                      !similarCanScrollLeft
-                        ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
-                        : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
-                    }`}
-                  >
-                    <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleScrollSimilarRail('right')}
-                    disabled={!similarCanScrollRight}
-                    aria-label="Scroll similar titles right"
-                    className={`p-2 rounded-full transition focus:outline-none shadow-2xs border border-[var(--border-subtle)] active:scale-95 ${
-                      !similarCanScrollRight
-                        ? 'opacity-35 cursor-not-allowed bg-[var(--chip-bg)] text-[var(--text-secondary)]'
-                        : 'bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] cursor-pointer'
-                    }`}
-                  >
-                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {isLoadingSimilar && similarTitles.length === 0 ? (
-              <div className="flex gap-3.5 sm:gap-5 overflow-hidden pt-1 pb-2">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-none w-[134px] sm:w-[160px] md:w-[176px] aspect-[2/3] rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div
-                ref={similarRailRef}
-                onScroll={updateSimilarScrollButtons}
-                className="flex gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar pb-2 pt-1 snap-x snap-mandatory"
-              >
-                {similarTitles.map((simItem) => {
-                  const simState = resolveStateForMediaItem(simItem, userStates, mediaItemsRef.current);
-                  return (
-                    <div
-                      key={simItem.id}
-                      className="flex-none w-[134px] sm:w-[160px] md:w-[176px] snap-start"
-                    >
-                      <MoviePoster
-                        item={simItem}
-                        userState={simState}
-                        onClick={() => handleSelectSimilarTitle(simItem)}
-                        onToggleWatchlist={onToggleWatchlist}
-                        onMarkWatched={onToggleWatched}
-                        onToggleFavorite={onToggleFavorite}
-                        onRemoveFromWatchlist={(id) => {
-                          if (simState?.inWatchlist) {
-                            onToggleWatchlist(id, simItem);
-                          }
-                        }}
-                        customLists={customLists}
-                        onAddItemToList={onAddItemToList}
-                        onRemoveItemFromList={onRemoveItemFromList}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
       </div>
 
       {/* ========================================================================= */}
@@ -2822,9 +3361,14 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
               </button>
             </div>
 
-            <p className="text-xs text-[var(--text-secondary)] mt-3 mb-4">
-              Reorder or toggle sections to personalize your movie and series preview window.
-            </p>
+            <div className="flex items-center justify-between gap-2 mt-3 mb-4">
+              <p className="text-xs text-[var(--text-secondary)]">
+                Reorder or hide any preview card independently.
+              </p>
+              <span className="text-[11px] font-bold text-[var(--text-secondary)] tabular-nums shrink-0">
+                {cardSections.filter(s => s.visible).length}/{cardSections.length} visible
+              </span>
+            </div>
 
             {/* Cards List */}
             <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
@@ -2875,7 +3419,7 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
                           ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)]'
                           : 'bg-[var(--chip-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
-                      title={section.visible ? 'Hide section' : 'Show section'}
+                      title={section.visible ? 'Hide card' : 'Show card'}
                     >
                       {section.visible ? (
                         <Eye className="w-3.5 h-3.5" />
@@ -2890,13 +3434,24 @@ export const MoviePreviewModal: React.FC<MoviePreviewModalProps> = ({
 
             {/* Modal Actions */}
             <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
-              <button
-                onClick={resetSectionOrder}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Default</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={resetSectionOrder}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Default</span>
+                </button>
+                {cardSections.some(s => !s.visible) && (
+                  <button
+                    onClick={() => saveSections(cardSections.map(s => ({ ...s, visible: true })))}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--accent-primary)] hover:bg-[var(--chip-bg)] transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Show All</span>
+                  </button>
+                )}
+              </div>
 
               <button
                 onClick={() => setShowRearrangeModal(false)}

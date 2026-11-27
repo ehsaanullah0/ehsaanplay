@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { MediaItem, PersonalMediaState, CastMember, CrewMember } from '../../types/movie';
 import { fetchTMDBPersonDetails, TMDBPersonDetails, TMDBPersonCredit } from '../../services/tmdb';
 import { resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { SafeImage } from './SafeImage';
+import { StickerEmptyCredits } from './ExpressiveStickers';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import {
   X,
   ArrowLeft,
@@ -23,7 +26,6 @@ import {
   Search,
   Users,
   ArrowUpDown,
-  SlidersHorizontal,
   RotateCcw,
 } from 'lucide-react';
 
@@ -218,6 +220,8 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
     setActivePerson(person);
     setCreditSearchQuery('');
   }, [person]);
+
+  useRegisterBackAction(Boolean(activePerson), () => onCloseRef.current(), 60);
 
   // CRITICAL: Always open modal at the very top (scrollTop = 0)
   useLayoutEffect(() => {
@@ -1182,9 +1186,9 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
 
             {/* Empty state or Credits Grid */}
             {displayedCredits.length === 0 ? (
-              <div className="py-12 px-4 rounded-2xl bg-[var(--chip-bg)] border border-dashed border-[var(--border-subtle)] text-center space-y-3">
-                <SlidersHorizontal className="w-8 h-8 mx-auto text-[var(--text-muted)] opacity-60" />
-                <p className="text-xs sm:text-sm font-semibold text-[var(--text-primary)]">
+              <div className="py-10 px-4 rounded-3xl bg-[var(--chip-bg)] border border-dashed border-[var(--border-subtle)] text-center flex flex-col items-center space-y-2.5">
+                <StickerEmptyCredits className="w-32 h-24 sm:w-36 sm:h-28" />
+                <p className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
                   No titles match your active filters
                 </p>
                 <p className="text-[11px] text-[var(--text-secondary)] max-w-sm mx-auto">
@@ -1301,18 +1305,22 @@ export const CastCrewDetailModal: React.FC<CastCrewDetailModalProps> = ({
                             )}
                           </button>
 
-                          {/* Rating badge with dynamic highlight when rating sorting is active */}
+                          {/* Filled IMDb origin gold rating badge */}
                           {cr.rating && cr.rating > 0 ? (
-                            <div
-                              className={`absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md backdrop-blur-xs text-[10px] font-black flex items-center gap-0.5 shadow-xs pointer-events-none transition-all ${
-                                creditSort.startsWith('rating')
-                                  ? 'bg-amber-400 text-black ring-1 ring-amber-300 shadow-amber-900/30 font-black'
-                                  : 'bg-black/75 text-amber-300'
+                            <a
+                              href={getImdbRatingPageUrl({ title: cr.title, year: cr.year })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title={`Open IMDb ratings page (${cr.rating.toFixed(1)}/10)`}
+                              aria-label={`Open IMDb ratings page for ${cr.title} (${cr.rating.toFixed(1)}/10)`}
+                              className={`absolute bottom-1.5 left-1.5 z-20 px-1.5 py-0.5 rounded-md bg-[#F5C518] hover:bg-[#e5b50d] text-[#121212] border border-[#DFB00F] text-[10px] font-black flex items-center gap-0.5 shadow-sm transition-all hover:scale-105 active:scale-95 tabular-nums ${
+                                creditSort.startsWith('rating') ? 'ring-2 ring-white/80 scale-105' : ''
                               }`}
                             >
-                              <Star className={`w-2.5 h-2.5 ${creditSort.startsWith('rating') ? 'fill-black' : 'fill-current'}`} />
+                              <Star className="w-2.5 h-2.5 fill-[#121212] text-[#121212]" />
                               <span>{cr.rating.toFixed(1)}</span>
-                            </div>
+                            </a>
                           ) : null}
                         </div>
 

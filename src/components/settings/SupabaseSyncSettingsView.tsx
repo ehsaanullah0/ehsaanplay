@@ -11,7 +11,6 @@ import {
   Lock,
   User as UserIcon,
   Mail,
-  ArrowRight,
   ShieldCheck,
   CheckCircle2,
   X,
@@ -20,8 +19,6 @@ import {
   Radio,
   DownloadCloud,
   UploadCloud,
-  Laptop,
-  Smartphone,
   ChevronDown,
   ChevronUp,
   HelpCircle,
@@ -49,9 +46,9 @@ import {
 } from '../../services/supabase/verification';
 import { ResumeDatabaseView } from './ResumeDatabaseView';
 import { SupabaseStorageUsageVisual } from './SupabaseStorageUsageVisual';
+import { SupabaseSetupGuide } from './SupabaseSetupGuide';
 import {
   EHSAAN_PLAY_SUPABASE_SQL_MIGRATION,
-  EXPECTED_SCHEMA_VERSION,
 } from '../../services/supabase/schemaMigration';
 import {
   getCloudUser,
@@ -118,9 +115,8 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationResult, setMigrationResult] = useState<MigrationExecutionResult | null>(null);
 
-  // Setup guide expand/collapse state & active tab
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [activeGuideStep, setActiveGuideStep] = useState<number>(1);
+  // Setup guide expand/collapse state
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(() => !loadSupabaseConfig());
   const [isSqlCopied, setIsSqlCopied] = useState(false);
 
   // Resume paused database full settings page state
@@ -815,178 +811,13 @@ export const SupabaseSyncSettingsView: React.FC<SupabaseSyncSettingsViewProps> =
         </button>
 
         {isGuideOpen && (
-          <div className="p-5 sm:p-6 pt-0 border-t border-[var(--border-subtle)] space-y-6 animate-fade-in text-xs leading-relaxed">
-            {/* Step Selector Tabs */}
-            <div className="flex overflow-x-auto no-scrollbar gap-1.5 pb-2 pt-4 border-b border-[var(--border-subtle)]">
-              {[
-                { step: 1, title: '1. Account' },
-                { step: 2, title: '2. Project' },
-                { step: 3, title: '3. API Keys' },
-                { step: 4, title: '4. SQL Schema' },
-                { step: 5, title: '5. Verify' },
-                { step: 6, title: '6. User Account' },
-                { step: 7, title: '7. Multi-Device' },
-              ].map(s => (
-                <button
-                  key={s.step}
-                  onClick={() => setActiveGuideStep(s.step)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                    activeGuideStep === s.step
-                      ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                      : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {s.title}
-                </button>
-              ))}
-            </div>
-
-            {/* Step 1: Create Supabase Account */}
-            {activeGuideStep === 1 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 1 — Create a Supabase Account</h5>
-                <p className="text-[var(--text-secondary)]">
-                  Supabase provides an open-source, user-owned Postgres database with generous free tiers. You need your own free Supabase account:
-                </p>
-                <div className="flex items-center gap-3">
-                  <a
-                    href="https://supabase.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold text-xs hover:opacity-90 transition shadow-xs"
-                  >
-                    <span>Open Supabase.com</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  <span className="text-[11px] text-[var(--text-secondary)]">Sign up or sign into your existing account.</span>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Create a Project */}
-            {activeGuideStep === 2 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 2 — Create a Supabase Project</h5>
-                <ol className="list-decimal pl-5 space-y-1.5 text-[var(--text-secondary)]">
-                  <li>Open the Supabase Dashboard and click <strong>New Project</strong>.</li>
-                  <li>Choose your preferred organization.</li>
-                  <li>Enter a Project Name (e.g. <code className="font-mono font-bold">EhsaanPlay-Database</code>).</li>
-                  <li>Enter a strong <strong>Database Password</strong> (store it securely in your password manager). Note: This password is for Supabase administrative access only and is <em>never</em> entered into EhsaanPlay.</li>
-                  <li>Select the closest cloud region to you.</li>
-                  <li>Click <strong>Create New Project</strong> and wait ~1-2 minutes for provisioning to finish.</li>
-                </ol>
-              </div>
-            )}
-
-            {/* Step 3: Find Project URL and Key */}
-            {activeGuideStep === 3 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 3 — Find Project URL & Publishable Key</h5>
-                <p className="text-[var(--text-secondary)]">
-                  In your Supabase project dashboard, navigate to <strong>Project Settings → API</strong> (or click below):
-                </p>
-                <a
-                  href="https://supabase.com/dashboard/project/_/settings/api"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--accent-primary)] hover:underline"
-                >
-                  <span>Open API Settings in Dashboard</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                  <div className="p-3.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
-                    <strong className="block text-[var(--text-primary)] mb-1">Project URL</strong>
-                    <span className="text-[11px] text-[var(--text-secondary)]">Begins with <code className="font-mono font-bold">https://&lt;id&gt;.supabase.co</code>. Paste into the Project URL field above.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)]">
-                    <strong className="block text-[var(--text-primary)] mb-1">Publishable / Anon Key</strong>
-                    <span className="text-[11px] text-[var(--text-secondary)]">Begins with <code className="font-mono font-bold">sb_publishable_</code> or <code className="font-mono font-bold">eyJ</code>. Paste into Publishable Key field. Never use secret/service_role keys.</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Install SQL Schema */}
-            {activeGuideStep === 4 && (
-              <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <h5 className="text-sm font-black text-[var(--text-primary)]">
-                    Step 4 — Install the EhsaanPlay Database Schema
-                  </h5>
-                  <button
-                    type="button"
-                    onClick={handleCopySql}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold text-xs hover:opacity-90 active:scale-95 transition cursor-pointer self-start sm:self-auto shadow-xs"
-                  >
-                    {isSqlCopied ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{isSqlCopied ? 'Copied to Clipboard!' : 'Copy SQL Script'}</span>
-                  </button>
-                </div>
-                <p className="text-[var(--text-secondary)]">
-                  Supabase requires database tables and Row Level Security (RLS) policies for user data protection.
-                </p>
-                <ol className="list-decimal pl-5 space-y-1 text-[var(--text-secondary)]">
-                  <li>In your Supabase project, click on <strong>SQL Editor</strong> in the left sidebar.</li>
-                  <li>Click <strong>+ New Query</strong>.</li>
-                  <li>Click the <strong>Copy SQL Script</strong> button above and paste into the editor.</li>
-                  <li>Click <strong>Run</strong> (or press Ctrl/Cmd + Enter) to execute.</li>
-                  <li>Return here and click <strong>Test Connection</strong> above to verify installation!</li>
-                </ol>
-
-                {/* Code Block Preview */}
-                <div className="relative mt-2">
-                  <pre className="p-4 rounded-2xl bg-black/90 text-emerald-400 font-mono text-[11px] max-h-48 overflow-y-auto no-scrollbar border border-white/10 leading-relaxed">
-                    {EHSAAN_PLAY_SUPABASE_SQL_MIGRATION}
-                  </pre>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Connect and Verify */}
-            {activeGuideStep === 5 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 5 — Connect and Verify</h5>
-                <p className="text-[var(--text-secondary)]">
-                  After running the SQL script in Step 4, enter your Project URL and Publishable Key in the form above and click <strong>Connect Database</strong>. EhsaanPlay will automatically test reachability, verify the schema version, and confirm that Row Level Security is active.
-                </p>
-              </div>
-            )}
-
-            {/* Step 6: Create Account */}
-            {activeGuideStep === 6 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 6 — Create Your Cloud User Account</h5>
-                <p className="text-[var(--text-secondary)]">
-                  Each user in your database has an isolated account authenticated via Supabase Auth (Email & Password). Use the account panel below to create your account.
-                </p>
-              </div>
-            )}
-
-            {/* Step 7: Multi-Device Sync */}
-            {activeGuideStep === 7 && (
-              <div className="space-y-3">
-                <h5 className="text-sm font-black text-[var(--text-primary)]">Step 7 — Connect Another Device (Desktop & Mobile)</h5>
-                <div className="p-4 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Laptop className="w-5 h-5 text-[var(--accent-primary)]" />
-                    <ArrowRight className="w-4 h-4 text-[var(--text-secondary)]" />
-                    <Smartphone className="w-5 h-5 text-[var(--accent-primary)]" />
-                    <span className="font-bold text-[var(--text-primary)]">Cross-Device Synchronization</span>
-                  </div>
-                  <ol className="list-decimal pl-5 space-y-1.5 text-[var(--text-secondary)]">
-                    <li>Open EhsaanPlay on your second device (e.g. mobile browser).</li>
-                    <li>Go to <strong>Settings → Cloud Database & Sync</strong>.</li>
-                    <li>Enter the <strong>same Supabase Project URL</strong> and <strong>same Publishable Key</strong>.</li>
-                    <li>Sign in using the <strong>same email and password</strong>.</li>
-                    <li>Wait a few moments for initial sync to download your library, custom shelves, and watch history!</li>
-                  </ol>
-                  <p className="text-[11px] text-[var(--text-secondary)] italic">
-                    Note: Both devices must connect to the same Supabase project and sign into the same user account to synchronize data.
-                  </p>
-                </div>
-              </div>
-            )}
+          <div className="px-4 sm:px-6 pb-6 border-t border-[var(--border-subtle)]">
+            <SupabaseSetupGuide
+              onCopySql={handleCopySql}
+              isSqlCopied={isSqlCopied}
+              onTestConnection={isSaved ? handleTestConnection : undefined}
+              isVerifying={isVerifying}
+            />
           </div>
         )}
       </div>

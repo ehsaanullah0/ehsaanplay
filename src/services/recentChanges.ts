@@ -88,15 +88,30 @@ const MAX_CHANGE_LOG_ENTRIES = 2500;
 export const MAX_QR_SAFE_LENGTH = 1400;
 export const TRANSFER_CODE_PREFIX = 'EP-RC1-';
 
+let cachedEntries: LibraryChangeEntry[] | null = null;
+let cachedCounter: number | null = null;
+let cachedCheckpoint: CheckpointConfig | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key === STORAGE_KEYS.ENTRIES) cachedEntries = null;
+    if (!e.key || e.key === STORAGE_KEYS.COUNTER) cachedCounter = null;
+    if (!e.key || e.key === STORAGE_KEYS.CHECKPOINT) cachedCheckpoint = null;
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 1. Persistent Change Log Queue & Monotonic ID Generator
 // ---------------------------------------------------------------------------
 
 export function getNextChangeId(): number {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.COUNTER);
-    let counter = raw ? parseInt(raw, 10) : 1840;
-    if (isNaN(counter) || counter < 1000) counter = 1840;
+    let counter = cachedCounter;
+    if (counter === null) {
+      const raw = localStorage.getItem(STORAGE_KEYS.COUNTER);
+      counter = raw ? parseInt(raw, 10) : 1840;
+      if (isNaN(counter) || counter < 1000) counter = 1840;
+    }
 
     // To prevent counter from falling behind the checkpoint
     const checkpoint = loadCheckpoint();
@@ -115,6 +130,7 @@ export function getNextChangeId(): number {
     }
 
     counter += 1;
+    cachedCounter = counter;
     localStorage.setItem(STORAGE_KEYS.COUNTER, counter.toString());
     return counter;
   } catch (err) {
@@ -124,11 +140,17 @@ export function getNextChangeId(): number {
 }
 
 export function loadChangeLogEntries(): LibraryChangeEntry[] {
+  if (cachedEntries) return [...cachedEntries];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-    if (!raw) return [];
+    if (!raw) {
+      cachedEntries = [];
+      return [];
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const resolved = Array.isArray(parsed) ? (parsed as LibraryChangeEntry[]) : [];
+    cachedEntries = resolved;
+    return [...resolved];
   } catch (err) {
     console.error('Error loading change log entries:', err);
     return [];
@@ -141,6 +163,7 @@ function saveChangeLogEntries(entries: LibraryChangeEntry[]): boolean {
     const trimmed = entries.length > MAX_CHANGE_LOG_ENTRIES
       ? entries.slice(entries.length - MAX_CHANGE_LOG_ENTRIES)
       : entries;
+    cachedEntries = trimmed;
     localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(trimmed));
     return true;
   } catch (err) {
@@ -227,14 +250,21 @@ export function recordLibraryChange(
 // ---------------------------------------------------------------------------
 
 export function loadCheckpoint(): CheckpointConfig {
+  if (cachedCheckpoint) return { ...cachedCheckpoint, devices: { ...(cachedCheckpoint.devices || {}) } };
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CHECKPOINT);
-    if (!raw) return { lastExportedChangeId: 0, devices: {} };
+    if (!raw) {
+      const empty = { lastExportedChangeId: 0, devices: {} };
+      cachedCheckpoint = empty;
+      return { lastExportedChangeId: 0, devices: {} };
+    }
     const parsed = JSON.parse(raw);
-    return {
+    const resolved: CheckpointConfig = {
       lastExportedChangeId: typeof parsed.lastExportedChangeId === 'number' ? parsed.lastExportedChangeId : 0,
       devices: parsed.devices && typeof parsed.devices === 'object' ? parsed.devices : {},
     };
+    cachedCheckpoint = resolved;
+    return { ...resolved, devices: { ...(resolved.devices || {}) } };
   } catch {
     return { lastExportedChangeId: 0, devices: {} };
   }
@@ -255,6 +285,7 @@ export function saveCheckpoint(lastExportedChangeId: number, deviceId?: string, 
       };
     }
 
+    cachedCheckpoint = updated;
     localStorage.setItem(STORAGE_KEYS.CHECKPOINT, JSON.stringify(updated));
   } catch (err) {
     console.error('Error saving checkpoint:', err);
@@ -314,9 +345,12 @@ export function reconstructChangeLogFromLibrary(force = false): void {
     }
 
     if (newEntries.length > 0) {
+      cachedCounter = startId;
+      cachedEntries = newEntries;
+      cachedCheckpoint = { lastExportedChangeId: 1840, devices: {} };
       localStorage.setItem(STORAGE_KEYS.COUNTER, startId.toString());
       localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(newEntries));
-      localStorage.setItem(STORAGE_KEYS.CHECKPOINT, JSON.stringify({ lastExportedChangeId: 1840, devices: {} }));
+      localStorage.setItem(STORAGE_KEYS.CHECKPOINT, JSON.stringify(cachedCheckpoint));
     }
   } catch (err) {
     console.error('Error reconstructing change log from library:', err);
@@ -328,6 +362,7 @@ export function clearChangeLogHistory(): void {
     const entries = loadChangeLogEntries();
     const maxChangeId = entries.length > 0 ? entries[entries.length - 1].changeId : 1840;
     
+    cachedEntries = [];
     localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
     saveCheckpoint(maxChangeId);
     localStorage.setItem('ehsaan_changelog_explicitly_cleared', 'true');

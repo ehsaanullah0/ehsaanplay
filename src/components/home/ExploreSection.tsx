@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { MediaItem, PersonalMediaState, MediaType, AppTweaksConfig, UserSettings, CustomList } from '../../types/movie';
 import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 import { MoviePoster } from '../common/MoviePoster';
+import { StickerExploreCaughtUp } from '../common/ExpressiveStickers';
 import { fetchExploreRecommendations } from '../../data/curatedCatalog';
 import { Compass, Sparkles, RefreshCw, Film, Tv, Loader2, Star, LayoutGrid, ChevronDown } from 'lucide-react';
 
@@ -26,7 +27,7 @@ interface ExploreSectionProps {
   onUpdateSettings?: (partial: Partial<UserSettings>) => void;
 }
 
-export const ExploreSection: React.FC<ExploreSectionProps> = ({
+export const ExploreSection: React.FC<ExploreSectionProps> = React.memo(({
   mediaItems,
   userStates,
   onSelectMedia,
@@ -56,8 +57,8 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
 
   // Sync provider if prop changes
   useEffect(() => {
-    if (initialProvider && initialProvider !== provider) {
-      setProvider(initialProvider);
+    if (initialProvider) {
+      setProvider(prev => (prev === initialProvider ? prev : initialProvider));
     }
   }, [initialProvider]);
 
@@ -306,7 +307,7 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
                   : 'opacity-80 hover:opacity-100'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+              <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] ui-sparkle-alive" />
               {showLabels && <span>New Releases</span>}
             </button>
             <button
@@ -412,41 +413,43 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
       {displayedItems.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-5">
           {displayedItems.map(item => (
-            <MoviePoster
-              key={item.id}
-              item={item}
-              userState={resolveStateForMediaItem(item, userStates)}
-              onClick={() => onSelectMedia(item)}
-              onRemoveFromWatchlist={onRemoveFromWatchlist}
-              onMarkWatching={(id, clickedItem) => {
-                onAddMediaToLibrary?.(clickedItem || item);
-                onMarkWatching?.(id, clickedItem || item);
-              }}
-              onMarkWatched={(id, clickedItem) => {
-                onAddMediaToLibrary?.(clickedItem || item);
-                onMarkWatched?.(id, clickedItem || item);
-              }}
-              onDismissFromWatching={onDismissFromWatching}
-              onToggleWatchlist={(id, clickedItem) => {
-                onAddMediaToLibrary?.(clickedItem || item);
-                onToggleWatchlist?.(id, clickedItem || item);
-              }}
-              onToggleFavorite={(id, clickedItem) => {
-                onAddMediaToLibrary?.(clickedItem || item);
-                onToggleFavorite?.(id, clickedItem || item);
-              }}
-              onAddMediaToLibrary={onAddMediaToLibrary}
-              customLists={customLists}
-              onAddItemToList={onAddItemToList}
-              onRemoveItemFromList={onRemoveItemFromList}
-            />
+            <div key={item.id} className="cv-auto">
+              <MoviePoster
+                item={item}
+                userState={resolveStateForMediaItem(item, userStates)}
+                onClick={() => onSelectMedia(item)}
+                onRemoveFromWatchlist={onRemoveFromWatchlist}
+                onMarkWatching={(id, clickedItem) => {
+                  onAddMediaToLibrary?.(clickedItem || item);
+                  onMarkWatching?.(id, clickedItem || item);
+                }}
+                onMarkWatched={(id, clickedItem) => {
+                  onAddMediaToLibrary?.(clickedItem || item);
+                  onMarkWatched?.(id, clickedItem || item);
+                }}
+                onDismissFromWatching={onDismissFromWatching}
+                onToggleWatchlist={(id, clickedItem) => {
+                  onAddMediaToLibrary?.(clickedItem || item);
+                  onToggleWatchlist?.(id, clickedItem || item);
+                }}
+                onToggleFavorite={(id, clickedItem) => {
+                  onAddMediaToLibrary?.(clickedItem || item);
+                  onToggleFavorite?.(id, clickedItem || item);
+                }}
+                onAddMediaToLibrary={onAddMediaToLibrary}
+                customLists={customLists}
+                onAddItemToList={onAddItemToList}
+                onRemoveItemFromList={onRemoveItemFromList}
+              />
+            </div>
           ))}
         </div>
       )}
 
       {/* Empty State if all unadded filtered out */}
       {!isLoading && displayedItems.length === 0 && (
-        <div className="p-10 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] text-center text-[var(--text-secondary)] shadow-2xs">
+        <div className="p-8 sm:p-10 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] text-center text-[var(--text-secondary)] shadow-2xs flex flex-col items-center select-none">
+          <StickerExploreCaughtUp className="w-36 h-28 sm:w-44 sm:h-36 mb-2" />
           <p className="text-sm font-bold text-[var(--text-primary)]">
             All {provider.toUpperCase()} titles in this category are already in your watchlist or watched section!
           </p>
@@ -487,4 +490,4 @@ export const ExploreSection: React.FC<ExploreSectionProps> = ({
       )}
     </section>
   );
-};
+});

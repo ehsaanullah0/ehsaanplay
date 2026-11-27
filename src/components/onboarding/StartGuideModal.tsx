@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserSettings } from '../../types/movie';
 import { ImportResult } from '../../services/storage';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useFullscreen, requestAppFullscreen, exitAppFullscreen } from '../../hooks/useFullscreen';
 import {
   ArrowRight,
   Check,
@@ -16,15 +17,14 @@ import {
   ChevronLeft,
   Film,
   Sparkles,
-  WifiOff,
   Github,
   HardDrive,
   Download,
   Smartphone,
   Zap,
   Maximize2,
+  Minimize2,
   Share2,
-  AlertTriangle,
   Code2,
 } from 'lucide-react';
 
@@ -53,14 +53,20 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
     message: string;
   } | null>(null);
 
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstalled, isIOS, install } = usePWAInstall();
+  const { isFullscreen } = useFullscreen();
   const [installSuccess, setInstallSuccess] = useState(false);
-  const [showPwaWarning, setShowPwaWarning] = useState(false);
 
-  const totalSteps = 6; // 0: Welcome, 1: OMDb, 2: Colors, 3: Privacy, 4: Restore, 5: Install PWA
+  const totalSteps = 7; // 0: Fullscreen, 1: Welcome, 2: OMDb, 3: Colors, 4: Privacy, 5: Restore, 6: Install PWA
 
-  const handleForceComplete = useCallback(() => {
-    setShowPwaWarning(false);
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0);
+      setRestoreStatus(null);
+    }
+  }, [isOpen]);
+
+  const handleComplete = useCallback(() => {
     try {
       localStorage.setItem('ehsaan_start_guide_completed_v1', 'true');
     } catch {
@@ -68,18 +74,6 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
     }
     onClose();
   }, [onClose]);
-
-  const handleComplete = useCallback(() => {
-    const isCurrentlyInstalled =
-      isInstalled ||
-      installSuccess ||
-      (typeof window !== 'undefined' && localStorage.getItem('ehsaan_pwa_installed') === 'true');
-    if (!isCurrentlyInstalled) {
-      setShowPwaWarning(true);
-      return;
-    }
-    handleForceComplete();
-  }, [isInstalled, installSuccess, handleForceComplete]);
 
   const handleNext = useCallback(() => {
     if (currentStep < totalSteps - 1) {
@@ -95,38 +89,12 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
     }
   }, [currentStep]);
 
-  const handleWarningInstallClick = async () => {
-    // Immediately awake native browser install prompt dialog
-    const success = await install();
-    if (success) {
-      setInstallSuccess(true);
-    }
-    setShowPwaWarning(false);
-    handleForceComplete();
-  };
-
-  const handleGoToInstallStep = () => {
-    setCurrentStep(5);
-    setShowPwaWarning(false);
-  };
-
   // Keyboard navigation for desktop users
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (showPwaWarning) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          handleForceComplete();
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          handleWarningInstallClick();
-        }
         return;
       }
 
@@ -144,7 +112,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showPwaWarning, handleNext, handlePrev, handleComplete, handleForceComplete, handleWarningInstallClick]);
+  }, [isOpen, handleNext, handlePrev, handleComplete]);
 
   if (!isOpen) return null;
 
@@ -164,6 +132,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
 
   const handleBackupUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     const reader = new FileReader();
@@ -177,7 +146,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
             message: result.message || 'Backup successfully restored!',
           });
           setTimeout(() => {
-            handleForceComplete();
+            handleComplete();
           }, 1400);
         } else {
           setRestoreStatus({
@@ -196,8 +165,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
   };
 
   const colorSchemes = [
+    { id: 'orange', label: 'Warm Peach (Default)', color: '#7C4022', bg: '#FFCCA7' },
     { id: 'olive', label: 'Olive Green', color: '#4E562F', bg: '#E4EAB8' },
-    { id: 'orange', label: 'Warm Peach', color: '#7C4022', bg: '#FFCCA7' },
     { id: 'blue', label: 'Sky Blue', color: '#2B447A', bg: '#B6CFFC' },
     { id: 'pink', label: 'Rose Blush', color: '#7A2E44', bg: '#F8B4C8' },
     { id: 'purple', label: 'Lavender', color: '#4A2E7A', bg: '#D0B4F8' },
@@ -205,6 +174,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
   ];
 
   const stepLabels = [
+    'Fullscreen',
     'Welcome',
     'OMDb Data',
     'Calm Colors',
@@ -308,42 +278,48 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
 
             {/* Top Step Badge on Desktop */}
             <div className="relative z-10 px-3.5 py-1 rounded-full bg-[var(--bg-surface-card)]/80 border border-[var(--border-subtle)] text-[11px] font-extrabold uppercase tracking-wider text-[var(--accent-primary)] shadow-2xs">
-              {currentStep === 0 && 'The Welcome Note'}
-              {currentStep === 1 && 'Metadata Engine'}
-              {currentStep === 2 && 'Calm Palettes'}
-              {currentStep === 3 && 'Independence'}
-              {currentStep === 4 && 'Library Migration'}
-              {currentStep === 5 && 'Standalone PWA'}
+              {currentStep === 0 && 'Theater View'}
+              {currentStep === 1 && 'The Welcome Note'}
+              {currentStep === 2 && 'Metadata Engine'}
+              {currentStep === 3 && 'Calm Palettes'}
+              {currentStep === 4 && 'Independence'}
+              {currentStep === 5 && 'Library Migration'}
+              {currentStep === 6 && 'Standalone PWA'}
             </div>
 
             {/* Center Sticker Artwork with standard responsive bounds */}
             <div className="relative z-10 w-full flex items-center justify-center my-auto py-2">
               {currentStep === 0 && (
+                <div className="w-60 h-56 lg:w-72 lg:h-64 flex items-center justify-center animate-fade-in">
+                  <StickerFullscreen />
+                </div>
+              )}
+              {currentStep === 1 && (
                 <div className="w-64 h-52 lg:w-72 lg:h-60 flex items-center justify-center animate-fade-in">
                   <StickerWelcome />
                 </div>
               )}
-              {currentStep === 1 && (
+              {currentStep === 2 && (
                 <div className="w-60 h-48 lg:w-68 lg:h-56 flex items-center justify-center animate-fade-in">
                   <StickerOMDb />
                 </div>
               )}
-              {currentStep === 2 && (
+              {currentStep === 3 && (
                 <div className="w-60 h-48 lg:w-68 lg:h-56 flex items-center justify-center animate-fade-in">
                   <StickerThemes />
                 </div>
               )}
-              {currentStep === 3 && (
+              {currentStep === 4 && (
                 <div className="w-60 h-48 lg:w-68 lg:h-56 flex items-center justify-center animate-fade-in">
                   <StickerOpenSource />
                 </div>
               )}
-              {currentStep === 4 && (
+              {currentStep === 5 && (
                 <div className="w-60 h-48 lg:w-68 lg:h-56 flex items-center justify-center animate-fade-in">
                   <StickerAllSet />
                 </div>
               )}
-              {currentStep === 5 && (
+              {currentStep === 6 && (
                 <div className="w-60 h-48 lg:w-68 lg:h-56 flex items-center justify-center animate-fade-in">
                   <StickerPWA />
                 </div>
@@ -352,17 +328,18 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
 
             {/* Bottom Philosophy Caption on Desktop */}
             <div className="relative z-10 w-full max-w-xs px-3.5 py-2 rounded-2xl bg-[var(--bg-surface-card)]/85 border border-[var(--border-subtle)] text-center text-[11px] font-semibold text-[var(--text-secondary)] shadow-2xs">
-              {currentStep === 0 && 'Start fresh with zero sample clutter. Add only movies you love.'}
-              {currentStep === 1 && 'Connected with OMDb API for rich posters and metadata.'}
-              {currentStep === 2 && 'Material 3 colors tailored for daylight and midnight cinema.'}
-              {currentStep === 3 && '100% private on your device with zero cloud telemetry.'}
-              {currentStep === 4 && 'Have an exported backup? Restore your collection in seconds.'}
-              {currentStep === 5 && 'Install for fullscreen native immersion without browser tabs.'}
+              {currentStep === 0 && 'Go edge-to-edge or toggle anytime from the top bar expand button.'}
+              {currentStep === 1 && 'Start fresh with zero sample clutter. Add only movies you love.'}
+              {currentStep === 2 && 'Connected with OMDb API for rich posters and metadata.'}
+              {currentStep === 3 && 'Material 3 colors tailored for daylight and midnight cinema.'}
+              {currentStep === 4 && '100% private on your device with zero cloud telemetry.'}
+              {currentStep === 5 && 'Have an exported backup? Restore your collection in seconds.'}
+              {currentStep === 6 && 'Install for fullscreen native immersion without browser tabs.'}
             </div>
           </div>
 
           {/* ========================================================= */}
-          {/* RIGHT COLUMN (Content + Mobile Sticker + Bottom Dock)     */}
+          {/* RIGHT COLUMN (Content + Mobile Sticker + Bottom Controls) */}
           {/* ========================================================= */}
           <div className="md:col-span-7 h-full flex flex-col justify-between overflow-hidden bg-[var(--bg-primary)]">
             
@@ -370,18 +347,92 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
             <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-8 lg:px-10 flex flex-col justify-start">
               <div className="w-full max-w-lg mx-auto md:mx-0 my-auto flex flex-col items-center md:items-start text-center md:text-left space-y-3.5 sm:space-y-4 py-2">
                 
-                {/* Step 0: Welcome Note */}
+                {/* Step 0: Fullscreen Launch Page */}
                 {currentStep === 0 && (
+                  <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-4 animate-fade-in">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--chip-text)] text-[11px] font-bold tracking-wide">
+                        <Maximize2 className="w-3 h-3 text-[var(--accent-primary)]" />
+                        <span>Immersive Theater • Step 1</span>
+                      </div>
+                      <h1 id="start-guide-title" className="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-[1.06]">
+                        Cinema in <br className="hidden md:inline" />
+                        <span className="text-[var(--accent-primary)]">full view.</span>
+                      </h1>
+                    </div>
+
+                    {/* Mobile Sticker Showcase */}
+                    <div className="md:hidden w-48 h-44 sm:w-56 sm:h-48 my-0.5 flex items-center justify-center">
+                      <StickerFullscreen />
+                    </div>
+
+                    <p className="text-xs sm:text-sm md:text-base text-[var(--text-secondary)] font-medium leading-relaxed max-w-sm md:max-w-lg">
+                      Switch to fullscreen mode for an edge-to-edge theater view, smoother gesture navigation, and zero distracting browser bars.
+                    </p>
+
+                    {/* Top Bar Fullscreen Button Callout & Direct Toggle */}
+                    <div className="w-full max-w-sm md:max-w-lg bg-[var(--bg-surface-card)] p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-[var(--border-subtle)] space-y-3 text-left shadow-2xs">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[var(--chip-bg)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 mt-0.5">
+                          <Maximize2 className="w-4 h-4 text-[var(--accent-primary)] stroke-[2.5]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-extrabold text-[var(--text-primary)]">
+                            Top Bar Fullscreen Button
+                          </div>
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed mt-0.5">
+                            You can enter or exit fullscreen anytime using the quick expand icon button in the top navigation bar.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            if (isFullscreen) {
+                              exitAppFullscreen();
+                            } else {
+                              requestAppFullscreen();
+                            }
+                          } catch {
+                            // ignore fullscreen restrictions in embedded frames
+                          }
+                        }}
+                        className={`w-full py-2.5 px-4 rounded-full font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] cursor-pointer shadow-2xs ${
+                          isFullscreen
+                            ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] border border-[var(--border-subtle)]'
+                            : 'bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] hover:opacity-90 border border-[var(--border-subtle)]'
+                        }`}
+                      >
+                        {isFullscreen ? (
+                          <>
+                            <Minimize2 className="w-4 h-4 stroke-[2.5]" />
+                            <span>Fullscreen Active — Tap to Exit</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-4 h-4 stroke-[2.5]" />
+                            <span>Go Fullscreen Now</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 1: Welcome Note */}
+                {currentStep === 1 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-1">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--chip-text)] text-[11px] font-bold tracking-wide">
                         <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
                         <span>β Beta • Start Guide</span>
                       </div>
-                      <h1 id="start-guide-title" className="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-[1.08]">
+                      <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-[1.08]">
                         Welcome to <br className="hidden md:inline" />
                         <span className="text-[var(--accent-primary)]">EHSAAN PLAY</span>
-                      </h1>
+                      </h2>
                     </div>
 
                     {/* Mobile Sticker Showcase */}
@@ -417,8 +468,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                   </div>
                 )}
 
-                {/* Step 1: OMDb Cinema Data */}
-                {currentStep === 1 && (
+                {/* Step 2: OMDb Cinema Data */}
+                {currentStep === 2 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-0.5">
                       <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--accent-primary)]">
@@ -473,8 +524,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                   </div>
                 )}
 
-                {/* Step 2: Calm Colors & Dark Mode */}
-                {currentStep === 2 && (
+                {/* Step 3: Calm Colors & Dark Mode */}
+                {currentStep === 3 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-0.5">
                       <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--accent-primary)]">
@@ -536,7 +587,7 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                         </span>
                         <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
                           {colorSchemes.map(cs => {
-                            const isSelected = (settings.colorScheme || 'olive') === cs.id;
+                            const isSelected = (settings.colorScheme || 'orange') === cs.id;
                             return (
                               <button
                                 key={cs.id}
@@ -563,8 +614,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                   </div>
                 )}
 
-                {/* Step 3: Local-First & Open Source */}
-                {currentStep === 3 && (
+                {/* Step 4: Local-First & Open Source */}
+                {currentStep === 4 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-0.5">
                       <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--accent-primary)]">
@@ -613,8 +664,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                   </div>
                 )}
 
-                {/* Step 4: Library Restore */}
-                {currentStep === 4 && (
+                {/* Step 5: Library Restore */}
+                {currentStep === 5 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-0.5">
                       <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--accent-primary)]">
@@ -685,8 +736,8 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
                   </div>
                 )}
 
-                {/* Step 5: Install PWA (The 6th Page) */}
-                {currentStep === 5 && (
+                {/* Step 6: Install PWA */}
+                {currentStep === 6 && (
                   <div className="w-full flex flex-col items-center md:items-start space-y-3 sm:space-y-3.5 animate-fade-in">
                     <div className="space-y-0.5">
                       <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--accent-primary)]">
@@ -786,68 +837,50 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
             </div>
 
             {/* ========================================================= */}
-            {/* BOTTOM NAVIGATION DOCK: Symmetrically aligned with content */}
+            {/* BOTTOM CONTROLS ROW: Unified Relay Fullscreen Pill Style  */}
             {/* ========================================================= */}
-            <div className="shrink-0 w-full px-5 pb-5 sm:pb-6 pt-2 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)]/30">
-              <div className="w-full max-w-lg mx-auto md:mx-0 p-3 sm:p-3.5 rounded-3xl sm:rounded-4xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] shadow-lg flex items-center justify-between">
-                
-                {/* Left Text Label */}
-                <div className="pl-3 text-left">
-                  {currentStep === 0 ? (
-                    <div className="flex flex-col">
-                      <span className="text-sm sm:text-base font-black text-[var(--accent-primary)] tracking-tight">
-                        Let's Go!
-                      </span>
-                      <span className="text-[10px] sm:text-[11px] font-bold text-[var(--text-secondary)]">
-                        Quick First-Time Tour
-                      </span>
-                    </div>
-                  ) : currentStep === totalSteps - 1 ? (
-                    <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm font-extrabold text-[var(--text-primary)] tracking-wide">
-                        All Set!
-                      </span>
-                      <span className="text-[10px] sm:text-[11px] font-bold text-[var(--text-secondary)]">
-                        Ready to Explore Cinema
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm font-extrabold text-[var(--text-secondary)] tracking-wide">
-                        Step {currentStep + 1} of {totalSteps}
-                      </span>
-                      <span className="hidden sm:inline text-[10px] sm:text-[11px] font-bold text-[var(--text-secondary)]/70">
-                        {stepLabels[currentStep]}
-                      </span>
-                    </div>
-                  )}
+            <div className="shrink-0 w-full px-5 sm:px-8 lg:px-10 pb-5 sm:pb-6 pt-3 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)]/30">
+              <div className="w-full max-w-lg mx-auto md:mx-0 flex items-center justify-between gap-4">
+                {/* Left: Stepped Material 3 Expressive Progress Dots */}
+                <div className="flex items-center gap-1.5 sm:gap-2" aria-label="Guide page indicator">
+                  {stepLabels.map((label, idx) => {
+                    const isActive = currentStep === idx;
+                    const isPast = currentStep > idx;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setCurrentStep(idx)}
+                        aria-label={`Go to step ${idx + 1}: ${label}`}
+                        title={`Step ${idx + 1}: ${label}`}
+                        className={`h-2.5 rounded-full transition-all duration-200 cursor-pointer ${
+                          isActive
+                            ? 'w-7 bg-[var(--accent-primary)]'
+                            : isPast
+                            ? 'w-2.5 bg-[var(--accent-primary)]/45 hover:bg-[var(--accent-primary)]/70'
+                            : 'w-2.5 bg-[var(--text-secondary)]/28 hover:bg-[var(--text-secondary)]/50'
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
 
-                {/* Right Action Button */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="hidden lg:inline text-[11px] font-medium text-[var(--text-secondary)]/60">
-                    {currentStep === totalSteps - 1 ? 'Press Enter to Finish' : 'Press Enter or →'}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    aria-label={currentStep === totalSteps - 1 ? 'Explore Cinema' : 'Next Step'}
-                    className="h-11 sm:h-12 px-5 sm:px-6 rounded-full sm:rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 font-black text-xs sm:text-sm transition shadow-xs group"
-                  >
+                {/* Right: Expressive Pill CTA matching Fullscreen Prompt Page */}
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  aria-label={currentStep === totalSteps - 1 ? 'Explore Cinema' : 'Next Step'}
+                  className="inline-flex items-center gap-3 pl-2 pr-6 py-2 min-h-[50px] sm:min-h-[54px] rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] font-extrabold text-sm sm:text-base shadow-lg hover:opacity-92 active:scale-95 transition cursor-pointer whitespace-nowrap shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[var(--bg-primary)]/20 flex items-center justify-center shrink-0">
                     {currentStep === totalSteps - 1 ? (
-                      <>
-                        <span>Explore Cinema</span>
-                        <Compass className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] group-hover:rotate-45 transition-transform" />
-                      </>
+                      <Compass className="w-4 h-4 stroke-[2.6] group-hover:rotate-45 transition-transform" />
                     ) : (
-                      <>
-                        <span>Next</span>
-                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
-                      </>
+                      <ArrowRight className="w-4 h-4 stroke-[2.6] group-hover:translate-x-0.5 transition-transform" />
                     )}
-                  </button>
-                </div>
+                  </span>
+                  <span>{currentStep === totalSteps - 1 ? 'Explore Cinema' : 'Next'}</span>
+                </button>
               </div>
             </div>
 
@@ -855,71 +888,6 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
         </div>
 
       </div>
-
-      {/* Warning If User Does Not Install PWA When Exiting First Visit Guide */}
-      {showPwaWarning && (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none"
-        >
-          <div className="w-full max-w-md bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-[32px] sm:rounded-[36px] border border-[var(--border-subtle)] p-6 sm:p-7 shadow-2xl space-y-4 text-center animate-scale-up">
-            {/* Warning Icon Badge */}
-            <div className="w-14 h-14 rounded-3xl bg-[var(--chip-bg)] text-[var(--accent-primary)] flex items-center justify-center mx-auto border border-[var(--border-subtle)] shadow-xs">
-              <AlertTriangle className="w-7 h-7 stroke-[2.5]" />
-            </div>
-
-            {/* Warning Header & Copy as requested */}
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--accent-primary)] text-[10px] font-bold uppercase tracking-wider border border-[var(--border-subtle)]">
-                Display Recommendation Notice
-              </div>
-              <h3 className="text-sm sm:text-base font-black uppercase tracking-wide leading-snug text-[var(--text-primary)]">
-                FOR POLISHED EXPERIENCE AND BETTER ALIGNMENT OF APP STUFF. PLEASE INSTALL THIS WEB APP AS STANDALONE APP
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed">
-                otherwise some elements of app feels unusual.. Standalone mode eliminates browser navigation bars, tabs, and viewport shifts for a distraction-free cinematic layout.
-              </p>
-            </div>
-
-            {/* Quick Benefits Checklist */}
-            <div className="p-3 rounded-2xl bg-[var(--bg-surface-elevated)]/60 border border-[var(--border-subtle)] text-left space-y-1.5 text-[11px] text-[var(--text-secondary)]">
-              <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
-                <Maximize2 className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                <span>Pixel-Perfect Viewport: No address bar jumping or cropping</span>
-              </div>
-              <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
-                <Smartphone className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                <span>Native UI Alignment: Smooth bottom dock and touch gestures</span>
-              </div>
-              <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
-                <Zap className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                <span>Instant Launch: 1-tap desktop/home screen launcher</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={handleWarningInstallClick}
-                className="w-full py-3 px-4 rounded-2xl bg-[var(--accent-primary)] text-[var(--bg-primary)] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition shadow-xs cursor-pointer"
-              >
-                <Download className="w-4 h-4 stroke-[2.5]" />
-                <span>Install Web App Now</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleForceComplete}
-                className="w-full py-2.5 px-4 rounded-2xl bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold text-xs transition active:scale-[0.98] border border-[var(--border-subtle)] cursor-pointer"
-              >
-                Continue Without Installing
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -928,21 +896,137 @@ export const StartGuideModal: React.FC<StartGuideModalProps> = ({
 /* THEME-SYNCED VECTOR STICKER COMPONENTS                              */
 /* =================================================================== */
 
+function buildScallopedBadgePath(scale = 260, lobes = 12, amplitude = 0.036): string {
+  const half = scale / 2;
+  const baseRadius = 0.435 * scale;
+  const amp = amplitude * scale;
+  const samples = lobes * 6;
+  const pts: [number, number][] = [];
+
+  for (let i = 0; i < samples; i++) {
+    const theta = (i / samples) * Math.PI * 2;
+    const r = baseRadius + amp * Math.cos(lobes * theta);
+    pts.push([half + r * Math.cos(theta), half + r * Math.sin(theta)]);
+  }
+
+  const n = pts.length;
+  const fmt = (v: number) => Number(v.toFixed(3));
+  let d = `M ${fmt(pts[0][0])} ${fmt(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${fmt(cp1x)} ${fmt(cp1y)}, ${fmt(cp2x)} ${fmt(cp2y)}, ${fmt(p2[0])} ${fmt(p2[1])}`;
+  }
+  return `${d} Z`;
+}
+
+function StickerFullscreen() {
+  const scallopPath = useMemo(() => buildScallopedBadgePath(260, 12, 0.036), []);
+
+  return (
+    <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full overflow-visible drop-shadow-sm">
+      <g className="sticker-orbit-slow">
+        <path
+          d={scallopPath}
+          fill="var(--bg-card-olive)"
+          fillOpacity="0.82"
+          stroke="var(--border-subtle)"
+          strokeWidth="1.5"
+        />
+      </g>
+
+      <circle
+        cx="130"
+        cy="130"
+        r="76"
+        fill="var(--bg-surface-card)"
+        fillOpacity="0.22"
+        className="sticker-breathe"
+      />
+
+      <g className="sticker-float-slow">
+        <rect
+          x="76"
+          y="100"
+          width="74"
+          height="74"
+          rx="24"
+          fill="var(--bg-card-yellow)"
+          stroke="var(--bg-primary)"
+          strokeOpacity="0.16"
+          strokeWidth="1.5"
+        />
+      </g>
+
+      <g className="sticker-float-alt">
+        <circle
+          cx="154"
+          cy="108"
+          r="41"
+          fill="var(--accent-secondary)"
+          fillOpacity="0.92"
+        />
+      </g>
+
+      <g className="sticker-breathe">
+        <rect
+          x="104"
+          y="102"
+          width="50"
+          height="50"
+          rx="18"
+          fill="var(--bg-primary)"
+          fillOpacity="0.22"
+        />
+        <path
+          d="M117 121 V113 H125 M143 121 V113 H135 M117 133 V141 H125 M143 133 V141 H135"
+          stroke="var(--accent-primary)"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="sticker-pulse-soft"
+        />
+      </g>
+
+      <path
+        d="M210 56 L213 63 L220 66 L213 69 L210 76 L207 69 L200 66 L207 63 Z"
+        fill="var(--accent-primary)"
+        className="sticker-twinkle"
+      />
+      <path
+        d="M48 188 L50 193 L55 195 L50 197 L48 202 L46 197 L41 195 L46 193 Z"
+        fill="var(--accent-primary)"
+        fillOpacity="0.85"
+        className="sticker-twinkle-delay"
+      />
+      <circle cx="54" cy="70" r="4" fill="var(--accent-primary)" fillOpacity="0.55" className="sticker-pulse-soft sticker-delay-2" />
+    </svg>
+  );
+}
+
 function StickerWelcome() {
   return (
-    <svg viewBox="0 0 300 240" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
-      <polygon points="25,50 280,10 280,180 25,70" fill="var(--bg-card-yellow)" opacity="0.32" />
-      <path d="M220 40 L225 50 L235 55 L225 60 L220 70 L215 60 L205 55 L215 50 Z" fill="var(--accent-primary)" opacity="0.8" />
-      <path d="M260 85 L263 92 L270 95 L263 98 L260 105 L257 98 L250 95 L257 92 Z" fill="var(--accent-primary)" opacity="0.6" />
-      <circle cx="245" cy="130" r="4" fill="var(--accent-primary)" opacity="0.7" />
-      <circle cx="210" cy="95" r="3" fill="var(--accent-primary)" opacity="0.5" />
+    <svg viewBox="0 0 300 240" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
+      <polygon points="25,50 280,10 280,180 25,70" fill="var(--bg-card-yellow)" opacity="0.36" className="sticker-pulse-soft" />
+      <path d="M220 40 L225 50 L235 55 L225 60 L220 70 L215 60 L205 55 L215 50 Z" fill="var(--accent-primary)" opacity="0.8" className="sticker-twinkle" />
+      <path d="M260 85 L263 92 L270 95 L263 98 L260 105 L257 98 L250 95 L257 92 Z" fill="var(--accent-primary)" opacity="0.6" className="sticker-twinkle-delay" />
+      <circle cx="245" cy="130" r="4" fill="var(--accent-primary)" opacity="0.7" className="sticker-breathe sticker-delay-1" />
+      <circle cx="210" cy="95" r="3" fill="var(--accent-primary)" opacity="0.5" className="sticker-breathe sticker-delay-3" />
 
-      <g transform="translate(195, 70)" opacity="0.9">
-        <rect x="0" y="0" width="24" height="20" rx="3.5" fill="var(--bg-surface-elevated)" stroke="var(--text-primary)" strokeWidth="2" />
-        <circle cx="6" cy="6" r="1.5" fill="var(--text-primary)" />
-        <circle cx="18" cy="6" r="1.5" fill="var(--text-primary)" />
-        <circle cx="6" cy="14" r="1.5" fill="var(--text-primary)" />
-        <circle cx="18" cy="14" r="1.5" fill="var(--text-primary)" />
+      <g transform="translate(195, 70)" opacity="0.95">
+        <g className="sticker-float-alt">
+          <rect x="0" y="0" width="28" height="22" rx="4" fill="var(--bg-card-olive)" stroke="var(--text-primary)" strokeWidth="2" />
+          <circle cx="7" cy="7" r="1.6" fill="var(--text-primary)" className="sticker-pulse-soft" />
+          <circle cx="21" cy="7" r="1.6" fill="var(--text-primary)" className="sticker-pulse-soft sticker-delay-1" />
+          <circle cx="7" cy="15" r="1.6" fill="var(--text-primary)" className="sticker-pulse-soft sticker-delay-2" />
+          <circle cx="21" cy="15" r="1.6" fill="var(--text-primary)" className="sticker-pulse-soft sticker-delay-3" />
+        </g>
       </g>
 
       <path
@@ -956,28 +1040,32 @@ function StickerWelcome() {
       <path d="M110 175 L115 192 L140 192" stroke="var(--text-primary)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <path
         d="M100 165 C95 140 105 125 120 120 C135 115 145 130 148 155 Z"
-        fill="var(--bg-surface-elevated)"
+        fill="var(--bg-card-olive)"
         stroke="var(--text-primary)"
         strokeWidth="2.5"
       />
-      <circle cx="126" cy="102" r="13" fill="var(--text-primary)" />
-      <path d="M116 100 C116 92 136 92 136 100" stroke="var(--bg-card-olive)" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <circle cx="116" cy="103" r="4.5" fill="var(--accent-primary)" />
-      <circle cx="136" cy="103" r="4.5" fill="var(--accent-primary)" />
+      <g className="sticker-breathe">
+        <circle cx="126" cy="102" r="13" fill="var(--text-primary)" />
+        <path d="M116 100 C116 92 136 92 136 100" stroke="var(--bg-card-olive)" strokeWidth="4" strokeLinecap="round" fill="none" />
+        <circle cx="116" cy="103" r="4.5" fill="var(--accent-primary)" className="sticker-pulse-soft" />
+        <circle cx="136" cy="103" r="4.5" fill="var(--accent-primary)" className="sticker-pulse-soft sticker-delay-2" />
+      </g>
 
       <path d="M125 135 L145 140 L152 130" stroke="var(--text-primary)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
       <g transform="translate(142, 126)">
-        <polygon points="4,10 10,40 32,40 38,10" fill="var(--bg-card-yellow)" stroke="var(--text-primary)" strokeWidth="2.5" />
-        <line x1="14" y1="12" x2="17" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
-        <line x1="22" y1="12" x2="23" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
-        <line x1="30" y1="12" x2="29" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
-        <circle cx="10" cy="8" r="4.5" fill="#FFFBEB" stroke="var(--text-primary)" strokeWidth="1.5" />
-        <circle cx="18" cy="5" r="5.5" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" />
-        <circle cx="26" cy="6" r="5" fill="#FFFBEB" stroke="var(--text-primary)" strokeWidth="1.5" />
-        <circle cx="33" cy="9" r="4" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" />
+        <g className="sticker-wiggle">
+          <polygon points="4,10 10,40 32,40 38,10" fill="var(--bg-card-yellow)" stroke="var(--text-primary)" strokeWidth="2.5" />
+          <line x1="14" y1="12" x2="17" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
+          <line x1="22" y1="12" x2="23" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
+          <line x1="30" y1="12" x2="29" y2="38" stroke="var(--text-card-yellow)" strokeWidth="2.5" />
+          <circle cx="10" cy="8" r="4.5" fill="#FFFBEB" stroke="var(--text-primary)" strokeWidth="1.5" className="sticker-pulse-soft" />
+          <circle cx="18" cy="5" r="5.5" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" className="sticker-pulse-soft sticker-delay-1" />
+          <circle cx="26" cy="6" r="5" fill="#FFFBEB" stroke="var(--text-primary)" strokeWidth="1.5" className="sticker-pulse-soft sticker-delay-2" />
+          <circle cx="33" cy="9" r="4" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" className="sticker-pulse-soft sticker-delay-3" />
+        </g>
       </g>
-      <circle cx="152" cy="108" r="3.5" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" />
+      <circle cx="152" cy="108" r="3.5" fill="#FEF08A" stroke="var(--text-primary)" strokeWidth="1.5" className="sticker-float-slow" />
 
       <path
         d="M15 200 C30 192 45 192 60 200 C75 208 90 208 105 200 C120 192 135 192 150 200 C165 208 180 208 195 200 C210 192 225 192 240 200 C255 208 270 208 285 200"
@@ -991,39 +1079,194 @@ function StickerWelcome() {
 }
 
 function StickerOMDb() {
+  const scallopPath = useMemo(() => buildScallopedBadgePath(220, 10, 0.034), []);
+
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
-      <path
-        d="M40 80 C30 40 70 20 120 25 C170 30 210 50 205 100 C200 150 170 180 120 175 C70 170 50 120 40 80 Z"
-        fill="var(--bg-surface-elevated)"
-        opacity="0.8"
-      />
-      <g transform="translate(65, 45)">
-        <g transform="rotate(-12 10 25)">
-          <rect x="0" y="8" width="80" height="15" rx="4" fill="var(--accent-primary)" />
-          <line x1="16" y1="8" x2="22" y2="23" stroke="var(--bg-primary)" strokeWidth="3" />
-          <line x1="32" y1="8" x2="38" y2="23" stroke="var(--bg-primary)" strokeWidth="3" />
-          <line x1="48" y1="8" x2="54" y2="23" stroke="var(--bg-primary)" strokeWidth="3" />
-          <line x1="64" y1="8" x2="70" y2="23" stroke="var(--bg-primary)" strokeWidth="3" />
+    <svg viewBox="0 0 240 205" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
+      {/* Expressive Tonal Metadata Scallop Backdrop (No gray blob) */}
+      <g transform="translate(10, -8)">
+        <g className="sticker-orbit-slow">
+          <path
+            d={scallopPath}
+            fill="var(--bg-card-olive)"
+            fillOpacity="0.78"
+            stroke="var(--border-subtle)"
+            strokeWidth="1.5"
+          />
         </g>
-        <rect x="0" y="28" width="80" height="56" rx="8" fill="var(--accent-primary)" />
-        <polygon points="34,46 34,66 52,56" fill="var(--bg-primary)" />
       </g>
-      <g transform="translate(145, 30)">
-        <rect x="0" y="0" width="46" height="56" rx="6" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="2" />
-        <rect x="6" y="8" width="34" height="26" rx="3" fill="var(--accent-secondary)" />
-        <circle cx="12" cy="42" r="2.5" fill="var(--text-primary)" />
-        <circle cx="23" cy="42" r="2.5" fill="var(--text-primary)" />
-        <circle cx="34" cy="42" r="2.5" fill="var(--text-primary)" />
+
+      {/* Subtle Dashed Metadata Orbit Ring */}
+      <circle
+        cx="120"
+        cy="102"
+        r="84"
+        stroke="var(--accent-primary)"
+        strokeOpacity="0.24"
+        strokeWidth="1.5"
+        strokeDasharray="6 6"
+        className="sticker-breathe"
+      />
+
+      {/* Twinkling Sparkles */}
+      <path
+        d="M32 34 L35 41 L42 44 L35 47 L32 54 L29 47 L22 44 L29 41 Z"
+        fill="var(--accent-primary)"
+        className="sticker-twinkle"
+      />
+      <path
+        d="M212 72 L214.5 77.5 L220 80 L214.5 82.5 L212 88 L209.5 82.5 L204 80 L209.5 77.5 Z"
+        fill="var(--accent-primary)"
+        fillOpacity="0.8"
+        className="sticker-twinkle-delay"
+      />
+
+      {/* Center Focal Element: Rich Cinema Metadata Inspector Card */}
+      <g transform="translate(42, 34)">
+        <g className="sticker-float-slow">
+          {/* Card Frame */}
+          <rect
+            x="0"
+            y="0"
+            width="156"
+            height="122"
+            rx="20"
+            fill="var(--bg-surface-card)"
+            stroke="var(--text-primary)"
+            strokeWidth="2.4"
+          />
+
+          {/* Top Metadata Window Header Bar */}
+          <path
+            d="M2 18 C2 9.163 9.163 2 18 2 H138 C146.837 2 154 9.163 154 18 V24 H2 V18 Z"
+            fill="var(--accent-secondary)"
+            fillOpacity="0.65"
+          />
+          <circle cx="14" cy="13" r="3" fill="var(--accent-primary)" />
+          <circle cx="24" cy="13" r="3" fill="var(--text-secondary)" fillOpacity="0.45" />
+          <circle cx="34" cy="13" r="3" fill="var(--text-secondary)" fillOpacity="0.25" />
+          <rect x="98" y="8" width="44" height="10" rx="5" fill="var(--accent-primary)" />
+          <text x="107" y="15.5" fontFamily="sans-serif" fontSize="6.5" fontWeight="900" fill="var(--bg-primary)" letterSpacing="0.5">
+            METADATA
+          </text>
+
+          {/* Left: Mini Poster Artwork Thumbnail */}
+          <rect
+            x="12"
+            y="32"
+            width="46"
+            height="62"
+            rx="10"
+            fill="var(--accent-secondary)"
+            stroke="var(--accent-primary)"
+            strokeWidth="1.8"
+          />
+          {/* Poster Clapper Top Stripes */}
+          <path d="M13 40 C13 35.5 16.5 33 21 33 H49 C53.5 33 57 35.5 57 40 V44 H13 V40 Z" fill="var(--accent-primary)" />
+          <line x1="22" y1="33" x2="26" y2="44" stroke="var(--bg-primary)" strokeWidth="2" />
+          <line x1="34" y1="33" x2="38" y2="44" stroke="var(--bg-primary)" strokeWidth="2" />
+          <line x1="46" y1="33" x2="50" y2="44" stroke="var(--bg-primary)" strokeWidth="2" />
+          {/* Play Triangle Inside Poster */}
+          <polygon points="31,57 31,73 43,65" fill="var(--accent-primary)" className="sticker-pulse-soft" />
+
+          {/* Right: Structured Movie Metadata Fields */}
+          {/* Title Bar */}
+          <rect x="68" y="34" width="74" height="9" rx="4.5" fill="var(--text-primary)" fillOpacity="0.88" />
+
+          {/* Year & Runtime Metadata Pills */}
+          <rect x="68" y="49" width="32" height="13" rx="6.5" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeOpacity="0.35" strokeWidth="1" />
+          <text x="75" y="58" fontFamily="sans-serif" fontSize="7.5" fontWeight="900" fill="var(--text-card-yellow)">
+            2026
+          </text>
+          <rect x="104" y="49" width="36" height="13" rx="6.5" fill="var(--bg-card-olive)" stroke="var(--text-card-olive)" strokeOpacity="0.35" strokeWidth="1" />
+          <text x="111" y="58" fontFamily="sans-serif" fontSize="7.5" fontWeight="800" fill="var(--text-card-olive)">
+            148m
+          </text>
+
+          {/* Genre Tag Chips */}
+          <rect x="68" y="67" width="36" height="11" rx="5.5" fill="var(--accent-secondary)" />
+          <text x="74" y="75" fontFamily="sans-serif" fontSize="6.5" fontWeight="800" fill="var(--accent-secondary-text)">
+            SCI-FI
+          </text>
+          <rect x="108" y="67" width="36" height="11" rx="5.5" fill="var(--chip-bg)" />
+          <text x="113" y="75" fontFamily="sans-serif" fontSize="6.5" fontWeight="800" fill="var(--text-secondary)">
+            DRAMA
+          </text>
+
+          {/* Plot Synopsis Skeleton Lines */}
+          <rect x="68" y="84" width="72" height="4.5" rx="2.25" fill="var(--text-secondary)" fillOpacity="0.38" />
+          <rect x="68" y="92" width="52" height="4.5" rx="2.25" fill="var(--text-secondary)" fillOpacity="0.26" />
+
+          {/* Bottom Cast & Crew Metadata Row */}
+          <circle cx="19" cy="108" r="6" fill="var(--bg-card-yellow)" stroke="var(--text-primary)" strokeWidth="1.3" />
+          <circle cx="33" cy="108" r="6" fill="var(--bg-card-olive)" stroke="var(--text-primary)" strokeWidth="1.3" />
+          <circle cx="47" cy="108" r="6" fill="var(--accent-secondary)" stroke="var(--text-primary)" strokeWidth="1.3" />
+          <rect x="60" y="105" width="46" height="6" rx="3" fill="var(--text-primary)" fillOpacity="0.22" />
+          <rect x="112" y="104" width="30" height="8" rx="4" fill="var(--accent-primary)" fillOpacity="0.2" />
+        </g>
       </g>
-      <g transform="translate(30, 115)">
-        <rect x="0" y="0" width="60" height="34" rx="17" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeWidth="1.5" />
-        <path d="M16 11 L18 16 L23 16 L19 19 L21 24 L16 21 L12 24 L14 19 L10 16 L15 16 Z" fill="var(--text-card-yellow)" />
-        <text x="28" y="22" fontFamily="sans-serif" fontSize="12" fontWeight="bold" fill="var(--text-card-yellow)">8.9</text>
+
+      {/* Top-Right Floating JSON / API Tag Card */}
+      <g transform="translate(164, 14)">
+        <g className="sticker-float-alt">
+          <rect
+            x="0"
+            y="0"
+            width="54"
+            height="36"
+            rx="12"
+            fill="var(--accent-primary)"
+            stroke="var(--bg-primary)"
+            strokeWidth="2"
+          />
+          <text x="11" y="22.5" fontFamily="monospace" fontSize="12" fontWeight="900" fill="var(--bg-primary)">
+            {`{API}`}
+          </text>
+        </g>
       </g>
-      <g transform="translate(150, 120)">
-        <rect x="0" y="0" width="56" height="32" rx="10" fill="var(--bg-card-olive)" stroke="var(--text-card-olive)" strokeWidth="1.5" />
-        <text x="12" y="20" fontFamily="sans-serif" fontSize="11" fontWeight="900" fill="var(--text-card-olive)">OMDb</text>
+
+      {/* Bottom-Left Floating Golden IMDb 8.9 Rating Badge */}
+      <g transform="translate(16, 134)">
+        <g className="sticker-wiggle">
+          <rect
+            x="0"
+            y="0"
+            width="68"
+            height="36"
+            rx="18"
+            fill="#F5C518"
+            stroke="#121212"
+            strokeWidth="2"
+          />
+          <path
+            d="M19 11 L21.2 16 L26.5 16.4 L22.4 19.8 L23.7 25 L19 22.1 L14.3 25 L15.6 19.8 L11.5 16.4 L16.8 16 Z"
+            fill="#121212"
+            className="sticker-twinkle"
+          />
+          <text x="31" y="23" fontFamily="sans-serif" fontSize="13" fontWeight="900" fill="#121212">
+            8.9
+          </text>
+        </g>
+      </g>
+
+      {/* Bottom-Right Floating OMDb Live Engine Pill */}
+      <g transform="translate(152, 140)">
+        <g className="sticker-breathe">
+          <rect
+            x="0"
+            y="0"
+            width="68"
+            height="34"
+            rx="12"
+            fill="var(--accent-secondary)"
+            stroke="var(--accent-secondary-text)"
+            strokeWidth="2"
+          />
+          <circle cx="14" cy="17" r="4" fill="var(--accent-primary)" className="sticker-pulse-soft" />
+          <text x="23" y="21.5" fontFamily="sans-serif" fontSize="11.5" fontWeight="900" fill="var(--accent-secondary-text)">
+            OMDb
+          </text>
+        </g>
       </g>
     </svg>
   );
@@ -1031,35 +1274,44 @@ function StickerOMDb() {
 
 function StickerThemes() {
   return (
-    <svg viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
+    <svg viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
       <path
         d="M50 70 C30 30 80 15 130 20 C180 25 215 55 200 100 C185 145 150 170 100 165 C50 160 70 110 50 70 Z"
-        fill="var(--bg-surface-elevated)"
-        opacity="0.8"
+        fill="var(--bg-card-olive)"
+        fillOpacity="0.72"
+        stroke="var(--border-subtle)"
+        strokeWidth="1.5"
+        className="sticker-breathe"
       />
       <g transform="translate(60, 30)">
-        <path
-          d="M30 10 C60 -5 100 15 95 55 C90 95 55 105 25 90 C-5 75 0 25 30 10 Z"
-          fill="var(--bg-surface-card)"
-          stroke="var(--text-primary)"
-          strokeWidth="2.5"
-        />
-        <circle cx="68" cy="72" r="9" fill="var(--bg-primary)" stroke="var(--text-primary)" strokeWidth="2" />
-        <circle cx="32" cy="28" r="6.5" fill="#4E562F" />
-        <circle cx="55" cy="22" r="6.5" fill="#7C4022" />
-        <circle cx="78" cy="35" r="6.5" fill="#2B447A" />
-        <circle cx="82" cy="58" r="6.5" fill="#7A2E44" />
-        <circle cx="32" cy="68" r="6.5" fill="#2E664F" />
+        <g className="sticker-float-slow">
+          <path
+            d="M30 10 C60 -5 100 15 95 55 C90 95 55 105 25 90 C-5 75 0 25 30 10 Z"
+            fill="var(--bg-surface-card)"
+            stroke="var(--text-primary)"
+            strokeWidth="2.5"
+          />
+          <circle cx="68" cy="72" r="9" fill="var(--bg-primary)" stroke="var(--text-primary)" strokeWidth="2" />
+          <circle cx="32" cy="28" r="6.5" fill="#4E562F" className="sticker-pulse-soft" />
+          <circle cx="55" cy="22" r="6.5" fill="#7C4022" className="sticker-pulse-soft sticker-delay-1" />
+          <circle cx="78" cy="35" r="6.5" fill="#2B447A" className="sticker-pulse-soft sticker-delay-2" />
+          <circle cx="82" cy="58" r="6.5" fill="#7A2E44" className="sticker-pulse-soft sticker-delay-3" />
+          <circle cx="32" cy="68" r="6.5" fill="#2E664F" className="sticker-pulse-soft sticker-delay-4" />
+        </g>
       </g>
       <g transform="translate(35, 95)">
-        <rect x="0" y="0" width="52" height="52" rx="26" fill="var(--accent-secondary)" stroke="var(--accent-secondary-text)" strokeWidth="2" />
-        <path d="M22 14 C17 19 17 29 24 34 C28 36 32 36 35 34 C31 38 23 38 18 33 C13 28 14 20 19 15 Z" fill="var(--accent-secondary-text)" />
-        <circle cx="32" cy="20" r="2.5" fill="var(--accent-secondary-text)" />
+        <g className="sticker-float-alt">
+          <rect x="0" y="0" width="52" height="52" rx="26" fill="var(--accent-secondary)" stroke="var(--accent-secondary-text)" strokeWidth="2" />
+          <path d="M22 14 C17 19 17 29 24 34 C28 36 32 36 35 34 C31 38 23 38 18 33 C13 28 14 20 19 15 Z" fill="var(--accent-secondary-text)" className="sticker-pulse-soft" />
+          <circle cx="32" cy="20" r="2.5" fill="var(--accent-secondary-text)" className="sticker-twinkle" />
+        </g>
       </g>
       <g transform="translate(145, 105)">
-        <rect x="0" y="0" width="60" height="30" rx="15" fill="var(--accent-primary)" />
-        <circle cx="45" cy="15" r="11" fill="var(--bg-primary)" />
-        <path d="M41 15 L44 18 L50 12" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <g className="sticker-wiggle">
+          <rect x="0" y="0" width="60" height="30" rx="15" fill="var(--accent-primary)" />
+          <circle cx="45" cy="15" r="11" fill="var(--bg-primary)" className="sticker-breathe" />
+          <path d="M41 15 L44 18 L50 12" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sticker-pulse-soft" />
+        </g>
       </g>
     </svg>
   );
@@ -1067,40 +1319,54 @@ function StickerThemes() {
 
 function StickerOpenSource() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
       <path
         d="M45 75 C30 35 75 15 125 20 C175 25 210 50 205 100 C200 150 165 180 115 175 C65 170 60 115 45 75 Z"
-        fill="var(--bg-surface-elevated)"
-        opacity="0.8"
+        fill="var(--bg-card-olive)"
+        fillOpacity="0.72"
+        stroke="var(--border-subtle)"
+        strokeWidth="1.5"
+        className="sticker-breathe"
       />
       <g transform="translate(60, 45)">
-        <rect x="0" y="0" width="88" height="64" rx="14" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="2.5" />
-        <path d="M26 32 L16 40 L26 48" stroke="var(--accent-primary)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M62 32 L72 40 L62 48" stroke="var(--accent-primary)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        <line x1="48" y1="26" x2="40" y2="54" stroke="var(--text-secondary)" strokeWidth="3" strokeLinecap="round" />
+        <g className="sticker-float-slow">
+          <rect x="0" y="0" width="88" height="64" rx="14" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="2.5" />
+          <path d="M26 32 L16 40 L26 48" stroke="var(--accent-primary)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="sticker-pulse-soft" />
+          <path d="M62 32 L72 40 L62 48" stroke="var(--accent-primary)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="sticker-pulse-soft sticker-delay-2" />
+          <line x1="48" y1="26" x2="40" y2="54" stroke="var(--text-secondary)" strokeWidth="3" strokeLinecap="round" className="sticker-pulse-soft sticker-delay-1" />
+        </g>
       </g>
       <g transform="translate(35, 115)">
-        <path
-          d="M26 4 C14 4 6 12 6 22 C6 36 26 46 26 46 C26 46 46 36 46 22 C46 12 38 4 26 4 Z"
-          fill="var(--accent-secondary)"
-          stroke="var(--accent-secondary-text)"
-          strokeWidth="2"
-        />
-        <rect x="20" y="24" width="12" height="10" rx="2" fill="var(--accent-secondary-text)" />
-        <path d="M22 24 L22 20 C22 17 30 17 30 20 L30 24" stroke="var(--accent-secondary-text)" strokeWidth="2" fill="none" />
+        <g className="sticker-wiggle">
+          <path
+            d="M26 4 C14 4 6 12 6 22 C6 36 26 46 26 46 C26 46 46 36 46 22 C46 12 38 4 26 4 Z"
+            fill="var(--accent-secondary)"
+            stroke="var(--accent-secondary-text)"
+            strokeWidth="2"
+          />
+          <g className="sticker-pulse-soft">
+            <rect x="20" y="24" width="12" height="10" rx="2" fill="var(--accent-secondary-text)" />
+            <path d="M22 24 L22 20 C22 17 30 17 30 20 L30 24" stroke="var(--accent-secondary-text)" strokeWidth="2" fill="none" />
+          </g>
+        </g>
       </g>
       <g transform="translate(155, 30)">
-        <circle cx="20" cy="20" r="18" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeWidth="1.5" />
-        <path
-          d="M20 28 C20 28 11 22 11 16 C11 13 14 11 17 12 C19 13 20 15 20 15 C20 15 21 13 23 12 C26 11 29 13 29 16 C29 22 20 28 20 28 Z"
-          fill="var(--text-card-yellow)"
-        />
+        <g className="sticker-breathe">
+          <circle cx="20" cy="20" r="18" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeWidth="1.5" />
+          <path
+            d="M20 28 C20 28 11 22 11 16 C11 13 14 11 17 12 C19 13 20 15 20 15 C20 15 21 13 23 12 C26 11 29 13 29 16 C29 22 20 28 20 28 Z"
+            fill="var(--text-card-yellow)"
+            className="sticker-pulse-soft"
+          />
+        </g>
       </g>
       <g transform="translate(150, 115)">
-        <rect x="0" y="0" width="54" height="38" rx="8" fill="var(--bg-card-olive)" stroke="var(--text-card-olive)" strokeWidth="1.5" />
-        <line x1="10" y1="12" x2="44" y2="12" stroke="var(--text-card-olive)" strokeWidth="2" strokeLinecap="round" />
-        <line x1="10" y1="20" x2="30" y2="20" stroke="var(--text-card-olive)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="42" cy="26" r="3" fill="var(--text-card-olive)" />
+        <g className="sticker-float-alt">
+          <rect x="0" y="0" width="54" height="38" rx="8" fill="var(--bg-card-olive)" stroke="var(--text-card-olive)" strokeWidth="1.5" />
+          <line x1="10" y1="12" x2="44" y2="12" stroke="var(--text-card-olive)" strokeWidth="2" strokeLinecap="round" />
+          <line x1="10" y1="20" x2="30" y2="20" stroke="var(--text-card-olive)" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="42" cy="26" r="3" fill="var(--text-card-olive)" className="sticker-twinkle" />
+        </g>
       </g>
     </svg>
   );
@@ -1108,48 +1374,71 @@ function StickerOpenSource() {
 
 function StickerAllSet() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
       <g transform="rotate(-6 120 100)">
-        <rect x="40" y="35" width="160" height="125" rx="26" fill="var(--bg-surface-elevated)" opacity="0.85" />
+        <rect
+          x="40"
+          y="35"
+          width="160"
+          height="125"
+          rx="26"
+          fill="var(--bg-card-olive)"
+          fillOpacity="0.74"
+          stroke="var(--border-subtle)"
+          strokeWidth="1.5"
+          className="sticker-breathe"
+        />
       </g>
       <g transform="translate(25, 45)">
-        <circle cx="22" cy="22" r="20" fill="var(--bg-surface-card)" opacity="0.9" />
-        <path
-          d="M22 30 C22 30 14 24 14 18 C14 15 17 13 20 14 C21.5 15 22 16.5 22 16.5 C22 16.5 22.5 15 24 14 C27 13 30 15 30 18 C30 24 22 30 22 30 Z"
-          fill="var(--text-secondary)"
-        />
+        <g className="sticker-float-alt">
+          <circle cx="22" cy="22" r="20" fill="var(--bg-surface-card)" stroke="var(--border-subtle)" strokeWidth="1.5" />
+          <path
+            d="M22 30 C22 30 14 24 14 18 C14 15 17 13 20 14 C21.5 15 22 16.5 22 16.5 C22 16.5 22.5 15 24 14 C27 13 30 15 30 18 C30 24 22 30 22 30 Z"
+            fill="var(--accent-primary)"
+            className="sticker-pulse-soft"
+          />
+        </g>
       </g>
       <g transform="translate(165, 55)">
-        <path
-          d="M26 36 C26 36 15 28 15 20 C15 16 19 13.5 23 15 C25 16.5 26 18 26 18 C26 18 27 16.5 29 15 C33 13.5 37 16 37 20 C37 28 26 36 26 36 Z"
-          fill="var(--text-secondary)"
-        />
+        <g className="sticker-twinkle">
+          <path
+            d="M26 36 C26 36 15 28 15 20 C15 16 19 13.5 23 15 C25 16.5 26 18 26 18 C26 18 27 16.5 29 15 C33 13.5 37 16 37 20 C37 28 26 36 26 36 Z"
+            fill="var(--accent-primary)"
+          />
+        </g>
       </g>
       <g transform="translate(165, 120)">
-        <circle cx="24" cy="24" r="22" fill="var(--bg-surface-card)" opacity="0.9" />
-        <polygon points="12,32 16,18 28,28" fill="none" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d="M28 20 C32 18 34 14 36 12" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M30 24 C36 23 38 21 41 20" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M26 26 C30 28 32 30 35 32" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" />
+        <g className="sticker-wiggle">
+          <circle cx="24" cy="24" r="22" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeOpacity="0.4" strokeWidth="1.5" />
+          <polygon points="12,32 16,18 28,28" fill="none" stroke="var(--text-card-yellow)" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M28 20 C32 18 34 14 36 12" stroke="var(--text-card-yellow)" strokeWidth="2" strokeLinecap="round" className="sticker-twinkle-delay" />
+          <path d="M30 24 C36 23 38 21 41 20" stroke="var(--text-card-yellow)" strokeWidth="2" strokeLinecap="round" className="sticker-twinkle" />
+          <path d="M26 26 C30 28 32 30 35 32" stroke="var(--text-card-yellow)" strokeWidth="2" strokeLinecap="round" className="sticker-twinkle-delay" />
+        </g>
       </g>
       <g transform="translate(40, 125)">
-        <circle cx="16" cy="16" r="14" fill="var(--chip-bg)" />
-        <circle cx="16" cy="16" r="5" fill="none" stroke="var(--text-secondary)" strokeWidth="3" />
-        <circle cx="16" cy="7" r="2.5" fill="var(--text-secondary)" />
-        <circle cx="16" cy="25" r="2.5" fill="var(--text-secondary)" />
-        <circle cx="7" cy="16" r="2.5" fill="var(--text-secondary)" />
-        <circle cx="25" cy="16" r="2.5" fill="var(--text-secondary)" />
+        <g className="sticker-orbit-slow">
+          <circle cx="16" cy="16" r="14" fill="var(--accent-secondary)" />
+          <circle cx="16" cy="16" r="5" fill="none" stroke="var(--accent-secondary-text)" strokeWidth="3" />
+          <circle cx="16" cy="7" r="2.5" fill="var(--accent-secondary-text)" />
+          <circle cx="16" cy="25" r="2.5" fill="var(--accent-secondary-text)" />
+          <circle cx="7" cy="16" r="2.5" fill="var(--accent-secondary-text)" />
+          <circle cx="25" cy="16" r="2.5" fill="var(--accent-secondary-text)" />
+        </g>
       </g>
       <g transform="translate(85, 65)">
-        <circle cx="35" cy="35" r="34" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="5" />
-        <path
-          d="M24 35 L32 44 L48 24"
-          stroke="var(--text-primary)"
-          strokeWidth="5.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
+        <g className="sticker-breathe">
+          <circle cx="35" cy="35" r="34" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="5" />
+          <path
+            d="M24 35 L32 44 L48 24"
+            stroke="var(--accent-primary)"
+            strokeWidth="5.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            className="sticker-pulse-soft"
+          />
+        </g>
       </g>
     </svg>
   );
@@ -1157,49 +1446,54 @@ function StickerAllSet() {
 
 function StickerPWA() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
-      {/* Background organic blob */}
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm overflow-visible">
       <path
         d="M50 70 C30 30 80 15 130 20 C180 25 215 55 200 100 C185 145 150 170 100 165 C50 160 70 110 50 70 Z"
-        fill="var(--bg-surface-elevated)"
-        opacity="0.8"
+        fill="var(--bg-card-olive)"
+        fillOpacity="0.72"
+        stroke="var(--border-subtle)"
+        strokeWidth="1.5"
+        className="sticker-breathe"
       />
 
-      {/* Stylized Smartphone Frame */}
       <g transform="translate(75, 30)">
-        <rect x="0" y="0" width="90" height="140" rx="18" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="3" />
-        {/* Screen Speaker / Camera notch */}
-        <line x1="36" y1="8" x2="54" y2="8" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round" />
-        {/* Screen content area */}
-        <rect x="6" y="16" width="78" height="106" rx="10" fill="var(--bg-primary)" />
-        {/* Cinema Clapper inside phone screen */}
-        <g transform="translate(24, 44)">
-          <rect x="0" y="6" width="42" height="32" rx="5" fill="var(--accent-primary)" />
-          <polygon points="17,16 17,28 28,22" fill="var(--bg-primary)" />
-          {/* Top striped bar */}
-          <rect x="0" y="0" width="42" height="6" rx="2" fill="var(--text-primary)" />
+        <g className="sticker-float-slow">
+          <rect x="0" y="0" width="90" height="140" rx="18" fill="var(--bg-surface-card)" stroke="var(--text-primary)" strokeWidth="3" />
+          <line x1="36" y1="8" x2="54" y2="8" stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round" />
+          <rect x="6" y="16" width="78" height="106" rx="10" fill="var(--bg-primary)" />
+          <g transform="translate(24, 44)">
+            <g className="sticker-breathe">
+              <rect x="0" y="6" width="42" height="32" rx="5" fill="var(--accent-primary)" />
+              <polygon points="17,16 17,28 28,22" fill="var(--bg-primary)" className="sticker-pulse-soft" />
+              <rect x="0" y="0" width="42" height="6" rx="2" fill="var(--text-primary)" />
+            </g>
+          </g>
+          <line x1="30" y1="130" x2="60" y2="130" stroke="var(--text-primary)" strokeWidth="3" strokeLinecap="round" />
         </g>
-        {/* Home gesture pill */}
-        <line x1="30" y1="130" x2="60" y2="130" stroke="var(--text-primary)" strokeWidth="3" strokeLinecap="round" />
       </g>
 
-      {/* Floating Download / Arrow Badge (Left) */}
       <g transform="translate(30, 85)">
-        <circle cx="26" cy="26" r="24" fill="var(--accent-secondary)" stroke="var(--accent-secondary-text)" strokeWidth="2" />
-        <path d="M26 14 L26 34" stroke="var(--accent-secondary-text)" strokeWidth="3.5" strokeLinecap="round" />
-        <path d="M18 26 L26 34 L34 26" stroke="var(--accent-secondary-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        <line x1="16" y1="38" x2="36" y2="38" stroke="var(--accent-secondary-text)" strokeWidth="3" strokeLinecap="round" />
+        <g className="sticker-float-alt">
+          <circle cx="26" cy="26" r="24" fill="var(--accent-secondary)" stroke="var(--accent-secondary-text)" strokeWidth="2" />
+          <g className="sticker-pulse-soft">
+            <path d="M26 14 L26 34" stroke="var(--accent-secondary-text)" strokeWidth="3.5" strokeLinecap="round" />
+            <path d="M18 26 L26 34 L34 26" stroke="var(--accent-secondary-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+          <line x1="16" y1="38" x2="36" y2="38" stroke="var(--accent-secondary-text)" strokeWidth="3" strokeLinecap="round" />
+        </g>
       </g>
 
-      {/* Floating Lightning / Instant Launch Badge (Right) */}
       <g transform="translate(160, 45)">
-        <circle cx="22" cy="22" r="20" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeWidth="1.5" />
-        <path d="M23 11 L14 23 L21 23 L19 33 L29 19 L23 19 Z" fill="var(--text-card-yellow)" />
+        <g className="sticker-wiggle">
+          <circle cx="22" cy="22" r="20" fill="var(--bg-card-yellow)" stroke="var(--text-card-yellow)" strokeWidth="1.5" />
+          <path d="M23 11 L14 23 L21 23 L19 33 L29 19 L23 19 Z" fill="var(--text-card-yellow)" className="sticker-twinkle" />
+        </g>
       </g>
 
-      {/* Floating Star Sparkle (Bottom Right) */}
       <g transform="translate(170, 125)">
-        <path d="M16 4 L18 12 L26 14 L18 16 L16 24 L14 16 L6 14 L14 12 Z" fill="var(--accent-primary)" />
+        <g className="sticker-twinkle-delay">
+          <path d="M16 4 L18 12 L26 14 L18 16 L16 24 L14 16 L6 14 L14 12 Z" fill="var(--accent-primary)" />
+        </g>
       </g>
     </svg>
   );

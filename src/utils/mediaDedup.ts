@@ -81,21 +81,70 @@ export function getStateTimestamp(s?: Partial<PersonalMediaState> | null): numbe
   return maxMs;
 }
 
+interface MediaLookupIndex {
+  byIdLower: Map<string, MediaItem[]>;
+  byImdbLower: Map<string, MediaItem[]>;
+  byTmdbLower: Map<string, MediaItem[]>;
+  byTypeTitle: Map<string, MediaItem[]>;
+}
+
+const mediaLookupCache = new WeakMap<MediaItem[], MediaLookupIndex>();
+
+function pushToBucket(map: Map<string, MediaItem[]>, key: string, item: MediaItem) {
+  const existing = map.get(key);
+  if (existing) {
+    if (!existing.includes(item)) existing.push(item);
+  } else {
+    map.set(key, [item]);
+  }
+}
+
+function getOrBuildMediaIndex(mediaList: MediaItem[]): MediaLookupIndex {
+  const cached = mediaLookupCache.get(mediaList);
+  if (cached) return cached;
+
+  const byIdLower = new Map<string, MediaItem[]>();
+  const byImdbLower = new Map<string, MediaItem[]>();
+  const byTmdbLower = new Map<string, MediaItem[]>();
+  const byTypeTitle = new Map<string, MediaItem[]>();
+
+  for (let i = 0; i < mediaList.length; i++) {
+    const m = mediaList[i];
+    if (!m) continue;
+    if (m.id) pushToBucket(byIdLower, m.id.toLowerCase(), m);
+    if (m.imdbId) pushToBucket(byImdbLower, m.imdbId.toLowerCase(), m);
+    if (m.tmdbId) pushToBucket(byTmdbLower, `tmdb-${m.type || 'movie'}-${m.tmdbId}`.toLowerCase(), m);
+    const normTitle = normalizeMediaTitle(m.title);
+    if (normTitle) {
+      pushToBucket(byTypeTitle, `${m.type || 'movie'}:${normTitle}`, m);
+    }
+  }
+
+  const index: MediaLookupIndex = { byIdLower, byImdbLower, byTmdbLower, byTypeTitle };
+  mediaLookupCache.set(mediaList, index);
+  return index;
+}
+
 export function findMediaItemByIdOrAlias(
   id: string,
   mediaList: MediaItem[]
 ): MediaItem | undefined {
-  if (!id) return undefined;
-  const exact = mediaList.find(m => m.id === id);
-  if (exact) return exact;
-
+  if (!id || !mediaList || mediaList.length === 0) return undefined;
+  const index = getOrBuildMediaIndex(mediaList);
   const lower = id.toLowerCase();
-  return mediaList.find(m => {
-    if (m.id?.toLowerCase() === lower) return true;
-    if (m.imdbId && m.imdbId.toLowerCase() === lower) return true;
-    if (m.tmdbId && `tmdb-${m.type || 'movie'}-${m.tmdbId}`.toLowerCase() === lower) return true;
-    return false;
-  });
+
+  const byId = index.byIdLower.get(lower);
+  if (byId && byId.length > 0) {
+    const exact = byId.find(m => m.id === id);
+    return exact || byId[0];
+  }
+  const byImdb = index.byImdbLower.get(lower);
+  if (byImdb && byImdb.length > 0) return byImdb[0];
+
+  const byTmdb = index.byTmdbLower.get(lower);
+  if (byTmdb && byTmdb.length > 0) return byTmdb[0];
+
+  return undefined;
 }
 
 export function resolveStateForMediaItem(
@@ -114,12 +163,46 @@ export function resolveStateForMediaItem(
   if (item.tmdbId) pushKey(`tmdb-${item.type || 'movie'}-${item.tmdbId}`);
 
   if (mediaList && mediaList.length > 0) {
-    for (const m of mediaList) {
-      if (areMediaItemsSame(m, item)) {
-        pushKey(m.id);
-        if (m.imdbId) pushKey(m.imdbId);
-        if (m.tmdbId) pushKey(`tmdb-${m.type || 'movie'}-${m.tmdbId}`);
+    const index = getOrBuildMediaIndex(mediaList);
+    const matched = new Set<MediaItem>();
+
+    const checkBucket = (bucket?: MediaItem[]) => {
+      if (!bucket) return;
+      for (const m of bucket) matched.add(m);
+    };
+
+    if (item.id) {
+      const idLower = item.id.toLowerCase();
+      checkBucket(index.byIdLower.get(idLower));
+      checkBucket(index.byImdbLower.get(idLower));
+      checkBucket(index.byTmdbLower.get(idLower));
+    }
+    if (item.imdbId) {
+      const imdbLower = item.imdbId.toLowerCase();
+      checkBucket(index.byImdbLower.get(imdbLower));
+      checkBucket(index.byIdLower.get(imdbLower));
+    }
+    if (item.tmdbId) {
+      const tmdbLower = `tmdb-${item.type || 'movie'}-${item.tmdbId}`.toLowerCase();
+      checkBucket(index.byTmdbLower.get(tmdbLower));
+      checkBucket(index.byIdLower.get(tmdbLower));
+    }
+    const normTitle = normalizeMediaTitle(item.title);
+    if (normTitle) {
+      const titleBucket = index.byTypeTitle.get(`${item.type || 'movie'}:${normTitle}`);
+      if (titleBucket) {
+        for (const m of titleBucket) {
+          if (!m.year || !item.year || Math.abs(m.year - item.year) <= 1) {
+            matched.add(m);
+          }
+        }
       }
+    }
+
+    for (const m of matched) {
+      pushKey(m.id);
+      if (m.imdbId) pushKey(m.imdbId);
+      if (m.tmdbId) pushKey(`tmdb-${m.type || 'movie'}-${m.tmdbId}`);
     }
   }
 

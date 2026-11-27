@@ -54,15 +54,21 @@ export const RankingRail: React.FC<RankingRailProps> = React.memo(({
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [isAtStart, setIsAtStart] = useState(true);
 
+  const scrollRafRef = useRef<number | null>(null);
+
   const checkScrollPosition = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    // We consider it at the end if all content fits without overflow or user scrolled within 16px of the end
-    const atEnd = scrollWidth <= clientWidth + 10 || scrollLeft + clientWidth >= scrollWidth - 16;
-    const atStart = scrollLeft <= 16;
-    setIsAtEnd(atEnd);
-    setIsAtStart(atStart);
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      // We consider it at the end if all content fits without overflow or user scrolled within 16px of the end
+      const atEnd = scrollWidth <= clientWidth + 10 || scrollLeft + clientWidth >= scrollWidth - 16;
+      const atStart = scrollLeft <= 16;
+      setIsAtEnd(prev => (prev === atEnd ? prev : atEnd));
+      setIsAtStart(prev => (prev === atStart ? prev : atStart));
+    });
   }, []);
 
   useEffect(() => {
@@ -75,6 +81,7 @@ export const RankingRail: React.FC<RankingRailProps> = React.memo(({
       el.removeEventListener('scroll', checkScrollPosition);
       window.removeEventListener('resize', checkScrollPosition);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
     };
   }, [checkScrollPosition, items]);
 
@@ -118,7 +125,7 @@ export const RankingRail: React.FC<RankingRailProps> = React.memo(({
                 onClick={() => onRandomPick(items)}
                 aria-label="Random Pick: Pick a random title from your favorites"
                 title="Pick a random title from your favorites"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
+                className="random-pick-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span className="text-xs font-black">Random Pick</span>
@@ -146,7 +153,7 @@ export const RankingRail: React.FC<RankingRailProps> = React.memo(({
                 onClick={() => onRandomPick(items)}
                 aria-label="Random Pick: Pick a random title from your favorites"
                 title="Pick a random title from your favorites"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
+                className="random-pick-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-card-yellow)] hover:opacity-90 text-[var(--text-card-yellow)] transition-all duration-200 focus:outline-none shadow-xs border border-[var(--border-subtle)] active:scale-95 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span className="text-xs font-black">Random Pick</span>

@@ -4,6 +4,7 @@ import {
   CustomList,
   UserSettings,
   HomeSectionsConfig,
+  DEFAULT_HOME_SECTION_ORDER,
   DEFAULT_KEYBOARD_SHORTCUTS,
   DEFAULT_APP_TWEAKS,
 } from '../types/movie';
@@ -25,17 +26,20 @@ const STORAGE_KEYS = {
 
 export const DEFAULT_HOME_SECTIONS: HomeSectionsConfig = {
   showHeroSlideshow: false,
+  showDailyMix: false,
+  showDashboard: true,
   showTopMovies: true,
   showTopSeries: true,
   showContinueWatching: true,
   showFavorites: true,
   showRecentlyWatched: true,
   showExplore: true,
+  sectionOrder: DEFAULT_HOME_SECTION_ORDER,
 };
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'cream',
-  colorScheme: 'olive',
+  colorScheme: 'orange',
   backdropOpacity: 0.35,
   viewMode: 'grid',
   posterQuality: 'high',
@@ -77,26 +81,50 @@ export interface StorageStats {
 }
 
 // ---------------------------------------------------------------------------
+// In-Memory Read Caches (Eliminates redundant synchronous JSON.parse calls)
+// ---------------------------------------------------------------------------
+
+let cachedUserStates: Record<string, PersonalMediaState> | null = null;
+let cachedCustomLists: CustomList[] | null = null;
+let cachedMediaCache: MediaItem[] | null = null;
+let cachedUserSettings: UserSettings | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key === STORAGE_KEYS.USER_STATES) cachedUserStates = null;
+    if (!e.key || e.key === STORAGE_KEYS.CUSTOM_LISTS) cachedCustomLists = null;
+    if (!e.key || e.key === STORAGE_KEYS.MEDIA_CACHE) cachedMediaCache = null;
+    if (!e.key || e.key === STORAGE_KEYS.USER_SETTINGS) cachedUserSettings = null;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Personal Data Loaders & Savers (Safe localStorage operations)
 // ---------------------------------------------------------------------------
 
 export function loadUserStates(): Record<string, PersonalMediaState> {
+  if (cachedUserStates) return { ...cachedUserStates };
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER_STATES);
     if (!raw) {
       saveUserStates(INITIAL_USER_STATES);
-      return INITIAL_USER_STATES;
+      return { ...INITIAL_USER_STATES };
     }
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : INITIAL_USER_STATES;
+    const resolved = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, PersonalMediaState>)
+      : INITIAL_USER_STATES;
+    cachedUserStates = resolved;
+    return { ...resolved };
   } catch (err) {
     console.error('Error reading user states from storage:', err);
-    return INITIAL_USER_STATES;
+    return { ...INITIAL_USER_STATES };
   }
 }
 
 export function saveUserStates(states: Record<string, PersonalMediaState>): boolean {
   try {
+    cachedUserStates = { ...states };
     localStorage.setItem(STORAGE_KEYS.USER_STATES, JSON.stringify(states));
     return true;
   } catch (err) {
@@ -106,22 +134,26 @@ export function saveUserStates(states: Record<string, PersonalMediaState>): bool
 }
 
 export function loadCustomLists(): CustomList[] {
+  if (cachedCustomLists) return [...cachedCustomLists];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_LISTS);
     if (!raw) {
       saveCustomLists(INITIAL_CUSTOM_LISTS);
-      return INITIAL_CUSTOM_LISTS;
+      return [...INITIAL_CUSTOM_LISTS];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_CUSTOM_LISTS;
+    const resolved = Array.isArray(parsed) ? (parsed as CustomList[]) : INITIAL_CUSTOM_LISTS;
+    cachedCustomLists = resolved;
+    return [...resolved];
   } catch (err) {
     console.error('Error reading custom lists:', err);
-    return INITIAL_CUSTOM_LISTS;
+    return [...INITIAL_CUSTOM_LISTS];
   }
 }
 
 export function saveCustomLists(lists: CustomList[]): boolean {
   try {
+    cachedCustomLists = [...lists];
     localStorage.setItem(STORAGE_KEYS.CUSTOM_LISTS, JSON.stringify(lists));
     return true;
   } catch (err) {
@@ -131,22 +163,26 @@ export function saveCustomLists(lists: CustomList[]): boolean {
 }
 
 export function loadMediaCache(): MediaItem[] {
+  if (cachedMediaCache) return [...cachedMediaCache];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.MEDIA_CACHE);
     if (!raw) {
       saveMediaCache(INITIAL_MEDIA_ITEMS);
-      return INITIAL_MEDIA_ITEMS;
+      return [...INITIAL_MEDIA_ITEMS];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_MEDIA_ITEMS;
+    const resolved = Array.isArray(parsed) && parsed.length > 0 ? (parsed as MediaItem[]) : INITIAL_MEDIA_ITEMS;
+    cachedMediaCache = resolved;
+    return [...resolved];
   } catch (err) {
     console.error('Error reading media cache:', err);
-    return INITIAL_MEDIA_ITEMS;
+    return [...INITIAL_MEDIA_ITEMS];
   }
 }
 
 export function saveMediaCache(items: MediaItem[]): boolean {
   try {
+    cachedMediaCache = [...items];
     localStorage.setItem(STORAGE_KEYS.MEDIA_CACHE, JSON.stringify(items));
     return true;
   } catch (err) {
@@ -156,22 +192,26 @@ export function saveMediaCache(items: MediaItem[]): boolean {
 }
 
 export function loadUserSettings(): UserSettings {
+  if (cachedUserSettings) return { ...cachedUserSettings };
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER_SETTINGS);
     if (!raw) {
       saveUserSettings(DEFAULT_SETTINGS);
-      return DEFAULT_SETTINGS;
+      return { ...DEFAULT_SETTINGS };
     }
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    const resolved: UserSettings = { ...DEFAULT_SETTINGS, ...parsed };
+    cachedUserSettings = resolved;
+    return { ...resolved };
   } catch (err) {
     console.error('Error reading settings from storage:', err);
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS };
   }
 }
 
 export function saveUserSettings(settings: UserSettings): boolean {
   try {
+    cachedUserSettings = { ...settings };
     localStorage.setItem(STORAGE_KEYS.USER_SETTINGS, JSON.stringify(settings));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('ehsaan:settings-change', { detail: settings }));
@@ -301,7 +341,27 @@ export function importLibraryBackup(jsonString: string): ImportResult {
         targetLists = parsed.data.customLists.filter((l: unknown): l is CustomList => Boolean(l && typeof l === 'object' && 'id' in l && 'title' in l));
       }
       if (parsed.data.userSettings && typeof parsed.data.userSettings === 'object') {
-        targetSettings = { ...DEFAULT_SETTINGS, ...parsed.data.userSettings };
+        const rawSettings = parsed.data.userSettings as Partial<UserSettings>;
+        targetSettings = {
+          ...DEFAULT_SETTINGS,
+          ...rawSettings,
+          homeSections: {
+            ...DEFAULT_HOME_SECTIONS,
+            ...(rawSettings.homeSections || {}),
+            showHeroSlideshow: false,
+            showDailyMix: rawSettings.homeSections?.showDailyMix ?? false,
+            showDashboard: rawSettings.homeSections?.showDashboard ?? true,
+            sectionOrder: rawSettings.homeSections?.sectionOrder || DEFAULT_HOME_SECTION_ORDER,
+          },
+          tweaks: {
+            ...DEFAULT_APP_TWEAKS,
+            ...(rawSettings.tweaks || {}),
+          },
+          keyboardShortcuts: {
+            ...DEFAULT_KEYBOARD_SHORTCUTS,
+            ...(rawSettings.keyboardShortcuts || {}),
+          },
+        };
       }
     } else {
       // Legacy v1 Schema migration
@@ -315,7 +375,27 @@ export function importLibraryBackup(jsonString: string): ImportResult {
         targetLists = parsed.customLists.filter((l: unknown): l is CustomList => Boolean(l && typeof l === 'object' && 'id' in l && 'title' in l));
       }
       if (parsed.userSettings && typeof parsed.userSettings === 'object') {
-        targetSettings = { ...DEFAULT_SETTINGS, ...parsed.userSettings };
+        const rawSettings = parsed.userSettings as Partial<UserSettings>;
+        targetSettings = {
+          ...DEFAULT_SETTINGS,
+          ...rawSettings,
+          homeSections: {
+            ...DEFAULT_HOME_SECTIONS,
+            ...(rawSettings.homeSections || {}),
+            showHeroSlideshow: false,
+            showDailyMix: rawSettings.homeSections?.showDailyMix ?? false,
+            showDashboard: rawSettings.homeSections?.showDashboard ?? true,
+            sectionOrder: rawSettings.homeSections?.sectionOrder || DEFAULT_HOME_SECTION_ORDER,
+          },
+          tweaks: {
+            ...DEFAULT_APP_TWEAKS,
+            ...(rawSettings.tweaks || {}),
+          },
+          keyboardShortcuts: {
+            ...DEFAULT_KEYBOARD_SHORTCUTS,
+            ...(rawSettings.keyboardShortcuts || {}),
+          },
+        };
       }
     }
 
@@ -329,6 +409,11 @@ export function importLibraryBackup(jsonString: string): ImportResult {
     localStorage.setItem(STORAGE_KEYS.USER_STATES, JSON.stringify(targetStates));
     localStorage.setItem(STORAGE_KEYS.CUSTOM_LISTS, JSON.stringify(targetLists));
     localStorage.setItem(STORAGE_KEYS.USER_SETTINGS, JSON.stringify(targetSettings));
+
+    cachedMediaCache = [...targetMedia];
+    cachedUserStates = { ...targetStates };
+    cachedCustomLists = [...targetLists];
+    cachedUserSettings = { ...targetSettings };
 
     // 5. Verification step
     const verifyStates = localStorage.getItem(STORAGE_KEYS.USER_STATES);
@@ -356,6 +441,10 @@ export function importLibraryBackup(jsonString: string): ImportResult {
     } catch {
       // ignore rollback secondary errors
     }
+    cachedMediaCache = null;
+    cachedUserStates = null;
+    cachedCustomLists = null;
+    cachedUserSettings = null;
 
     return {
       success: false,

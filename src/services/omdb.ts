@@ -12,7 +12,7 @@ export interface DiagnosticResult {
 
 const OMDB_BASE_URL = 'https://www.omdbapi.com/';
 const REQUEST_TIMEOUT_MS = 6000;
-export const DEFAULT_OMDB_API_KEY = ''; // Configure OMDB_API_KEY in the server environment.
+export const DEFAULT_OMDB_API_KEY = 'use your own api keys';
 
 export function getEffectiveOMDBKey(customKey?: string): string {
   if (customKey && customKey.trim()) {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { MediaItem, PersonalMediaState, CustomList } from '../../types/movie';
 import { loadCustomLists, saveCustomLists } from '../../services/storage';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { SafeImage } from './SafeImage';
 import {
   Bookmark,
@@ -79,12 +79,11 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
     }
   }, [isCardMenuOpen, customLists]);
 
-  // Reset to normal when clicking anywhere outside or pressing Escape
+  // Reset to normal when clicking/right-clicking anywhere outside or pressing Escape
   useEffect(() => {
     if (!isCardMenuOpen) return;
 
-    const handleGlobalPointerDown = (e: PointerEvent) => {
-      // Don't close if interacting inside the card
+    const handleGlobalDismiss = (e: Event) => {
       if (cardRef.current && cardRef.current.contains(e.target as Node)) {
         return;
       }
@@ -101,20 +100,23 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
 
     // Attach after a short delay so the opening gesture doesn't instantly dismiss
     const timer = setTimeout(() => {
-      window.addEventListener('pointerdown', handleGlobalPointerDown);
-    }, 120);
+      window.addEventListener('pointerdown', handleGlobalDismiss);
+      window.addEventListener('contextmenu', handleGlobalDismiss);
+    }, 80);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('pointerdown', handleGlobalPointerDown);
+      window.removeEventListener('pointerdown', handleGlobalDismiss);
+      window.removeEventListener('contextmenu', handleGlobalDismiss);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isCardMenuOpen]);
 
   const isWatched = !!userState?.isWatched;
   const inWatchlist = !!userState?.inWatchlist;
-  const rating = userState?.personalRating || (item.imdbRating || 0);
+  const imdbRating = item.imdbRating || 0;
+  const fallbackRating = userState?.personalRating || item.tmdbRating || 0;
   const hasProgress =
     !isWatched &&
     userState?.progressPercent !== undefined &&
@@ -252,7 +254,9 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
 
   // Toggle watchlist & reset to normal
   const handleToggleWatchlistAction = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    isLongPressRef.current = false;
     if (onToggleWatchlist) {
       onAddMediaToLibrary?.(item);
       onToggleWatchlist(item.id, item);
@@ -267,12 +271,16 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
 
   // 3-State Cycling Handler for Mark as Watched / Watching / Reset Status & reset to normal
   const handleCycleWatchStatus = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    isLongPressRef.current = false;
     if (isWatched) {
       // 1st State (Watched) -> 2nd Click switches to 'Watching'
       if (onMarkWatching) {
         onAddMediaToLibrary?.(item);
         onMarkWatching(item.id, item);
+      } else if (onDismissFromWatching) {
+        onDismissFromWatching(item.id);
       }
     } else if (hasProgress) {
       // 2nd State (Watching) -> 3rd Click resets status
@@ -286,6 +294,9 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
       if (onMarkWatched) {
         onAddMediaToLibrary?.(item);
         onMarkWatched(item.id, item);
+      } else if (onMarkWatching) {
+        onAddMediaToLibrary?.(item);
+        onMarkWatching(item.id, item);
       }
     }
     setIsCardMenuOpen(false);
@@ -343,11 +354,16 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
 
   // Quick remove action & reset to normal
   const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (onRemoveFromWatchlist) {
+    isLongPressRef.current = false;
+    if (inWatchlist && onRemoveFromWatchlist) {
       onRemoveFromWatchlist(item.id);
-    }
-    if (onDismissFromWatching) {
+    } else if (hasProgress && onDismissFromWatching) {
+      onDismissFromWatching(item.id);
+    } else if (onRemoveFromWatchlist) {
+      onRemoveFromWatchlist(item.id);
+    } else if (onDismissFromWatching) {
       onDismissFromWatching(item.id);
     }
     setIsCardMenuOpen(false);
@@ -355,32 +371,17 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
   };
 
   const handleCloseMenu = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    isLongPressRef.current = false;
     setIsCardMenuOpen(false);
     setShowListPicker(false);
   };
 
   return (
     <>
-      {/* Portaled full-screen invisible backdrop to reset card when clicking or tapping anywhere outside */}
-      {isCardMenuOpen &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-40 bg-black/15 cursor-default touch-manipulation animate-fade-in"
-            onClick={handleCloseMenu}
-            onTouchStart={e => {
-              e.stopPropagation();
-              handleCloseMenu();
-            }}
-            onContextMenu={e => {
-              e.preventDefault();
-              handleCloseMenu();
-            }}
-          />,
-          document.body
-        )}
-
       {/* Movie Poster Card */}
       <div
         ref={cardRef}
@@ -475,9 +476,14 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
           ) : (
             /* In-Card Menu Replacing the Movie Image */
             <div
+              onPointerDown={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+              onTouchStart={e => e.stopPropagation()}
               onClick={e => {
-                // Clicking anywhere on the open container resets to normal
-                handleCloseMenu(e);
+                e.stopPropagation();
+                if (e.target === e.currentTarget) {
+                  handleCloseMenu(e);
+                }
               }}
               style={{
                 WebkitTouchCallout: 'none',
@@ -675,15 +681,30 @@ export const MoviePoster: React.FC<MoviePosterProps> = React.memo(({
               <span>{item.year}</span>
               <span aria-hidden="true">·</span>
               <span className="capitalize">{item.type === 'tv' ? 'Series' : 'Movie'}</span>
-              {rating > 0 && (
+              {imdbRating > 0 ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <a
+                    href={getImdbRatingPageUrl(item)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    title={`Open IMDb ratings page (${imdbRating.toFixed(1)}/10)`}
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] font-black text-[10px] leading-none tabular-nums shadow-2xs border border-[#DFB00F]/80 shrink-0 transition active:scale-95"
+                  >
+                    <Star className="w-2.5 h-2.5 fill-[#121212] text-[#121212]" />
+                    <span>{imdbRating.toFixed(1)}</span>
+                  </a>
+                </>
+              ) : fallbackRating > 0 ? (
                 <>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-0.5 text-[var(--accent-primary)] font-semibold tabular-nums">
                     <Star className="w-3 h-3 fill-current text-[var(--accent-secondary)]" />
-                    {rating.toFixed(1)}
+                    {fallbackRating.toFixed(1)}
                   </span>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         )}

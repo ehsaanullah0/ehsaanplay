@@ -66,6 +66,7 @@ import {
 import { QRScannerModal } from './QRScannerModal';
 import { SafeImage } from '../common/SafeImage';
 import { loadMediaCache } from '../../services/storage';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 
 interface DeviceTransferViewProps {
   onRefreshData?: () => void;
@@ -150,6 +151,27 @@ export const DeviceTransferView: React.FC<DeviceTransferViewProps> = ({
   // Fullscreen Preview Changes State
   const [previewPackage, setPreviewPackage] = useState<RecentChangesPackage | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  useRegisterBackAction(
+    isPreviewOpen && Boolean(previewPackage),
+    () => {
+      setIsPreviewOpen(false);
+      setPreviewPackage(null);
+    },
+    36
+  );
+
+  useRegisterBackAction(
+    isCodeModalOpen,
+    () => setIsCodeModalOpen(false),
+    35
+  );
+
+  useRegisterBackAction(
+    isPairModalOpen,
+    () => setIsPairModalOpen(false),
+    35
+  );
 
   // Outgoing Delta payload for WebRTC
   const activePayload = useMemo(() => {
@@ -1540,7 +1562,7 @@ export const DeviceTransferView: React.FC<DeviceTransferViewProps> = ({
           </div>
 
           {/* Sticky Bottom Actions Area */}
-          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] px-6 py-5 shrink-0 shadow-lg">
+          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] px-6 pt-5 pb-20 sm:py-5 shrink-0 shadow-lg">
             <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] font-bold text-center sm:text-left">
                 <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />

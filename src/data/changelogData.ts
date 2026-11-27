@@ -13,8 +13,39 @@ export interface ChangelogVersion {
 
 export const CHANGELOG_VERSIONS: ChangelogVersion[] = [
   {
-    version: 'v2.4.4',
+    version: 'v2.4.5',
     isLatest: true,
+    tagline: 'Animated Material 3 Expressive Daily Mix, Home Layout Reordering & Quick Clipboard Tools',
+    points: [
+      {
+        title: 'Compact Adaptive Animated Daily Mix (Watchlist)',
+        description: 'Added an optional, compact animated Daily Mix (hidden by default; toggleable via the Home edit button or Settings) that pulls random unwatched titles from your Watchlist into six Material Design 3 Expressive shapes with responsive mobile-to-desktop sizing, smooth floating motion, interactive hover spotlight reactions, and instant Remix shuffling.',
+      },
+      {
+        title: 'Rearrange & Toggle Home Page Sections',
+        description: 'Upgraded the Cinema Shelf edit pencil icon into a full Rearrange Home Page customizer allowing you to reorder and show/hide Daily Mix, Dashboard, Continue Watching, Top 10 Movies, Top 10 Series, Personal Favorites, Recently Watched, and Recommendations independently.',
+      },
+      {
+        title: 'Quick Title Copy & Search Bar Paste',
+        description: 'Added a one-tap Copy icon beside the title in the Preview Window and a Paste button inside the Search Window bar for fast clipboard lookup.',
+      },
+      {
+        title: 'Direct IMDb Rating Page Links & Cleaner Badges',
+        description: 'Clicking any IMDb rating badge now opens the official IMDb ratings page directly, with the redundant "IMDb" text removed for a cleaner, more compact look.',
+      },
+      {
+        title: 'Cleaner Settings Footer',
+        description: 'Removed the redundant bottom "Reset stats & library" text link from the Settings page.',
+      },
+      {
+        title: 'First-Visit Starter Bundle Popup & No Forced PWA Prompt',
+        description: 'Added a clean, minimal, themed popup upon entering the Home page for the first time (separate from the Start Guide) proposing downloads for Ehsaanullah’s 360+ movies & series JSON library bundle—with instant conversion to a direct Import button after download—and custom light PWA app icons. Also removed the forced PWA installation warning popup when exiting the Start Guide.',
+      },
+    ],
+  },
+  {
+    version: 'v2.4.4',
+    isLatest: false,
     tagline: 'Preview Taste-Matched Similar Titles & Artwork-First Title Card Hide Mode',
     points: [
       {

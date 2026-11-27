@@ -9,7 +9,10 @@ import {
 } from '../../types/movie';
 import { SafeImage } from '../common/SafeImage';
 import { resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { MoviePoster } from '../common/MoviePoster';
+import { StickerEmptyWatchlist } from '../common/ExpressiveStickers';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { FilterSheet } from './FilterSheet';
 import { RandomModal } from './RandomModal';
 import {
@@ -98,8 +101,10 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBatchModeActive, setIsBatchModeActive] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  useRegisterBackAction(isShareModalOpen, () => setIsShareModalOpen(false), 25);
   const [actionToast, setActionToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string) => {
     setActionToast(msg);
@@ -110,6 +115,7 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     };
   }, []);
 
@@ -255,7 +261,8 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
       const jsonString = JSON.stringify(pkg, null, 2);
       await navigator.clipboard.writeText(jsonString);
       setCopyCodeSuccess(true);
-      setTimeout(() => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => {
         setCopyCodeSuccess(false);
         setIsShareModalOpen(false);
         setSelectedIds(new Set());
@@ -538,13 +545,13 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
             </button>
           )}
 
-          {/* Random Pick Button (In Secondary Theme Color) */}
+          {/* Random Pick Button (In Secondary Theme Color / IMDb Yellow in Mint) */}
           <button
             onClick={handleTriggerRandom}
             disabled={filteredItems.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-bold hover:opacity-90 disabled:opacity-50 transition active:scale-95 shadow-xs border border-[var(--border-subtle)]"
+            className="random-pick-btn flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] text-xs font-bold hover:opacity-90 disabled:opacity-50 transition active:scale-95 shadow-xs border border-[var(--border-subtle)]"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-secondary-text)]" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-secondary-text)] ui-sparkle-alive" />
             <span>Random Pick</span>
           </button>
 
@@ -583,6 +590,11 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
           {filters.genre !== 'all' && (
             <span className="px-2.5 py-1 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] font-medium">
               {filters.genre}
+            </span>
+          )}
+          {filters.ratingTag && filters.ratingTag !== 'all' && (
+            <span className="px-2.5 py-1 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] font-medium capitalize">
+              {filters.ratingTag.replace(/_/g, ' ')}
             </span>
           )}
           <button
@@ -657,12 +669,24 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
                     <div className="mt-1 flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] flex-wrap">
                       {year && <span>{year}</span>}
                       {year && rating > 0 && <span aria-hidden="true">·</span>}
-                      {rating > 0 && (
+                      {item.imdbRating && item.imdbRating > 0 ? (
+                        <a
+                          href={getImdbRatingPageUrl(item)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Open IMDb ratings page (${item.imdbRating.toFixed(1)}/10)`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] text-[11px] font-black leading-none tabular-nums border border-[#DFB00F] shadow-2xs transition active:scale-95"
+                        >
+                          <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                          <span>{item.imdbRating.toFixed(1)}</span>
+                        </a>
+                      ) : rating > 0 ? (
                         <span className="flex items-center gap-1 font-bold text-[var(--text-primary)]">
                           <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                           <span>{rating.toFixed(1)}</span>
                         </span>
-                      )}
+                      ) : null}
                       {item.genres && item.genres.length > 0 && (
                         <>
                           <span aria-hidden="true">·</span>
@@ -710,43 +734,42 @@ export const WatchlistView: React.FC<WatchlistViewProps> = React.memo(({
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             {filteredItems.map(item => (
-              <MoviePoster
-                key={item.id}
-                item={item}
-                userState={resolvedStateMap.get(item.id)}
-                onClick={() => {
-                  if (isSelectionModeActive) {
-                    handleToggleItemSelection(item.id);
-                  } else {
-                    onSelectMedia(item);
+              <div key={item.id} className="cv-auto">
+                <MoviePoster
+                  item={item}
+                  userState={resolvedStateMap.get(item.id)}
+                  onClick={() => {
+                    if (isSelectionModeActive) {
+                      handleToggleItemSelection(item.id);
+                    } else {
+                      onSelectMedia(item);
+                    }
+                  }}
+                  onRemoveFromWatchlist={onRemoveFromWatchlist}
+                  onMarkWatching={onMarkWatching}
+                  onMarkWatched={onMarkWatched}
+                  onDismissFromWatching={onDismissFromWatching}
+                  onToggleWatchlist={onToggleWatchlist}
+                  onToggleFavorite={onToggleFavorite}
+                  customLists={customLists}
+                  onAddItemToList={onAddItemToList}
+                  onRemoveItemFromList={onRemoveItemFromList}
+                  isSelected={selectedIds.has(item.id)}
+                  isSelectionModeActive={isSelectionModeActive}
+                  onLongPress={
+                    settings?.tweaks?.longPressBatchSelection || isSelectionModeActive
+                      ? () => handleLongPressItem(item.id)
+                      : undefined
                   }
-                }}
-                onRemoveFromWatchlist={onRemoveFromWatchlist}
-                onMarkWatching={onMarkWatching}
-                onMarkWatched={onMarkWatched}
-                onDismissFromWatching={onDismissFromWatching}
-                onToggleWatchlist={onToggleWatchlist}
-                onToggleFavorite={onToggleFavorite}
-                customLists={customLists}
-                onAddItemToList={onAddItemToList}
-                onRemoveItemFromList={onRemoveItemFromList}
-                isSelected={selectedIds.has(item.id)}
-                isSelectionModeActive={isSelectionModeActive}
-                onLongPress={
-                  settings?.tweaks?.longPressBatchSelection || isSelectionModeActive
-                    ? () => handleLongPressItem(item.id)
-                    : undefined
-                }
-              />
+                />
+              </div>
             ))}
           </div>
         )
       ) : (
-        /* Calm Empty State */
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-sm mx-auto select-none">
-          <div className="w-16 h-16 rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] flex items-center justify-center mb-4 border border-[var(--border-subtle)] shadow-xs">
-            <Bookmark className="w-7 h-7 stroke-[2]" />
-          </div>
+        /* Material Expressive Empty State */
+        <div className="flex flex-col items-center justify-center py-14 sm:py-20 px-4 text-center max-w-sm mx-auto select-none">
+          <StickerEmptyWatchlist className="w-44 h-36 sm:w-52 sm:h-40 mb-3" />
           <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Your watchlist is empty.
           </h3>

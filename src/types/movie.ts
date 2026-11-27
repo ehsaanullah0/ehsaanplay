@@ -107,36 +107,36 @@ export const RATING_TAGS: RatingTagItem[] = [
     id: 'snoozefest',
     label: 'Snoozefest',
     description: 'Your time is worth more.',
-    colorClass: 'text-red-700 dark:text-red-400',
-    activeBorderClass: 'border-red-600/80 ring-2 ring-red-500/20',
-    activeBgClass: 'bg-red-500/10',
+    colorClass: 'text-white',
+    activeBorderClass: 'border-red-500/40',
+    activeBgClass: 'bg-red-600',
     numericRating: 2.5,
   },
   {
     id: 'popcorn_flick',
     label: 'Popcorn Flick',
     description: "Fun if you don't overthink it.",
-    colorClass: 'text-sky-700 dark:text-sky-400',
-    activeBorderClass: 'border-sky-600/80 ring-2 ring-sky-500/20',
-    activeBgClass: 'bg-sky-500/10',
+    colorClass: 'text-white',
+    activeBorderClass: 'border-sky-500/40',
+    activeBgClass: 'bg-sky-600',
     numericRating: 5.5,
   },
   {
     id: 'worth_the_hype',
     label: 'Worth the Hype',
     description: 'Clear your evening for this.',
-    colorClass: 'text-emerald-700 dark:text-emerald-400',
-    activeBorderClass: 'border-emerald-600/80 ring-2 ring-emerald-500/20',
-    activeBgClass: 'bg-emerald-500/10',
+    colorClass: 'text-white',
+    activeBorderClass: 'border-emerald-500/40',
+    activeBgClass: 'bg-emerald-600',
     numericRating: 8.0,
   },
   {
     id: 'absolute_cinema',
     label: 'Absolute Cinema',
     description: 'Drop everything and watch it.',
-    colorClass: 'text-amber-900 dark:text-amber-300',
-    activeBorderClass: 'border-amber-700/90 dark:border-amber-500/80 ring-2 ring-amber-600/30',
-    activeBgClass: 'bg-amber-600/15 dark:bg-amber-500/15',
+    colorClass: 'text-white',
+    activeBorderClass: 'border-amber-500/40',
+    activeBgClass: 'bg-amber-600',
     numericRating: 10.0,
   },
 ];
@@ -184,14 +184,38 @@ export interface CustomList {
   aiLabel?: string;
 }
 
+export type HomeSectionId =
+  | 'daily_mix'
+  | 'dashboard'
+  | 'continue_watching'
+  | 'top_movies'
+  | 'top_series'
+  | 'favorites'
+  | 'recently_watched'
+  | 'recommendations';
+
+export const DEFAULT_HOME_SECTION_ORDER: HomeSectionId[] = [
+  'daily_mix',
+  'dashboard',
+  'continue_watching',
+  'top_movies',
+  'top_series',
+  'favorites',
+  'recently_watched',
+  'recommendations',
+];
+
 export interface HomeSectionsConfig {
   showHeroSlideshow?: boolean;
+  showDailyMix?: boolean;
+  showDashboard?: boolean;
   showTopMovies: boolean;
   showTopSeries: boolean;
   showContinueWatching: boolean;
   showFavorites: boolean;
   showRecentlyWatched: boolean;
   showExplore?: boolean;
+  sectionOrder?: HomeSectionId[];
 }
 
 export interface KeyboardShortcutsConfig {
@@ -217,6 +241,7 @@ export interface AppTweaksConfig {
   reducedMotion?: boolean; // Default: false
   showQuickScrollTop?: boolean; // Default: true
   fontFamily?: AppFontFamily; // Default: 'default'
+  roundedText?: boolean; // Default: false (enable Material Expressive rounded typography)
   smoothScrolling?: boolean; // Default: true
   microAnimations?: boolean; // Default: true
   showExploreShelf?: boolean; // Default: true
@@ -241,7 +266,8 @@ export interface AppTweaksConfig {
   // Preview Window Poster Glow & Card Visibility
   previewPosterGlow?: boolean; // Default: true (subtle directional adaptive glow around poster card in preview)
   previewPosterGlowContrast?: number; // 0.25 to 2.0 (default: 1.0)
-  previewShowPosterCard?: boolean; // Default: true (show or hide left title poster card in preview hero)
+  previewShowPosterCard?: boolean; // Default: true (show or hide left title poster card in preview hero on mobile)
+  previewShowPosterCardDesktop?: boolean; // Default: false (show or hide left title poster card in preview hero on desktop)
 }
 
 export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
@@ -249,6 +275,7 @@ export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
   reducedMotion: false,
   showQuickScrollTop: true,
   fontFamily: 'google-sans-flex',
+  roundedText: false,
   smoothScrolling: true,
   microAnimations: true,
   showExploreShelf: true,
@@ -272,6 +299,7 @@ export const DEFAULT_APP_TWEAKS: AppTweaksConfig = {
   previewPosterGlow: true,
   previewPosterGlowContrast: 1.0,
   previewShowPosterCard: true,
+  previewShowPosterCardDesktop: false,
 };
 
 export interface UserSettings {

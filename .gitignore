@@ -1,19 +1,8 @@
-# Local secrets and environment files
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.p12
-*.pfx
-
-# Dependencies and build output
 node_modules/
+build/
 dist/
 coverage/
-
-# Local/editor/OS files
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
+*.log
+.env*
+!.env.example

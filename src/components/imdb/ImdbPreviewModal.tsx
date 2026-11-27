@@ -3,8 +3,11 @@ import { parseImdbInput, getCanonicalImdbUrl } from '../../services/imdbParser';
 import { fetchImdbPreview, ImdbMetadataPreview } from '../../services/omdb';
 import { MediaItem, PersonalMediaState } from '../../types/movie';
 import { areMediaItemsSame, resolveStateForMediaItem } from '../../utils/mediaDedup';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
 import { loadUserSettings } from '../../services/storage';
 import { SafeImage } from '../common/SafeImage';
+import { StickerImdbReady } from '../common/ExpressiveStickers';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { PosterAmbientGlow } from '../preview/PosterAmbientGlow';
 import { CastCrewDetailModal, SelectedPersonInfo } from '../common/CastCrewDetailModal';
 import { openStreamingPlatform } from '../../services/streamingDirectUrls';
@@ -119,6 +122,8 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
       if (focusTimer) clearTimeout(focusTimer);
     };
   }, [isOpen, initialInput]);
+
+  useRegisterBackAction(isOpen, onClose, 40);
 
   // Handle escape key (yield to nested CastCrewDetailModal if open)
   useEffect(() => {
@@ -452,10 +457,8 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
 
           {/* 3. Empty / Initial Prompt State */}
           {!isLoading && !fetchError && !previewData && (
-            <div className="text-center py-12 px-4 space-y-3">
-              <div className="w-16 h-16 rounded-3xl bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center mx-auto shadow-md">
-                <Film className="w-8 h-8 stroke-[2]" />
-              </div>
+            <div className="flex flex-col items-center text-center py-8 sm:py-10 px-4 space-y-2.5 select-none">
+              <StickerImdbReady className="w-40 h-32 sm:w-44 sm:h-36" />
               <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
                 Ready for IMDb Link or Title ID
               </h3>
@@ -550,16 +553,26 @@ export const ImdbPreviewModal: React.FC<ImdbPreviewModalProps> = ({
                   <div className="flex flex-wrap items-center gap-2.5 py-1">
                     {/* Official IMDb Star Rating */}
                     {previewData.imdbRating && previewData.imdbRating > 0 ? (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5C518]/15 border border-[#F5C518]/30 text-[#000000] dark:text-[#F5C518] shadow-xs">
-                        <Star className="w-4 h-4 fill-[#F5C518] text-[#F5C518]" />
-                        <span className="font-black text-sm">{previewData.imdbRating.toFixed(1)}</span>
-                        <span className="text-[11px] opacity-75 font-bold">/10</span>
+                      <a
+                        href={getImdbRatingPageUrl({
+                          imdbId: previewData.imdbId,
+                          title: previewData.title,
+                          year: previewData.year,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open IMDb ratings page (${previewData.imdbRating.toFixed(1)}/10)`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5C518] hover:bg-[#E2B616] border border-[#DFB00F] text-[#121212] shadow-sm transition active:scale-95"
+                      >
+                        <Star className="w-4 h-4 fill-[#121212] text-[#121212]" />
+                        <span className="font-black text-sm tabular-nums">{previewData.imdbRating.toFixed(1)}</span>
+                        <span className="text-[11px] opacity-80 font-extrabold">/10</span>
                         {previewData.imdbVotes && (
-                          <span className="text-[10px] opacity-70 font-medium ml-1">
+                          <span className="text-[10px] opacity-80 font-bold ml-0.5">
                             ({previewData.imdbVotes})
                           </span>
                         )}
-                      </div>
+                      </a>
                     ) : (
                       <span className="text-xs text-[var(--text-secondary)] italic">
                         No IMDb rating recorded

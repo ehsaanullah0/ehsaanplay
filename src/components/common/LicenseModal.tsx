@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import {
   Scale,
   X,
@@ -23,6 +24,8 @@ interface LicenseModalProps {
 export const LicenseModal: React.FC<LicenseModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'summary' | 'legal'>('summary');
   const [copiedLink, setCopiedLink] = useState(false);
+
+  useRegisterBackAction(isOpen, onClose, 70);
 
   if (!isOpen) return null;
 

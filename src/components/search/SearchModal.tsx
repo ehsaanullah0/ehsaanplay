@@ -3,8 +3,11 @@ import { MediaItem, MediaType, PersonalMediaState } from '../../types/movie';
 import { searchWithFallback, SearchProviderMode, SearchDiagnosticInfo } from '../../services/metadataFallback';
 
 import { parseImdbInput } from '../../services/imdbParser';
-import { Search, X, Star, Loader2, Plus, Check, Bookmark, Database, Sparkles, Layers, AlertCircle, Info, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { getImdbRatingPageUrl } from '../../utils/imdbUrl';
+import { Search, X, Star, Loader2, Plus, Check, Bookmark, Database, Sparkles, Layers, AlertCircle, Info, ChevronDown, ChevronUp, SlidersHorizontal, ClipboardPaste } from 'lucide-react';
 import { SafeImage } from '../common/SafeImage';
+import { StickerEmptySearch } from '../common/ExpressiveStickers';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { resolveStateForMediaItem } from '../../utils/mediaDedup';
 
 interface SearchModalProps {
@@ -44,8 +47,50 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [searchDiagnostic, setSearchDiagnostic] = useState<SearchDiagnosticInfo | null>(null);
   const [showDiagnosticPanel, setShowDiagnosticPanel] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [pasteStatus, setPasteStatus] = useState<'idle' | 'pasted' | 'empty' | 'denied'>('idle');
+  const pasteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchCounterRef = useRef<number>(0);
+
+  useRegisterBackAction(isOpen, onClose, 30);
+
+  useEffect(() => {
+    return () => {
+      if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+    };
+  }, []);
+
+  const schedulePasteStatusReset = (ms: number) => {
+    if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+    pasteTimerRef.current = setTimeout(() => setPasteStatus('idle'), ms);
+  };
+
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = (await navigator.clipboard.readText()).trim();
+        if (text) {
+          setQuery(text);
+          setPasteStatus('pasted');
+          inputRef.current?.focus();
+          schedulePasteStatusReset(1500);
+          return;
+        }
+        setPasteStatus('empty');
+        inputRef.current?.focus();
+        schedulePasteStatusReset(1800);
+        return;
+      }
+      inputRef.current?.focus();
+      setPasteStatus('denied');
+      schedulePasteStatusReset(2800);
+    } catch {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      setPasteStatus('denied');
+      schedulePasteStatusReset(2800);
+    }
+  };
 
   // Auto-detect IMDb link or ID in search input
   const detectedImdb = useMemo(() => parseImdbInput(query), [query]);
@@ -61,6 +106,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setSearchError(null);
       setSearchDiagnostic(null);
       setShowDiagnosticPanel(false);
+      setPasteStatus('idle');
+      if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
     }
   }, [isOpen]);
 
@@ -264,67 +311,116 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-xs p-4 sm:p-6 pt-12 sm:pt-20 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-6 pt-10 sm:pt-20 animate-backdrop-fade">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 overflow-hidden flex flex-col max-h-[84vh]">
-        {/* Clean, Minimalist Search Input Bar */}
-        <div className="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex items-center gap-2 sm:gap-3 bg-[var(--modal-bg)]">
+      <div className="relative w-full max-w-2xl bg-[var(--modal-bg)] rounded-3xl shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 overflow-hidden flex flex-col max-h-[85vh] animate-window-open">
+        {/* Clean, Balanced Search Input Bar */}
+        <div className="px-3.5 py-3 sm:px-5 sm:py-4 border-b border-[var(--border-subtle)] flex items-center gap-2 sm:gap-2.5 bg-[var(--modal-bg)]">
           {isSearching ? (
-            <Loader2 className="w-5 h-5 text-[var(--accent-primary)] stroke-[2.5] animate-spin flex-none" />
+            <Loader2 className="w-5 h-5 text-[var(--accent-primary)] stroke-[2.5] animate-spin shrink-0" />
           ) : (
-            <Search className="w-5 h-5 text-[var(--accent-primary)] stroke-[2.5] flex-none" />
+            <Search className="w-5 h-5 text-[var(--accent-primary)] stroke-[2.5] shrink-0" />
           )}
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search movies, series, actors..."
-            className="w-full bg-transparent text-base sm:text-lg font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+            placeholder="Search movies, series..."
+            className="flex-1 min-w-0 bg-transparent text-sm sm:text-lg font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--chip-bg)] shrink-0 cursor-pointer"
               title="Clear search"
+              aria-label="Clear search"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           )}
 
-          {/* Options / Filters Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsMoreOpen(!isMoreOpen)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shrink-0 ${
-              isMoreOpen
-                ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-            title={isMoreOpen ? "Hide filter options" : "Show filter options"}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Options</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
-          </button>
+          {/* Compact Right Action Cluster */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Paste From Clipboard Button */}
+            <button
+              type="button"
+              onClick={handlePasteClipboard}
+              className={`w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 sm:min-h-[36px] rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer border ${
+                pasteStatus === 'pasted'
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+              }`}
+              title={
+                pasteStatus === 'denied'
+                  ? 'Clipboard access blocked — press Ctrl+V / Cmd+V'
+                  : pasteStatus === 'empty'
+                  ? 'Clipboard is empty'
+                  : 'Paste from clipboard'
+              }
+              aria-label="Paste from clipboard"
+            >
+              {pasteStatus === 'pasted' ? (
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              ) : (
+                <ClipboardPaste className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {pasteStatus === 'pasted'
+                  ? 'Pasted'
+                  : pasteStatus === 'empty'
+                  ? 'Empty'
+                  : 'Paste'}
+              </span>
+            </button>
 
-          {/* Filled Blood Red Cross Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 text-white transition focus:outline-none shadow-sm shrink-0 flex items-center justify-center"
-            title="Close search (Esc)"
-            aria-label="Close search"
-          >
-            <X className="w-4 h-4 stroke-[2.5]" />
-          </button>
+            {/* Options / Filters Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsMoreOpen(!isMoreOpen)}
+              className={`h-8 px-2.5 sm:px-3 sm:py-1.5 sm:min-h-[36px] rounded-full text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition shrink-0 cursor-pointer border ${
+                isMoreOpen
+                  ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-[var(--accent-primary)] shadow-xs'
+                  : 'bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+              }`}
+              title={isMoreOpen ? 'Hide filter options' : 'Show filter options'}
+              aria-label={isMoreOpen ? 'Hide filter options' : 'Show filter options'}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Options</span>
+              <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Filled Red Cross Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-red-600 hover:bg-red-700 text-white transition focus:outline-none shadow-sm shrink-0 flex items-center justify-center cursor-pointer"
+              title="Close search (Esc)"
+              aria-label="Close search"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
         </div>
+
+        {/* Subtle Clipboard Feedback Bar when browser blocks clipboard read or clipboard is empty */}
+        {(pasteStatus === 'denied' || pasteStatus === 'empty') && (
+          <div className="px-4 sm:px-5 py-2 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-2 animate-slide-down">
+            <Info className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
+            <span>
+              {pasteStatus === 'denied'
+                ? 'Browser blocked clipboard read — press Ctrl+V (or ⌘V) in the search box to paste.'
+                : 'Your clipboard is currently empty.'}
+            </span>
+          </div>
+        )}
 
         {/* Collapsible Options Drawer */}
         {isMoreOpen && (
-          <div className="p-3.5 sm:p-4 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] space-y-3 animate-fade-in text-xs">
+          <div className="p-3.5 sm:p-4 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] space-y-3 animate-slide-down text-xs">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Type Format Filters */}
               <div className="flex items-center gap-1.5">
@@ -332,7 +428,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormatFilter('all')}
-                  className={`px-3 py-1 rounded-full font-bold transition text-xs ${
+                  className={`px-3 py-1 rounded-full font-bold transition text-xs cursor-pointer ${
                     formatFilter === 'all'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -343,7 +439,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormatFilter('movie')}
-                  className={`px-3 py-1 rounded-full font-bold transition text-xs ${
+                  className={`px-3 py-1 rounded-full font-bold transition text-xs cursor-pointer ${
                     formatFilter === 'movie'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -354,7 +450,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormatFilter('tv')}
-                  className={`px-3 py-1 rounded-full font-bold transition text-xs ${
+                  className={`px-3 py-1 rounded-full font-bold transition text-xs cursor-pointer ${
                     formatFilter === 'tv'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -370,7 +466,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setProviderMode('auto')}
-                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
                     providerMode === 'auto'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -382,7 +478,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setProviderMode('tmdb')}
-                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
                     providerMode === 'tmdb'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -394,7 +490,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setProviderMode('omdb')}
-                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
                     providerMode === 'omdb'
                       ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
                       : 'bg-[var(--bg-surface-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -413,7 +509,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                     onOpenImdbPreview(query);
                   }}
-                  className="px-2.5 py-1 rounded-full bg-[#F5C518] hover:bg-[#e4b712] text-black font-black text-xs flex items-center gap-1 transition active:scale-95 shrink-0 shadow-2xs"
+                  className="px-2.5 py-1 rounded-full bg-[#F5C518] hover:bg-[#e4b712] text-black font-black text-xs flex items-center gap-1 transition shrink-0 shadow-2xs cursor-pointer"
                 >
                   <span>IMDb Import</span>
                 </button>
@@ -423,7 +519,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         )}
 
         {/* Clean Status Sub-bar: Result Counter & Diagnostics Toggle */}
-        <div className="px-5 py-2 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
+        <div className="px-4 sm:px-5 py-2 bg-[var(--bg-surface-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
           <div className="flex items-center gap-2 font-bold tabular-nums">
             {isSearching ? (
               <span className="flex items-center gap-1.5 text-[var(--accent-primary)] animate-pulse">
@@ -434,7 +530,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)}
-                className="flex items-center gap-1 text-rose-500 hover:underline"
+                className="flex items-center gap-1 text-rose-500 hover:underline cursor-pointer"
               >
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>Request issue - view details</span>
@@ -472,7 +568,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <button
               type="button"
               onClick={() => setShowDiagnosticPanel(!showDiagnosticPanel)}
-              className="text-[11px] font-bold text-[var(--accent-primary)] hover:underline flex items-center gap-1 select-none"
+              className="text-[11px] font-bold text-[var(--accent-primary)] hover:underline flex items-center gap-1 select-none cursor-pointer"
             >
               <Info className="w-3 h-3" />
               <span>{showDiagnosticPanel ? 'Hide Logs' : 'Diagnostics'}</span>
@@ -482,7 +578,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
         {/* Diagnostic Panel Dropdown */}
         {showDiagnosticPanel && searchDiagnostic && (
-          <div className="p-3.5 bg-black/85 text-zinc-200 border-b border-zinc-700 text-xs space-y-2 animate-fade-in font-mono">
+          <div className="p-3.5 bg-black/85 text-zinc-200 border-b border-zinc-700 text-xs space-y-2 animate-slide-down font-mono">
             <div className="flex items-center justify-between font-bold text-zinc-100">
               <span className="flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-indigo-400" />
@@ -490,7 +586,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               </span>
               <button
                 onClick={() => setShowDiagnosticPanel(false)}
-                className="text-[11px] text-zinc-400 hover:text-white"
+                className="text-[11px] text-zinc-400 hover:text-white cursor-pointer"
               >
                 Close
               </button>
@@ -531,7 +627,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         )}
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-2.5">
           {/* Explicit Error State Banner */}
           {!isSearching && searchError && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs space-y-2 mb-2 animate-fade-in shadow-xs">
@@ -543,20 +639,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 {searchError}
               </p>
               <div className="flex items-center gap-2 pt-1">
-                {false && (
-                  <button
-                    type="button"
-                    onClick={() => setProviderMode('auto')}
-                    className="px-3 py-1.5 rounded-full bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold text-xs hover:opacity-90 transition active:scale-95"
-                  >
-                    Switch to Auto Fallback
-                  </button>
-                )}
                 {providerMode !== 'omdb' && (
                   <button
                     type="button"
                     onClick={() => setProviderMode('omdb')}
-                    className="px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition active:scale-95"
+                    className="px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition cursor-pointer"
                   >
                     Try OMDb Provider
                   </button>
@@ -566,16 +653,21 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           )}
 
           {!query.trim() && (
-            <div className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] px-1 mb-2">
+            <div className="text-[11px] font-extrabold uppercase tracking-widest text-[var(--text-secondary)] px-1 mb-1">
               Featured in Library
             </div>
           )}
 
           {searchResults.map(item => {
             const state = resolveStateForMediaItem(item, userStates);
-            const inWatchlist = state?.inWatchlist;
-            const isWatched = state?.isWatched;
+            const inWatchlist = Boolean(state?.inWatchlist);
+            const isWatched = Boolean(state?.isWatched);
             const isWatching = !isWatched && (state?.progressPercent || 0) > 0;
+            const hasDistinctOriginalTitle = Boolean(
+              item.originalTitle &&
+                item.originalTitle.trim().length > 0 &&
+                item.originalTitle.trim().toLowerCase() !== item.title.trim().toLowerCase()
+            );
 
             return (
               <div
@@ -594,85 +686,102 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                   }
                 }}
-                className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-surface-card)] hover:opacity-90 transition cursor-pointer text-left focus:outline-none border border-[var(--border-subtle)] group"
+                className="flex items-center justify-between gap-2.5 sm:gap-3.5 p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)]/65 transition cursor-pointer text-left focus:outline-none border border-[var(--border-subtle)] shadow-2xs group"
               >
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <div className="w-12 h-16 flex-none rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] shadow-xs">
+                {/* Left + Center Content Column */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {/* Poster Thumbnail */}
+                  <div className="w-12 h-[68px] sm:w-13 sm:h-[74px] flex-none rounded-xl overflow-hidden bg-[var(--bg-surface-elevated)] shadow-xs">
                     <SafeImage
                       src={item.posterUrl}
                       fallbackSrc={item.fallbackPosterUrl}
                       alt={item.title}
                       fallbackTitle={item.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-primary)] transition-colors">
+                  {/* Text & Metadata Stack (Strictly bounded so it never collides with right action buttons) */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                    {/* Row 1: Title */}
+                    <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] truncate leading-tight group-hover:text-[var(--accent-primary)] transition-colors">
                       {item.title}
                     </h4>
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] mt-0.5">
-                      <span>{item.year || '2025'}</span>
+
+                    {/* Row 2: Year · Type · Rating + Vote Count (No phantom double dots or button overlap) */}
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--text-secondary)] leading-none">
+                      <span className="tabular-nums font-medium">{item.year || '2025'}</span>
                       <span aria-hidden="true">·</span>
-                      <span className="capitalize">{item.type === 'tv' ? 'Series' : 'Movie'}</span>
-                      {item.originalTitle && item.originalTitle.trim().toLowerCase() !== item.title.trim().toLowerCase() && (
-                        <>
+                      <span className="capitalize font-medium">{item.type === 'tv' ? 'Series' : 'Movie'}</span>
+
+                      {hasDistinctOriginalTitle && (
+                        <span className="hidden sm:inline-flex items-center gap-1.5 min-w-0 max-w-[150px]">
                           <span aria-hidden="true">·</span>
-                          <span className="truncate max-w-[140px] opacity-75 font-normal italic" title={`Original title: ${item.originalTitle}`}>
+                          <span
+                            className="truncate opacity-75 font-normal italic"
+                            title={`Original title: ${item.originalTitle}`}
+                          >
                             {item.originalTitle}
                           </span>
-                        </>
+                        </span>
                       )}
+
                       {item.imdbRating && item.imdbRating > 0 ? (
-                        <>
+                        <span className="inline-flex items-center gap-1 shrink-0">
                           <span aria-hidden="true">·</span>
-                          <span className="inline-flex items-center gap-0.5 font-semibold text-[var(--accent-primary)]">
-                            <Star className="w-3 h-3 fill-current text-amber-500" />
-                            {item.imdbRating.toFixed(1)}
-                            {item.voteCount && item.voteCount > 0 ? (
-                              <span className="text-[10px] text-[var(--text-secondary)] font-normal ml-0.5">
-                                ({item.voteCount >= 1000 ? `${(item.voteCount / 1000).toFixed(1)}k` : item.voteCount})
-                              </span>
-                            ) : null}
-                          </span>
-                        </>
-                      ) : (item.imdbRating || 0) > 0 ? (
-                        <>
+                          <a
+                            href={getImdbRatingPageUrl(item)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            title={`Open IMDb ratings page (${item.imdbRating.toFixed(1)}/10)`}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#F5C518] hover:bg-[#E2B616] text-[#121212] font-black text-[10px] leading-none tabular-nums border border-[#DFB00F] shadow-2xs transition"
+                          >
+                            <Star className="w-2.5 h-2.5 fill-[#121212] text-[#121212]" />
+                            <span>{item.imdbRating.toFixed(1)}</span>
+                          </a>
+                          {item.voteCount && item.voteCount > 0 ? (
+                            <span className="text-[10px] text-[var(--text-secondary)] font-normal tabular-nums">
+                              ({item.voteCount >= 1000 ? `${(item.voteCount / 1000).toFixed(1)}k` : item.voteCount})
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : item.tmdbRating && item.tmdbRating > 0 ? (
+                        <span className="inline-flex items-center gap-1 shrink-0">
                           <span aria-hidden="true">·</span>
-                          <span className="inline-flex items-center gap-0.5 font-semibold text-[var(--accent-primary)]">
+                          <span className="inline-flex items-center gap-0.5 font-semibold text-[var(--accent-primary)] tabular-nums">
                             <Star className="w-3 h-3 fill-current text-[var(--accent-secondary)]" />
-                            {(item.imdbRating || 0).toFixed(1)}
-                            {item.voteCount && item.voteCount > 0 ? (
-                              <span className="text-[10px] text-[var(--text-secondary)] font-normal ml-0.5">
-                                ({item.voteCount >= 1000 ? `${(item.voteCount / 1000).toFixed(1)}k` : item.voteCount})
-                              </span>
-                            ) : null}
+                            {item.tmdbRating.toFixed(1)}
                           </span>
-                        </>
+                        </span>
                       ) : null}
                     </div>
 
-                    {/* Provider representation dots and max 2 genres */}
-                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                    {/* Row 3: Provider Dot + Up to 2 Genre Pills on a single clean row */}
+                    <div className="flex items-center gap-1.5 min-w-0 overflow-hidden mt-0.5">
                       {item.metadataSource === 'tmdb' || item.tmdbId ? (
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-800 inline-block shrink-0" title="TMDB Source" />
+                        <span className="w-2 h-2 rounded-full bg-red-800 inline-block shrink-0" title="TMDB Source" />
                       ) : item.metadataSource === 'omdb' || item.imdbId ? (
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-800 inline-block shrink-0" title="OMDb Source" />
+                        <span className="w-2 h-2 rounded-full bg-blue-800 inline-block shrink-0" title="OMDb Source" />
                       ) : null}
-                      {item.genres && item.genres.slice(0, 2).map(g => (
-                        <span
-                          key={g}
-                          className="px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--chip-text)] text-[10px] font-bold"
-                        >
-                          {g}
-                        </span>
-                      ))}
+                      {item.genres &&
+                        item.genres.slice(0, 2).map(g => (
+                          <span
+                            key={g}
+                            className="px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--chip-text)] text-[10px] font-bold truncate max-w-[105px] sm:max-w-[140px] shrink-0"
+                          >
+                            {g}
+                          </span>
+                        ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Direct Quick Action Buttons (Plus & Tick Icons) */}
-                <div className="flex items-center gap-1.5 flex-none pl-2" onClick={e => e.stopPropagation()}>
+                {/* Right Column: Dedicated Quick Action Buttons (Never overlaps center text) */}
+                <div
+                  className="flex items-center gap-1.5 sm:gap-2 flex-none self-center pl-1"
+                  onClick={e => e.stopPropagation()}
+                >
                   {/* Plus / Watchlist Button */}
                   <button
                     type="button"
@@ -682,9 +791,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     }}
                     aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
                     title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition active:scale-90 shadow-2xs ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition shadow-2xs cursor-pointer ${
                       inWatchlist
-                        ? 'bg-[#F5C518] text-[#121212] font-black border border-[#DFB00F]'
+                        ? 'bg-[#F5C518] text-[#121212] font-black border border-[#DFB00F] animate-btn-pop'
                         : 'bg-[var(--chip-bg)] hover:opacity-90 text-[var(--text-primary)] border border-[var(--border-subtle)]'
                     }`}
                   >
@@ -704,11 +813,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     }}
                     aria-label={isWatched ? 'Watched' : isWatching ? 'Watching' : 'Mark Watched'}
                     title={isWatched ? 'Watched (click to cycle)' : isWatching ? 'Watching (click to mark watched)' : 'Mark Watched'}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition active:scale-90 shadow-2xs ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition shadow-2xs cursor-pointer ${
                       isWatched
-                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)]'
+                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] animate-btn-pop'
                         : isWatching
-                        ? 'bg-[var(--modal-bg)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)]'
+                        ? 'bg-[var(--modal-bg)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)] animate-btn-pop'
                         : 'bg-[var(--chip-bg)] hover:opacity-90 text-[var(--text-primary)] border border-[var(--border-subtle)]'
                     }`}
                   >
@@ -720,8 +829,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           })}
 
           {!isSearching && searchResults.length === 0 && (
-            <div className="text-center py-12 px-4">
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <div className="flex flex-col items-center text-center py-10 px-4 select-none animate-fade-in">
+              <StickerEmptySearch className="w-36 h-28 sm:w-44 sm:h-36 mb-2" />
+              <p className="text-sm font-bold text-[var(--text-primary)]">
                 No matching movies or series found.
               </p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">

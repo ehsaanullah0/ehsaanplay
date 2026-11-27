@@ -1,5 +1,6 @@
 import React from 'react';
 import { FilterState, SortOption, FilterStatus, RATING_TAGS } from '../../types/movie';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 import { X, RotateCcw, ChevronDown } from 'lucide-react';
 
 interface FilterSheetProps {
@@ -19,6 +20,8 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
   onResetFilters,
   availableGenres,
 }) => {
+  useRegisterBackAction(isOpen, onClose, 25);
+
   if (!isOpen) return null;
 
   const statuses: { id: FilterStatus; label: string }[] = [
@@ -50,7 +53,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Sheet Container */}
-      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[var(--modal-bg)] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 animate-slide-up">
+      <div className="relative w-full max-w-lg sm:max-w-xl max-h-[85vh] overflow-y-auto bg-[var(--modal-bg)] rounded-t-3xl sm:rounded-3xl p-5 pb-20 sm:p-6 shadow-2xl border border-[var(--border-subtle)] text-[var(--text-primary)] z-10 animate-slide-up">
         {/* Drag Handle Indicator (mobile) */}
         <div className="sm:hidden w-12 h-1 bg-[var(--accent-primary)]/20 rounded-full mx-auto mb-4" />
 
@@ -137,13 +140,14 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2.5">
               Rating Tier Tag
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
+                type="button"
                 onClick={() => onUpdateFilters({ ratingTag: 'all' })}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold text-center transition ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition border cursor-pointer ${
                   !filters.ratingTag || filters.ratingTag === 'all'
-                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] font-bold shadow-xs'
-                    : 'bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85'
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] border-[var(--accent-primary)] font-bold shadow-xs'
+                    : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:opacity-85'
                 }`}
               >
                 All Tags
@@ -152,15 +156,16 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                 const isSelected = filters.ratingTag === tag.id;
                 return (
                   <button
+                    type="button"
                     key={tag.id}
                     onClick={() => onUpdateFilters({ ratingTag: tag.id })}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold text-center transition border ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition border cursor-pointer ${
                       isSelected
-                        ? `${tag.activeBgClass} ${tag.activeBorderClass} ${tag.colorClass}`
+                        ? `${tag.activeBgClass} ${tag.activeBorderClass} ${tag.colorClass} shadow-xs`
                         : 'bg-[var(--chip-bg)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:opacity-85'
                     }`}
                   >
-                    <span className="truncate">{tag.label}</span>
+                    {tag.label}
                   </button>
                 );
               })}

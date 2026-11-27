@@ -76,7 +76,6 @@ import {
   PlusCircle,
   Globe,
   Mail,
-  Maximize2,
   Minimize2,
   Lightbulb,
   MousePointerClick,
@@ -124,6 +123,23 @@ interface SettingsViewProps {
   onRemoveAllDuplicates?: () => { beforeCount: number; afterCount: number; removedCount: number };
   isActive?: boolean;
 }
+
+/**
+ * Material 3 Expressive Category Pill Heading
+ */
+const SettingsSectionPill: React.FC<{
+  icon?: React.ReactNode;
+  label: string;
+  rightSlot?: React.ReactNode;
+}> = ({ icon, label, rightSlot }) => (
+  <div className="flex items-center justify-between gap-2 px-0.5 pt-1">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] border border-[var(--border-subtle)] text-[11px] font-extrabold uppercase tracking-wider shadow-2xs">
+      {icon}
+      <span>{label}</span>
+    </span>
+    {rightSlot}
+  </div>
+);
 
 /**
  * Material 3 Tactile Switch Component
@@ -252,6 +268,27 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
 
   const [isDeduping, setIsDeduping] = useState(false);
   const [dedupStatus, setDedupStatus] = useState<string | null>(null);
+
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktopViewport(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
+  }, []);
+
+  const isTitleCardVisibleInCurrentView = isDesktopViewport
+    ? settings.tweaks?.previewShowPosterCardDesktop === true
+    : settings.tweaks?.previewShowPosterCard !== false;
 
   // Collapsible desktop sidebar state (persisted in localStorage)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -604,10 +641,10 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
     e.target.value = '';
   };
 
-  // Color schemes list (Default Olive, Orange, Blue, Pink, Purple, and Mint in horizontal scrollable rail)
+  // Color schemes list (Default Orange, Olive, Blue, Pink, Purple, and Mint in horizontal scrollable rail)
   const colorSchemes = [
-    { id: 'olive', name: 'Default', color: '#4E562F', secondaryColor: '#E4EAB8' },
-    { id: 'orange', name: 'Orange', color: '#FFB084', secondaryColor: '#F4DF77' },
+    { id: 'orange', name: 'Default (Orange)', color: '#FFB084', secondaryColor: '#F4DF77' },
+    { id: 'olive', name: 'Olive', color: '#4E562F', secondaryColor: '#E4EAB8' },
     { id: 'blue', name: 'Blue', color: '#ADC8FA', secondaryColor: '#DCC6FA' },
     { id: 'pink', name: 'Pink', color: '#EE91A0', secondaryColor: '#F2D3F5' },
     { id: 'purple', name: 'Purple', color: '#D7C5F9', secondaryColor: '#F8BBD0' },
@@ -628,63 +665,68 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
     },
   ];
 
+  type TopicCategoryId = 'sync' | 'personalize' | 'storage' | 'intelligence' | 'guide' | 'app';
+
   // List of all Settings Topics
   const topics: {
     id: SettingsTopicId;
+    category: TopicCategoryId;
     title: string;
     subtitle: string;
     icon: React.ReactNode;
   }[] = [
     {
-      id: 'app',
-      title: 'EHSAAN PLAY',
-      subtitle: `Version ${CHANGELOG_VERSIONS[0]?.version || 'v3.0.0'} · ${isInstalled ? 'Installed PWA' : isOnline ? 'Online Ready' : 'Offline Mode'}`,
-      icon: <Smartphone className="w-5 h-5 text-[var(--accent-primary)]" />,
-    },
-    {
       id: 'device-transfer',
+      category: 'sync',
       title: 'Device Transfer',
       subtitle: 'Same-Wi-Fi direct sync (Beta) · Send or receive recent changes',
       icon: <Wifi className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'supabase-sync',
+      category: 'sync',
       title: 'Cloud Database & Sync',
       subtitle: 'Supabase BYOD · Email/Password Account · Live Cross-Device Sync',
       icon: <Cloud className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'appearance',
+      category: 'personalize',
       title: 'Appearance',
-      subtitle: `Theme: ${settings.theme === 'dark-olive' ? 'Dark' : settings.theme === 'oled-black' ? 'OLED Black' : 'Warm Cream'} · Color: ${colorSchemes.find(s => s.id === (settings.colorScheme || 'olive'))?.name || 'Default'}`,
+      subtitle: `Theme: ${settings.theme === 'dark-olive' ? 'Dark' : settings.theme === 'oled-black' ? 'OLED Black' : 'Warm Cream'} · Color: ${colorSchemes.find(s => s.id === (settings.colorScheme || 'orange'))?.name || 'Default (Orange)'}`,
       icon: <Palette className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'tweaks',
+      category: 'personalize',
       title: 'Tweaks & Shelves',
-      subtitle: `Font: ${settings.tweaks?.fontFamily === 'google-sans-flex' ? 'Google Sans Flex' : 'Default'} · Shelves & Gestures`,
+      subtitle: `Font: ${settings.tweaks?.fontFamily === 'google-sans-flex' ? 'Google Sans Flex' : 'Default'}${settings.tweaks?.roundedText ? ' (Rounded)' : ''} · Shelves & Gestures`,
       icon: <SlidersHorizontal className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
-      id: 'tips',
-      title: 'Tips & Tricks',
-      subtitle: 'Long-press gestures, shelf editing & power shortcuts',
-      icon: <Lightbulb className="w-5 h-5 text-[var(--accent-primary)]" />,
-    },
-    {
       id: 'storage',
+      category: 'storage',
       title: 'Storage & Offline',
       subtitle: `${settings.imageStorageMode === 'offline' ? 'Offline Local Artwork' : 'Online Cloud Stream'} · ${imageCacheStats.formattedSize}`,
       icon: <Database className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
+      id: 'backup',
+      category: 'storage',
+      title: 'Backup & Restore',
+      subtitle: `Journal: ~${storageStats.usedKb} KB · Titles: ${storageStats.totalItems} · Lists: ${storageStats.listsCount}`,
+      icon: <HardDrive className="w-5 h-5 text-[var(--accent-primary)]" />,
+    },
+    {
       id: 'OMDb',
+      category: 'intelligence',
       title: 'API & Diagnostics (TMDB / OMDb)',
       subtitle: `${settings.tmdbApiKey ? 'TMDB Custom' : 'TMDB Primary'} · ${settings.omdbApiKey || isOMDBConfigured() ? 'OMDb Fallback Active' : 'OMDb Fallback Ready'}`,
       icon: <Key className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'gemini',
+      category: 'intelligence',
       title: 'Gemini AI Integration',
       subtitle: settings.geminiApiKey
         ? 'Gemini API Key Configured · Trending Genres Ready'
@@ -692,23 +734,46 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       icon: <Sparkles className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
+      id: 'tips',
+      category: 'guide',
+      title: 'Tips & Tricks',
+      subtitle: 'Long-press gestures, shelf editing & power shortcuts',
+      icon: <Lightbulb className="w-5 h-5 text-[var(--accent-primary)]" />,
+    },
+    {
       id: 'shortcuts',
+      category: 'guide',
       title: 'Keyboard Shortcuts',
       subtitle: `Back: ${shortcuts.goBack}, Home: ${shortcuts.goHome}, Search: ${shortcuts.openSearch}`,
       icon: <Keyboard className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
-      id: 'backup',
-      title: 'Backup & Restore',
-      subtitle: `Journal: ~${storageStats.usedKb} KB · Titles: ${storageStats.totalItems} · Lists: ${storageStats.listsCount}`,
-      icon: <HardDrive className="w-5 h-5 text-[var(--accent-primary)]" />,
+      id: 'app',
+      category: 'app',
+      title: 'EHSAAN PLAY',
+      subtitle: `Version ${CHANGELOG_VERSIONS[0]?.version || 'v3.0.0'} · ${isInstalled ? 'Installed PWA' : isOnline ? 'Online Ready' : 'Offline Mode'}`,
+      icon: <Smartphone className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
     {
       id: 'about',
+      category: 'app',
       title: 'About',
       subtitle: `EHSAAN PLAY ${CHANGELOG_VERSIONS[0]?.version || 'v3.0.0'} · Ecosystem · Open Source · Support`,
       icon: <Info className="w-5 h-5 text-[var(--accent-primary)]" />,
     },
+  ];
+
+  const topicGroups: {
+    id: TopicCategoryId;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    { id: 'sync', label: 'Sync & Cloud', icon: <Cloud className="w-3.5 h-3.5" /> },
+    { id: 'personalize', label: 'Appearance & Layout', icon: <Palette className="w-3.5 h-3.5" /> },
+    { id: 'storage', label: 'Storage & Backup', icon: <HardDrive className="w-3.5 h-3.5" /> },
+    { id: 'intelligence', label: 'APIs & AI', icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { id: 'guide', label: 'Tips & Controls', icon: <Lightbulb className="w-3.5 h-3.5" /> },
+    { id: 'app', label: 'Application', icon: <Smartphone className="w-3.5 h-3.5" /> },
   ];
 
   // Active topic object for desktop / sub-page view
@@ -743,6 +808,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'appearance':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Palette className="w-3.5 h-3.5" />} label="Theme & Color Palette" />
+
             {/* Card Group 1: Theme & Color Palette */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               {/* Theme Segmented Bubble Selector */}
@@ -785,7 +852,7 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                   <div>
                     <div className="font-bold text-sm text-[var(--text-primary)]">Color scheme</div>
                     <div className="text-xs text-[var(--text-secondary)] font-medium">
-                      {colorSchemes.find(s => s.id === (settings.colorScheme || 'olive'))?.name || 'Default'}
+                      {colorSchemes.find(s => s.id === (settings.colorScheme || 'orange'))?.name || 'Default (Orange)'}
                     </div>
                   </div>
                 </div>
@@ -794,8 +861,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 <div className="grid grid-cols-6 gap-2 sm:gap-2.5 w-full py-1">
                   {colorSchemes.map(scheme => {
                     const isSelected =
-                      (settings.colorScheme || 'olive') === scheme.id ||
-                      (scheme.id === 'olive' && (settings.colorScheme === 'default' || !settings.colorScheme));
+                      (settings.colorScheme || 'orange') === scheme.id ||
+                      (scheme.id === 'orange' && (settings.colorScheme === 'default' || !settings.colorScheme));
                     return (
                       <button
                         key={scheme.id}
@@ -866,6 +933,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             </div>
 
+            <SettingsSectionPill icon={<Eye className="w-3.5 h-3.5" />} label="Preview & Hero Layout" />
+
             {/* Card Group 2: Preview & Hero Layout */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5 flex items-center justify-between">
@@ -910,13 +979,10 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'tweaks':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<RefreshCw className="w-3.5 h-3.5" />} label="Library Maintenance" />
+
             {/* Card Group 0: Library Maintenance (Reload Artwork & Deduplication) */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
-              <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                <span>Library Artwork & Deduplication Maintenance</span>
-              </div>
-
               {/* Action 1: Reload All Movies & Series Album Art / Banners */}
               <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="pr-3">
@@ -973,6 +1039,9 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 </button>
               </div>
             </div>
+
+            <SettingsSectionPill icon={<Type className="w-3.5 h-3.5" />} label="Typography" />
+
             {/* Card Group 1: Typography (Font Family) */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5 space-y-3">
@@ -1019,7 +1088,37 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                   <span>More typefaces coming: Cabinet Grotesk, Inter Tight, Satoshi, Literata</span>
                 </div>
               </div>
+
+              {/* Rounded Text Toggle for Material Expressive UI */}
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="pr-3">
+                  <div className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <span>Rounded Text</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)]">
+                      Expressive
+                    </span>
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Enable soft, rounded letterforms across headings, buttons, and labels to make the UI more Material Expressive
+                  </div>
+                </div>
+                <M3Switch
+                  checked={Boolean(settings.tweaks?.roundedText)}
+                  onChange={() =>
+                    onUpdateSettings({
+                      tweaks: {
+                        ...DEFAULT_APP_TWEAKS,
+                        ...settings.tweaks,
+                        roundedText: !settings.tweaks?.roundedText,
+                      },
+                    })
+                  }
+                  ariaLabel="Toggle Rounded Text"
+                />
+              </div>
             </div>
+
+            <SettingsSectionPill icon={<SlidersHorizontal className="w-3.5 h-3.5" />} label="Navigation & Gestures" />
 
             {/* Card Group 2: Navigation & Gestures (M3 Switch Rows) */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
@@ -1224,45 +1323,70 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             </div>
 
+            <SettingsSectionPill icon={<LayoutGrid className="w-3.5 h-3.5" />} label="Home Shelves & Rails" />
+
             {/* Card Group 3: Home Shelves Visibility */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
-              <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Home Shelves & Rails
-              </div>
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-sm text-[var(--text-primary)]">Trending Shows 3D Showcase</div>
-                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">Live TMDB/IMDb trending 3D coverflow with hover details</div>
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Daily Mix (Watchlist)</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">Animated random picks from your Watchlist in Material Design shapes</div>
                 </div>
                 <M3Switch
-                  checked={settings.homeSections?.showHeroSlideshow === true}
+                  checked={settings.homeSections?.showDailyMix === true}
                   onChange={() =>
                     onUpdateSettings({
                       homeSections: {
                         ...DEFAULT_HOME_SECTIONS,
                         ...settings.homeSections,
-                        showHeroSlideshow: settings.homeSections?.showHeroSlideshow !== true,
+                        showDailyMix: settings.homeSections?.showDailyMix !== true,
                       },
                     })
                   }
-                  ariaLabel="Toggle Trending Shows 3D Showcase"
+                  ariaLabel="Toggle Daily Mix"
+                />
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-sm text-[var(--text-primary)]">Dashboard (Your Cinema Shelf)</div>
+                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">Library stats card and total watch time summary</div>
+                </div>
+                <M3Switch
+                  checked={settings.homeSections?.showDashboard !== false}
+                  onChange={() =>
+                    onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showDashboard: settings.homeSections?.showDashboard === false,
+                      },
+                    })
+                  }
+                  ariaLabel="Toggle Dashboard"
                 />
               </div>
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="font-bold text-sm text-[var(--text-primary)]">Explore Recommendations</div>
                 <M3Switch
-                  checked={settings.tweaks?.showExploreShelf !== false}
-                  onChange={() =>
+                  checked={settings.homeSections?.showExplore !== false}
+                  onChange={() => {
+                    const nextVal = settings.homeSections?.showExplore === false;
                     onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showExplore: nextVal,
+                      },
                       tweaks: {
                         ...DEFAULT_APP_TWEAKS,
                         ...settings.tweaks,
-                        showExploreShelf: settings.tweaks?.showExploreShelf === false,
+                        showExploreShelf: nextVal,
                       },
-                    })
-                  }
+                    });
+                  }}
                   ariaLabel="Toggle Explore shelf"
                 />
               </div>
@@ -1270,16 +1394,22 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="font-bold text-sm text-[var(--text-primary)]">Continue Watching Rail</div>
                 <M3Switch
-                  checked={settings.tweaks?.showContinueWatching !== false}
-                  onChange={() =>
+                  checked={settings.homeSections?.showContinueWatching !== false}
+                  onChange={() => {
+                    const nextVal = settings.homeSections?.showContinueWatching === false;
                     onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showContinueWatching: nextVal,
+                      },
                       tweaks: {
                         ...DEFAULT_APP_TWEAKS,
                         ...settings.tweaks,
-                        showContinueWatching: settings.tweaks?.showContinueWatching === false,
+                        showContinueWatching: nextVal,
                       },
-                    })
-                  }
+                    });
+                  }}
                   ariaLabel="Toggle Continue Watching rail"
                 />
               </div>
@@ -1287,16 +1417,22 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="font-bold text-sm text-[var(--text-primary)]">Top 10 Movies Rail</div>
                 <M3Switch
-                  checked={settings.tweaks?.showTop10Movies !== false}
-                  onChange={() =>
+                  checked={settings.homeSections?.showTopMovies !== false}
+                  onChange={() => {
+                    const nextVal = settings.homeSections?.showTopMovies === false;
                     onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showTopMovies: nextVal,
+                      },
                       tweaks: {
                         ...DEFAULT_APP_TWEAKS,
                         ...settings.tweaks,
-                        showTop10Movies: settings.tweaks?.showTop10Movies === false,
+                        showTop10Movies: nextVal,
                       },
-                    })
-                  }
+                    });
+                  }}
                   ariaLabel="Toggle Top 10 Movies rail"
                 />
               </div>
@@ -1304,17 +1440,57 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="font-bold text-sm text-[var(--text-primary)]">Top 10 Series Rail</div>
                 <M3Switch
-                  checked={settings.tweaks?.showTop10Series !== false}
-                  onChange={() =>
+                  checked={settings.homeSections?.showTopSeries !== false}
+                  onChange={() => {
+                    const nextVal = settings.homeSections?.showTopSeries === false;
                     onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showTopSeries: nextVal,
+                      },
                       tweaks: {
                         ...DEFAULT_APP_TWEAKS,
                         ...settings.tweaks,
-                        showTop10Series: settings.tweaks?.showTop10Series === false,
+                        showTop10Series: nextVal,
+                      },
+                    });
+                  }}
+                  ariaLabel="Toggle Top 10 Series rail"
+                />
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="font-bold text-sm text-[var(--text-primary)]">Personal Favorites Rail</div>
+                <M3Switch
+                  checked={settings.homeSections?.showFavorites !== false}
+                  onChange={() =>
+                    onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showFavorites: settings.homeSections?.showFavorites === false,
                       },
                     })
                   }
-                  ariaLabel="Toggle Top 10 Series rail"
+                  ariaLabel="Toggle Personal Favorites rail"
+                />
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between">
+                <div className="font-bold text-sm text-[var(--text-primary)]">Recently Watched Rail</div>
+                <M3Switch
+                  checked={settings.homeSections?.showRecentlyWatched !== false}
+                  onChange={() =>
+                    onUpdateSettings({
+                      homeSections: {
+                        ...DEFAULT_HOME_SECTIONS,
+                        ...settings.homeSections,
+                        showRecentlyWatched: settings.homeSections?.showRecentlyWatched === false,
+                      },
+                    })
+                  }
+                  ariaLabel="Toggle Recently Watched rail"
                 />
               </div>
 
@@ -1390,235 +1566,15 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             </div>
 
-            {/* Card Group 3.5: Featured Hero Slideshow Controls & Appearance */}
-            <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
-              <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sliders className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                  <span>Featured Hero Slideshow Controls</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdateSettings({
-                      tweaks: {
-                        ...DEFAULT_APP_TWEAKS,
-                        ...settings.tweaks,
-                        heroSlideshowLayout: 'card',
-                        heroSlideshowOpacity: 0.75,
-                        heroSlideshowGenresPill: false,
-                        heroSlideshowTitleColor: 'white',
-                      },
-                    })
-                  }
-                  className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] flex items-center gap-1 transition active:scale-95"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset Defaults</span>
-                </button>
-              </div>
-
-              {/* 1. Card View vs Full Width View */}
-              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="pr-3">
-                  <div className="font-bold text-sm text-[var(--text-primary)]">Layout Mode</div>
-                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Choose Card View or Full-Width View (expands left, right, and top edges with a curved bottom)
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowLayout: 'card',
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                      (settings.tweaks?.heroSlideshowLayout ?? 'card') === 'card'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                    <span>Card View</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowLayout: 'full-width',
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                      settings.tweaks?.heroSlideshowLayout === 'full-width'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span>Full-Width View</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Opacity Controller Bar */}
-              <div className="p-4 sm:p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-sm text-[var(--text-primary)]">Dark Fog Overlay Opacity</div>
-                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Adjust the dark vignette transparency over background cinematic artwork
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs font-black px-2.5 py-1 rounded-full bg-[var(--chip-bg)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
-                    {Math.round((settings.tweaks?.heroSlideshowOpacity ?? 0.75) * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={settings.tweaks?.heroSlideshowOpacity ?? 0.75}
-                  onChange={e =>
-                    onUpdateSettings({
-                      tweaks: {
-                        ...DEFAULT_APP_TWEAKS,
-                        ...settings.tweaks,
-                        heroSlideshowOpacity: parseFloat(e.target.value),
-                      },
-                    })
-                  }
-                  aria-label="Hero Slideshow Dark Fog Opacity"
-                  className="w-full accent-[var(--accent-primary)] cursor-pointer h-2 bg-[var(--chip-bg)] rounded-lg"
-                />
-                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] font-semibold">
-                  <span>Clear Artwork (0%)</span>
-                  <span>Balanced (75%)</span>
-                  <span>Deep Fog (100%)</span>
-                </div>
-              </div>
-
-              {/* 3. Genres Pilled Shape Filled with Theme Colour */}
-              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="pr-3">
-                  <div className="font-bold text-sm text-[var(--text-primary)]">Genres Badge Style</div>
-                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Display genre tags as solid pills filled with active theme color, or as subtle dot-separated text
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowGenresPill: false,
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                      !settings.tweaks?.heroSlideshowGenresPill
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <span>Dot-Separated</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowGenresPill: true,
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                      settings.tweaks?.heroSlideshowGenresPill
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <span>Theme Filled Pills</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 4. Title Colour Option */}
-              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="pr-3">
-                  <div className="font-bold text-sm text-[var(--text-primary)]">Title Typography Color</div>
-                  <div className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Choose standard white title typography or artwork-adaptive theme accent color
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] shrink-0 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowTitleColor: 'white',
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                      (settings.tweaks?.heroSlideshowTitleColor ?? 'white') === 'white'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <span>Standard White</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        tweaks: {
-                          ...DEFAULT_APP_TWEAKS,
-                          ...settings.tweaks,
-                          heroSlideshowTitleColor: 'artwork-adaptive',
-                        },
-                      })
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                      settings.tweaks?.heroSlideshowTitleColor === 'artwork-adaptive'
-                        ? 'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-xs'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <span>Theme / Artwork Adaptive</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsSectionPill icon={<Eye className="w-3.5 h-3.5" />} label="Preview Window & Action Buttons" />
 
             {/* Card Group 4: Preview Window & Action Buttons */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
-              <div className="px-4 sm:px-5 py-3 bg-[var(--chip-bg)]/40 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                Preview Window & Action Buttons
-              </div>
 
               <div className="p-4 sm:p-5 flex items-center justify-between">
                 <div className="pr-3">
                   <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--text-primary)]">
-                    {settings.tweaks?.previewShowPosterCard !== false ? (
+                    {isTitleCardVisibleInCurrentView ? (
                       <Eye className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
                     ) : (
                       <EyeOff className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
@@ -1630,13 +1586,15 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                   </div>
                 </div>
                 <M3Switch
-                  checked={settings.tweaks?.previewShowPosterCard !== false}
+                  checked={isTitleCardVisibleInCurrentView}
                   onChange={() =>
                     onUpdateSettings({
                       tweaks: {
                         ...DEFAULT_APP_TWEAKS,
                         ...settings.tweaks,
-                        previewShowPosterCard: settings.tweaks?.previewShowPosterCard === false,
+                        ...(isDesktopViewport
+                          ? { previewShowPosterCardDesktop: !isTitleCardVisibleInCurrentView }
+                          : { previewShowPosterCard: !isTitleCardVisibleInCurrentView }),
                       },
                     })
                   }
@@ -1644,7 +1602,7 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 />
               </div>
 
-              <div className={`p-4 sm:p-5 flex items-center justify-between transition-opacity ${settings.tweaks?.previewShowPosterCard !== false ? 'opacity-100' : 'opacity-50'}`}>
+              <div className={`p-4 sm:p-5 flex items-center justify-between transition-opacity ${isTitleCardVisibleInCurrentView ? 'opacity-100' : 'opacity-50'}`}>
                 <div className="pr-3">
                   <div className="flex items-center gap-2.5 font-bold text-sm text-[var(--text-primary)]">
                     <Sparkles className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
@@ -1832,6 +1790,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'tips':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Lightbulb className="w-3.5 h-3.5" />} label="Guide Overview" />
+
             {/* Header / Intro Card */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs p-5 sm:p-6 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center shrink-0 border border-[var(--border-subtle)] shadow-xs">
@@ -1846,6 +1806,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 </p>
               </div>
             </div>
+
+            <SettingsSectionPill icon={<MousePointerClick className="w-3.5 h-3.5" />} label="Gestures & Workflows" />
 
             {/* Responsive 2-Column Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
@@ -2119,6 +2081,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'storage':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<HardDrive className="w-3.5 h-3.5" />} label="Local Privacy Guarantee" />
+
             {/* Privacy & Local Storage Guarantee Banner */}
             <div className="p-4 sm:p-5 rounded-3xl bg-[var(--accent-secondary)] text-[var(--accent-secondary-text)] border border-[var(--border-subtle)] shadow-xs space-y-1.5">
               <div className="flex items-center gap-2">
@@ -2131,6 +2095,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 Your personal watchlist, library records, custom notes, and ratings never leave your local device storage. Only poster images and backdrop artworks are streamed on-demand from cloud CDNs.
               </p>
             </div>
+
+            <SettingsSectionPill icon={<Database className="w-3.5 h-3.5" />} label="Artwork Storage & Volume" />
 
             {/* Card Group 1: Storage Mode */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
@@ -2210,6 +2176,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             )}
 
+            <SettingsSectionPill icon={<RefreshCw className="w-3.5 h-3.5" />} label="Cache Actions" />
+
             {/* Card Group 2: Actions */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5 flex items-center justify-between">
@@ -2247,6 +2215,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'app':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Smartphone className="w-3.5 h-3.5" />} label="Application Status" />
+
             {/* Card Group 1: Application Shell & Status */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
@@ -2298,7 +2268,9 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
 
             {/* Card Group 2: Latest Release Showcase (GitHub Showcase Card Style) */}
             {CHANGELOG_VERSIONS[0] && (
-              <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6 space-y-4">
+              <>
+                <SettingsSectionPill icon={<History className="w-3.5 h-3.5" />} label="Release Notes & Archive" />
+                <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2.5">
                     <Sparkles className="w-4 h-4 text-[var(--accent-primary)]" />
@@ -2370,7 +2342,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                     ))}
                   </div>
                 )}
-              </div>
+                </div>
+              </>
             )}
           </div>
         );
@@ -2381,6 +2354,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
 
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Key className="w-3.5 h-3.5" />} label="Metadata Providers" />
+
             {/* Provider Selector Tabs (TMDB Secret Integration / OMDb) */}
             <div className="flex p-1 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-subtle)] gap-1 shadow-2xs">
               <button
@@ -2412,6 +2387,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 )}
               </button>
             </div>
+
+            <SettingsSectionPill icon={<Sparkles className="w-3.5 h-3.5" />} label="Failover & Health" />
 
             {/* Provider Health & Circuit Overview */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] p-4 sm:p-5 shadow-2xs space-y-3">
@@ -2724,6 +2701,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
 
         return (
           <div className="space-y-5 animate-fade-in">
+            <SettingsSectionPill icon={<Sparkles className="w-3.5 h-3.5" />} label="Gemini AI Overview" />
+
             {/* Header Description Card */}
             <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface-card)] border border-[var(--border-subtle)] shadow-xs">
               <div className="flex items-center gap-3 mb-2">
@@ -2743,6 +2722,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 Connect your own Gemini API key to generate intelligent, genre-based movie and TV show collections.
               </p>
             </div>
+
+            <SettingsSectionPill icon={<CheckCircle2 className="w-3.5 h-3.5" />} label="Connection & Model Setup" />
 
             {/* Connection Status Card */}
             <div
@@ -2989,6 +2970,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'shortcuts':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Keyboard className="w-3.5 h-3.5" />} label="Custom Shortcuts" />
+
             {/* Card Group 1: Custom Shortcuts List */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5 flex items-center justify-between">
@@ -3041,6 +3024,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'backup':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<HardDrive className="w-3.5 h-3.5" />} label="Full Library Backup & Data" />
+
             {/* Card Group 1: Storage Metrics & Backup Actions */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <div className="p-4 sm:p-5">
@@ -3158,6 +3143,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
       case 'about':
         return (
           <div className="space-y-4">
+            <SettingsSectionPill icon={<Info className="w-3.5 h-3.5" />} label="App Information" />
+
             {/* Card Group 1: App Header Card */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
@@ -3226,6 +3213,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             </div>
 
+            <SettingsSectionPill icon={<Code2 className="w-3.5 h-3.5" />} label="Developer & Contact" />
+
             {/* Card Group 2: Developer Card */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6 space-y-4">
               <div className="flex items-center gap-3.5">
@@ -3282,6 +3271,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </div>
             </div>
 
+            <SettingsSectionPill icon={<Heart className="w-3.5 h-3.5" />} label="Links & Support" />
+
             {/* Card Group 3: Links & Support Group */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs divide-y divide-[var(--border-subtle)] overflow-hidden">
               <a
@@ -3333,6 +3324,8 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
                 </div>
               </button>
             </div>
+
+            <SettingsSectionPill icon={<Sparkles className="w-3.5 h-3.5" />} label="Ehsaan Ecosystem" />
 
             {/* Card Group 4: EHSAAN ECOSYSTEM (Shifted to bottom) */}
             <div className="bg-[var(--bg-surface-card)] rounded-3xl border border-[var(--border-subtle)] shadow-2xs overflow-hidden p-5 sm:p-6 space-y-4">
@@ -3519,50 +3512,45 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
               </p>
             </div>
 
-            {/* Grouped Topics List Container */}
-            <div className="space-y-2.5">
-              {topics.map(topic => (
-                <button
-                  key={topic.id}
-                  onClick={() => handleSelectTopic(topic.id)}
-                  className="w-full flex items-center justify-between p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-left transition-all active:scale-[0.99] shadow-2xs group"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--chip-bg)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      {topic.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">
-                        {topic.title}
-                      </h3>
-                      <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
-                        {topic.subtitle}
-                      </p>
+            {/* Categorized Topics List with Material Pill Headings */}
+            <div className="space-y-5">
+              {topicGroups.map(group => {
+                const groupItems = topics.filter(t => t.category === group.id);
+                if (groupItems.length === 0) return null;
+                return (
+                  <div key={group.id} className="space-y-2">
+                    <SettingsSectionPill icon={group.icon} label={group.label} />
+                    <div className="space-y-2.5">
+                      {groupItems.map(topic => (
+                        <button
+                          key={topic.id}
+                          onClick={() => handleSelectTopic(topic.id)}
+                          className="w-full flex items-center justify-between p-4 sm:p-4.5 rounded-2xl bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] text-left transition-all active:scale-[0.99] shadow-2xs group"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--chip-bg)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              {topic.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">
+                                {topic.title}
+                              </h3>
+                              <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
+                                {topic.subtitle}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="w-8 h-8 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center shrink-0 shadow-2xs border border-[var(--border-subtle)] group-hover:scale-110 transition-transform">
+                            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] flex items-center justify-center shrink-0 shadow-2xs border border-[var(--border-subtle)] group-hover:scale-110 transition-transform">
-                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Quick Reset Footer on Mobile Hub */}
-            <div className="pt-4 text-center space-y-2">
-              <button
-                onClick={async () => {
-                  if (window.confirm('Delete all saved library data and settings?')) {
-                    await onDeleteAllData();
-                    const newImgStats = await getImageCacheStats();
-                    setImageCacheStats(newImgStats);
-                    setStorageStats(getStorageStats());
-                  }
-                }}
-                className="text-xs font-semibold text-rose-500/80 hover:text-rose-500 transition"
-              >
-                Reset stats & library
-              </button>
-            </div>
           </div>
         ) : (
           /* Mobile Sub-Page View */
@@ -3645,80 +3633,104 @@ export const SettingsView: React.FC<SettingsViewProps> = React.memo(({
           )}
 
           {isSidebarCollapsed ? (
-            /* Collapsed Sidebar Nav: Sleek Icon Rail with Tooltips */
-            <nav className="space-y-2 flex flex-col items-center animate-fade-in" aria-label="Settings Categories">
-              {topics.map(topic => {
-                const isSelected = (selectedTopic || 'app') === topic.id;
+            /* Collapsed Sidebar Nav: Sleek Icon Rail with Group Dividers */
+            <nav className="space-y-3 flex flex-col items-center animate-fade-in" aria-label="Settings Categories">
+              {topicGroups.map((group, groupIdx) => {
+                const groupItems = topics.filter(t => t.category === group.id);
+                if (groupItems.length === 0) return null;
                 return (
-                  <button
-                    key={topic.id}
-                    type="button"
-                    onClick={() => handleSelectTopic(topic.id)}
-                    title={`${topic.title} · ${topic.subtitle}`}
-                    aria-label={topic.title}
-                    className={`relative group w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs ring-2 ring-[var(--accent-primary)]/40 font-bold'
-                        : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:scale-105'
+                  <div
+                    key={group.id}
+                    className={`w-full flex flex-col items-center space-y-2 ${
+                      groupIdx > 0 ? 'pt-2.5 border-t border-[var(--border-subtle)]/50' : ''
                     }`}
                   >
-                    <div className="w-5 h-5 flex items-center justify-center">
-                      {topic.icon}
-                    </div>
+                    {groupItems.map(topic => {
+                      const isSelected = (selectedTopic || 'app') === topic.id;
+                      return (
+                        <button
+                          key={topic.id}
+                          type="button"
+                          onClick={() => handleSelectTopic(topic.id)}
+                          title={`${group.label} · ${topic.title}`}
+                          aria-label={topic.title}
+                          className={`relative group w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
+                            isSelected
+                              ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs ring-2 ring-[var(--accent-primary)]/40 font-bold'
+                              : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:scale-105'
+                          }`}
+                        >
+                          <div className="w-5 h-5 flex items-center justify-center">
+                            {topic.icon}
+                          </div>
 
-                    {/* Active side pill indicator */}
-                    {isSelected && (
-                      <span className="absolute -left-1 w-1 h-5 rounded-full bg-[var(--accent-primary)] shadow-xs" />
-                    )}
-                  </button>
+                          {/* Active side pill indicator */}
+                          {isSelected && (
+                            <span className="absolute -left-1 w-1 h-5 rounded-full bg-[var(--accent-primary)] shadow-xs" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 );
               })}
             </nav>
           ) : (
-            /* Expanded Sidebar Nav: Full Detailed Cards */
-            <nav className="space-y-1.5 animate-fade-in" aria-label="Settings Categories">
-              {topics.map(topic => {
-                const isSelected = (selectedTopic || 'app') === topic.id;
+            /* Expanded Sidebar Nav: Categorized with Material Pill Headings */
+            <nav className="space-y-4 animate-fade-in" aria-label="Settings Categories">
+              {topicGroups.map(group => {
+                const groupItems = topics.filter(t => t.category === group.id);
+                if (groupItems.length === 0) return null;
                 return (
-                  <button
-                    key={topic.id}
-                    onClick={() => handleSelectTopic(topic.id)}
-                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-left transition-all active:scale-[0.98] cursor-pointer ${
-                      isSelected
-                        ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs font-bold border border-transparent'
-                        : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          isSelected
-                            ? 'bg-black/15 text-[var(--text-card-olive)]'
-                            : 'bg-[var(--chip-bg)] text-[var(--accent-primary)]'
-                        }`}
-                      >
-                        {topic.icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs lg:text-sm font-bold truncate">
-                          {topic.title}
-                        </div>
-                        <div className={`text-[11px] truncate mt-0.5 ${isSelected ? 'opacity-90' : 'text-[var(--text-secondary)]'}`}>
-                          {topic.subtitle}
-                        </div>
-                      </div>
+                  <div key={group.id} className="space-y-1.5">
+                    <SettingsSectionPill icon={group.icon} label={group.label} />
+                    <div className="space-y-1.5">
+                      {groupItems.map(topic => {
+                        const isSelected = (selectedTopic || 'app') === topic.id;
+                        return (
+                          <button
+                            key={topic.id}
+                            onClick={() => handleSelectTopic(topic.id)}
+                            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-left transition-all active:scale-[0.98] cursor-pointer ${
+                              isSelected
+                                ? 'bg-[var(--bg-card-olive)] text-[var(--text-card-olive)] shadow-xs font-bold border border-transparent'
+                                : 'bg-[var(--bg-surface-card)] hover:bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 pr-2">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                                  isSelected
+                                    ? 'bg-black/15 text-[var(--text-card-olive)]'
+                                    : 'bg-[var(--chip-bg)] text-[var(--accent-primary)]'
+                                }`}
+                              >
+                                {topic.icon}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs lg:text-sm font-bold truncate">
+                                  {topic.title}
+                                </div>
+                                <div className={`text-[11px] truncate mt-0.5 ${isSelected ? 'opacity-90' : 'text-[var(--text-secondary)]'}`}>
+                                  {topic.subtitle}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Filled Circle with Yellow Colour in Arrow */}
+                            <div
+                              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform ${
+                                isSelected
+                                  ? 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-xs scale-105 border border-black/10'
+                                  : 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] opacity-85 group-hover:opacity-100 group-hover:scale-105 border border-[var(--border-subtle)]'
+                              }`}
+                            >
+                              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                    {/* Filled Circle with Yellow Colour in Arrow */}
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform ${
-                        isSelected
-                          ? 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] shadow-xs scale-105 border border-black/10'
-                          : 'bg-[var(--bg-card-yellow)] text-[var(--text-card-yellow)] opacity-85 group-hover:opacity-100 group-hover:scale-105 border border-[var(--border-subtle)]'
-                      }`}
-                    >
-                      <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
             </nav>

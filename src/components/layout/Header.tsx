@@ -28,9 +28,9 @@ export const Header: React.FC<HeaderProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollYRef = useRef(0);
 
-  // Long press detection on the top corner action button (Search or Lists) using unified Pointer Events & timestamp guard
+  // Long press detection on the top corner action button (Search or Lists) using unified Pointer Events & boolean guard
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTriggeredAtRef = useRef<number>(0);
+  const didTriggerLongPressRef = useRef<boolean>(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -50,12 +50,13 @@ export const Header: React.FC<HeaderProps> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     cancelPress();
+    didTriggerLongPressRef.current = false;
     startPosRef.current = { x: e.clientX, y: e.clientY };
 
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
       startPosRef.current = null;
-      longPressTriggeredAtRef.current = Date.now();
+      didTriggerLongPressRef.current = true;
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
           navigator.vibrate(40);
@@ -84,13 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleCornerButtonClick = (e: React.MouseEvent) => {
     cancelPress();
-    if (longPressTriggeredAtRef.current > 0 && Date.now() - longPressTriggeredAtRef.current < 1200) {
+    if (didTriggerLongPressRef.current) {
       e.preventDefault();
       e.stopPropagation();
-      longPressTriggeredAtRef.current = 0;
+      didTriggerLongPressRef.current = false;
       return;
     }
-    longPressTriggeredAtRef.current = 0;
 
     if (swapSearchAndLists) {
       onSelectTab('lists');
@@ -110,24 +110,33 @@ export const Header: React.FC<HeaderProps> = ({
       return;
     }
 
+    let rafId: number | null = null;
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const currentScrollY = window.scrollY;
 
-      if (currentScrollY <= 20) {
-        setIsVisible(true);
-      } else if (currentScrollY > lastScrollYRef.current && currentScrollY > 60) {
-        // Scrolling down -> Hide topbar
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollYRef.current) {
-        // Scrolling up -> Show topbar
-        setIsVisible(true);
-      }
+        if (currentScrollY <= 20) {
+          setIsVisible(prev => (prev ? prev : true));
+        } else if (currentScrollY > lastScrollYRef.current && currentScrollY > 60) {
+          // Scrolling down -> Hide topbar
+          setIsVisible(prev => (prev ? false : prev));
+        } else if (currentScrollY < lastScrollYRef.current) {
+          // Scrolling up -> Show topbar
+          setIsVisible(prev => (prev ? prev : true));
+        }
 
-      lastScrollYRef.current = currentScrollY;
+        lastScrollYRef.current = currentScrollY;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [autoHideHeader]);
 
   return (
@@ -225,7 +234,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Quick Random Pick Button */}
           <button
             onClick={onRandomPick}
-            className={`hidden sm:inline-flex ${!swapSearchAndLists ? 'md:hidden' : ''} items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85 active:scale-95 transition border border-[var(--border-subtle)] shadow-xs`}
+            className={`random-pick-btn hidden sm:inline-flex ${!swapSearchAndLists ? 'md:hidden' : ''} items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--chip-bg)] text-[var(--text-primary)] hover:opacity-85 active:scale-95 transition border border-[var(--border-subtle)] shadow-xs`}
             title="Pick a random film from your library"
           >
             <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />

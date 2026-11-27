@@ -8,7 +8,6 @@ import {
   Cpu,
   ArrowRight,
   Sparkle,
-  Layers,
   Check,
   X,
   Shuffle,

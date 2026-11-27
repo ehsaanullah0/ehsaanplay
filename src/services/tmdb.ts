@@ -7,7 +7,7 @@
 
 import { MediaItem, MediaType, CastMember, CrewMember, WatchProvider, SeasonInfo, EpisodeDetail } from '../types/movie';
 
-export const DEFAULT_TMDB_KEY = ''; // Configure TMDB_API_KEY in the server environment.
+export const DEFAULT_TMDB_KEY = 'use your own api keys'; // Default fallback TMDB API key
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
@@ -215,6 +215,17 @@ export function formatTMDBMediaItem(data: any, typeOverride?: MediaType): MediaI
     providers = [...flatrate, ...rent, ...buy].filter((p, index, self) => self.findIndex(s => s.name === p.name) === index).slice(0, 8);
   }
 
+  const productionCompany = Array.isArray(data.production_companies) && data.production_companies.length > 0
+    ? data.production_companies.slice(0, 2).map((p: any) => p.name).filter(Boolean).join(', ')
+    : undefined;
+  const country = Array.isArray(data.production_countries) && data.production_countries.length > 0
+    ? data.production_countries.slice(0, 2).map((c: any) => c.name).filter(Boolean).join(', ')
+    : Array.isArray(data.origin_country) && data.origin_country.length > 0
+    ? data.origin_country.join(', ')
+    : undefined;
+  const formatUsd = (amount?: number) =>
+    typeof amount === 'number' && amount > 0 ? `$${amount.toLocaleString('en-US')}` : undefined;
+
   return {
     id: `tmdb-${mediaType}-${data.id}`,
     tmdbId: data.id,
@@ -243,6 +254,10 @@ export function formatTMDBMediaItem(data: any, typeOverride?: MediaType): MediaI
     metadataSource: 'tmdb',
     status: data.status,
     language: data.original_language?.toUpperCase(),
+    productionCompany,
+    country,
+    budget: formatUsd(data.budget),
+    boxOffice: formatUsd(data.revenue),
   };
 }
 
@@ -323,46 +338,54 @@ export async function fetchTMDBDetails(
   const data = await tmdbFetch(endpoint, { append_to_response: 'credits,videos,watch/providers,external_ids' }, customApiKey);
   const item = formatTMDBMediaItem(data, type);
 
-  // If TV show, fetch season and episode details
+  // If TV show, fetch season and episode details in parallel for snappy preview hydration
   if (type === 'tv' && data.number_of_seasons > 0) {
     try {
-      const seasonsList: SeasonInfo[] = [];
-      const allEpisodesList: EpisodeDetail[] = [];
-      const totalSeasonsToFetch = Math.min(data.number_of_seasons, 6);
-      
-      for (let s = 1; s <= totalSeasonsToFetch; s++) {
-        try {
-          const seasonData = await tmdbFetch(`tv/${numericId}/season/${s}`, {}, customApiKey);
-          const epList: EpisodeDetail[] = Array.isArray(seasonData.episodes)
-            ? seasonData.episodes.map((ep: any) => ({
-                episodeNumber: ep.episode_number,
-                seasonNumber: s,
-                title: ep.name || `Episode ${ep.episode_number}`,
-                overview: ep.overview,
-                airDate: ep.air_date,
-                stillUrl: ep.still_path ? getTMDBImageUrl(ep.still_path, 'w500') : undefined,
-                rating: ep.vote_average ? Math.round(ep.vote_average * 10) / 10 : undefined,
-                runtime: ep.runtime,
-              }))
-            : [];
+      const totalSeasonsToFetch = Math.min(data.number_of_seasons, 8);
+      const seasonIndices = Array.from({ length: totalSeasonsToFetch }, (_, idx) => idx + 1);
+      const fetchedSeasons = await Promise.all(
+        seasonIndices.map(async (s): Promise<{ season: SeasonInfo; episodes: EpisodeDetail[] }> => {
+          try {
+            const seasonData = await tmdbFetch(`tv/${numericId}/season/${s}`, {}, customApiKey);
+            const epList: EpisodeDetail[] = Array.isArray(seasonData.episodes)
+              ? seasonData.episodes.map((ep: any) => ({
+                  episodeNumber: ep.episode_number,
+                  seasonNumber: s,
+                  title: ep.name || `Episode ${ep.episode_number}`,
+                  overview: ep.overview,
+                  airDate: ep.air_date,
+                  stillUrl: ep.still_path ? getTMDBImageUrl(ep.still_path, 'w500') : undefined,
+                  rating: ep.vote_average ? Math.round(ep.vote_average * 10) / 10 : undefined,
+                  runtime: ep.runtime,
+                }))
+              : [];
 
-          allEpisodesList.push(...epList);
-          seasonsList.push({
-            seasonNumber: s,
-            name: seasonData.name || `Season ${s}`,
-            episodeCount: epList.length || seasonData.episodes?.length || 0,
-            episodes: epList,
-            posterUrl: seasonData.poster_path ? getTMDBImageUrl(seasonData.poster_path, 'w500') : undefined,
-            airDate: seasonData.air_date,
-          });
-        } catch {
-          seasonsList.push({
-            seasonNumber: s,
-            name: `Season ${s}`,
-            episodeCount: 10,
-          });
-        }
-      }
+            return {
+              season: {
+                seasonNumber: s,
+                name: seasonData.name || `Season ${s}`,
+                episodeCount: epList.length || seasonData.episodes?.length || 0,
+                episodes: epList,
+                posterUrl: seasonData.poster_path ? getTMDBImageUrl(seasonData.poster_path, 'w500') : undefined,
+                airDate: seasonData.air_date,
+              },
+              episodes: epList,
+            };
+          } catch {
+            return {
+              season: {
+                seasonNumber: s,
+                name: `Season ${s}`,
+                episodeCount: 10,
+              },
+              episodes: [],
+            };
+          }
+        })
+      );
+
+      const seasonsList = fetchedSeasons.map(r => r.season);
+      const allEpisodesList = fetchedSeasons.flatMap(r => r.episodes);
 
       if (seasonsList.length > 0) {
         item.seasons = seasonsList;
@@ -370,7 +393,7 @@ export async function fetchTMDBDetails(
       }
       if (allEpisodesList.length > 0) {
         item.episodesList = allEpisodesList;
-        item.episodesCount = allEpisodesList.length;
+        item.episodesCount = data.number_of_episodes || allEpisodesList.length;
       }
     } catch (err) {
       console.warn('TMDB TV seasons details lookup error:', err);

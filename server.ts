@@ -456,7 +456,7 @@ async function startServer() {
     const title = req.query.t as string;
     const query = req.query.s as string;
     const customKey = (req.headers['x-omdb-api-key'] as string) || (req.query.apikey as string);
-    const apiKey = (customKey && customKey.trim()) || process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || '';
+    const apiKey = (customKey && customKey.trim()) || process.env.OMDB_API_KEY || process.env.VITE_OMDB_API_KEY || 'use your own api keys';
 
     if (!imdbId && !title && !query) {
       return res.status(400).json({ Response: 'False', Error: 'Missing i (imdbId), t (title), or s (search) query parameter' });
@@ -500,7 +500,7 @@ async function startServer() {
     
     // Key resolution order: header override > server env secret > client vite env secret > default fallback
     const customHeaderKey = req.headers['x-tmdb-api-key'] as string;
-    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
+    const apiKey = customHeaderKey || process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'use your own api keys';
     const bearerToken = process.env.TMDB_READ_ACCESS_TOKEN;
 
     try {
@@ -566,7 +566,7 @@ async function startServer() {
       let actualType = mediaType;
 
       if (imdbId && imdbId.startsWith('tt')) {
-        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
+        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'use your own api keys';
         const findUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${apiKey}&external_source=imdb_id`;
         const findRes = await fetch(findUrl);
         if (findRes.ok) {
@@ -581,7 +581,7 @@ async function startServer() {
 
       // 2. Query TMDB Watch Providers if TMDB ID resolved
       if (tmdbId) {
-        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || '';
+        const apiKey = process.env.TMDB_API_KEY || process.env.VITE_TMDB_API_KEY || 'use your own api keys';
         const provUrl = `https://api.themoviedb.org/3/${actualType}/${tmdbId}/watch/providers?api_key=${apiKey}`;
         const provRes = await fetch(provUrl);
         if (provRes.ok) {
@@ -710,7 +710,7 @@ async function startServer() {
         apiKey,
         httpOptions: {
           headers: {
-            'User-Agent': 'aistudio-build',
+            'User-Agent': 'EhsaanPlay',
           },
         },
       });
@@ -807,7 +807,7 @@ async function startServer() {
         apiKey,
         httpOptions: {
           headers: {
-            'User-Agent': 'aistudio-build',
+            'User-Agent': 'EhsaanPlay',
           },
         },
       });

@@ -135,7 +135,7 @@ export function usePWAInstall() {
       window.removeEventListener('pwa_installed_state_changed', handleStateChange);
       window.removeEventListener('storage', handleStateChange);
     };
-  }, [deferredPrompt]);
+  }, []);
 
   const install = async (): Promise<boolean> => {
     let activePrompt =
@@ -276,6 +276,23 @@ export function usePWAUpdate(): PWAUpdateState {
   const [isDismissed, setIsDismissed] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
+  const hasUpdateRef = useRef(false);
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    hasUpdateRef.current = hasUpdate;
+  }, [hasUpdate]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -299,6 +316,7 @@ export function usePWAUpdate(): PWAUpdateState {
       // Check if a waiting worker already exists (and an existing worker was already controlling the page)
       if (reg.waiting && navigator.serviceWorker.controller) {
         waitingWorkerRef.current = reg.waiting;
+        hasUpdateRef.current = true;
         setHasUpdate(true);
       }
 
@@ -314,6 +332,7 @@ export function usePWAUpdate(): PWAUpdateState {
             navigator.onLine
           ) {
             waitingWorkerRef.current = installingWorker;
+            hasUpdateRef.current = true;
             setHasUpdate(true);
           }
         });
@@ -371,11 +390,16 @@ export function usePWAUpdate(): PWAUpdateState {
       }
     }
 
-    setTimeout(() => {
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    checkTimerRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
       setIsChecking(false);
-      if (!hasUpdate && !waitingWorkerRef.current) {
+      if (!hasUpdateRef.current && !waitingWorkerRef.current) {
         setCheckMessage("You're on the latest version ✦");
-        setTimeout(() => setCheckMessage(null), 3500);
+        if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+        messageTimerRef.current = setTimeout(() => {
+          if (isMountedRef.current) setCheckMessage(null);
+        }, 3500);
       } else {
         setCheckMessage(null);
       }

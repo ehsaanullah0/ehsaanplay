@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeftRight, Search, Layers, X, Check } from 'lucide-react';
+import { useRegisterBackAction } from '../../contexts/BackNavigationContext';
 
 interface SwapNavModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ export const SwapNavModal: React.FC<SwapNavModalProps> = ({
   onConfirmSwap,
   isCurrentlySwapped,
 }) => {
+  useRegisterBackAction(isOpen, onClose, 70);
+
   if (!isOpen) return null;
 
   return (

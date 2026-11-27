@@ -30,9 +30,19 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
   );
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    let rafId: number | null = null;
+    const handleResize = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setWindowWidth(window.innerWidth);
+      });
+    };
     window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const isMobile = windowWidth < 640;
@@ -60,6 +70,7 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
 
   // Smooth Interactive Drag / Swipe State
   const [dragOffset, setDragOffset] = useState(0);
+  const dragOffsetRef = useRef(0);
   const isDraggingRef = useRef(false);
   const dragStartXRef = useRef(0);
   const hasMovedRef = useRef(false);
@@ -181,6 +192,7 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
     isDraggingRef.current = true;
     dragStartXRef.current = clientX;
     hasMovedRef.current = false;
+    dragOffsetRef.current = 0;
     setDragOffset(0);
   };
 
@@ -191,22 +203,34 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
       hasMovedRef.current = true;
     }
     // Dampen drag slightly for natural resistance
-    setDragOffset(diff * 0.7);
+    const dampened = diff * 0.7;
+    dragOffsetRef.current = dampened;
+    setDragOffset(dampened);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = useCallback(() => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    if (dragOffset < -40) {
+    const currentOffset = dragOffsetRef.current;
+    if (currentOffset < -40) {
       goToNext();
-    } else if (dragOffset > 40) {
+    } else if (currentOffset > 40) {
       goToPrev();
     }
+    dragOffsetRef.current = 0;
     setDragOffset(0);
-  };
+  }, [goToNext, goToPrev]);
 
   // Wheel horizontal swipe navigation
   const wheelTimeoutRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (wheelTimeoutRef.current !== null) {
+        clearTimeout(wheelTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) > 25) {
       if (wheelTimeoutRef.current) return;
@@ -224,13 +248,12 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
   useEffect(() => {
     const handleWindowMouseUp = () => {
       if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        setDragOffset(0);
+        handlePointerUp();
       }
     };
     window.addEventListener('mouseup', handleWindowMouseUp);
     return () => window.removeEventListener('mouseup', handleWindowMouseUp);
-  }, []);
+  }, [handlePointerUp]);
 
   const safeActiveIndex = items.length > 0 ? activeIndex % items.length : 0;
 
@@ -462,7 +485,12 @@ export const TrendingHeroShowcase: React.FC<TrendingHeroShowcaseProps> = ({
                         {rating > 0 && (
                           <>
                             <span>·</span>
-                            <span className="text-[#EBB04D] font-bold">★ {rating.toFixed(1)}/10</span>
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F5C518] text-[#121212] text-[10px] font-black leading-none tabular-nums border border-[#DFB00F] shadow-2xs">
+                              <span>★ {rating.toFixed(1)}</span>
+                              {item.imdbRating && item.imdbRating > 0 && (
+                                <span className="text-[8px] uppercase font-black opacity-80 ml-0.5">IMDb</span>
+                              )}
+                            </span>
                           </>
                         )}
                         {item.type === 'tv' && (

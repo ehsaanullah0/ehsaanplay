@@ -155,11 +155,16 @@ export const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
           {/* Meaningful Rating and Genres Row Directly Below Title */}
           {(rating > 0 || genres.length > 0) && (
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mt-2.5 sm:mt-3 text-xs sm:text-sm font-bold text-white/95 drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
-              {/* Star Rating Badge */}
+              {/* Star Rating Badge (Origin IMDb Gold Filled) */}
               {rating > 0 && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white shadow-xs">
-                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F5C518] border border-[#DFB00F] text-[#121212] shadow-sm">
+                  <Star className="w-3.5 h-3.5 text-[#121212] fill-[#121212]" />
                   <span className="tabular-nums font-black text-xs sm:text-sm">{rating.toFixed(1)}</span>
+                  {currentItem.imdbRating && currentItem.imdbRating > 0 && !currentState?.personalRating && (
+                    <span className="text-[9px] uppercase font-black tracking-wide bg-black/15 px-1 py-0.5 rounded-full leading-none">
+                      IMDb
+                    </span>
+                  )}
                 </div>
               )}
 
