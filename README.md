@@ -92,7 +92,7 @@ EHSAAN PLAY is an independently developed personal-library application, not a st
 -  ✔ **add imdb link metadata crowl as fallback of every service.**
 </details>
 
-## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues/new)
+## if found any bug or request any feature then please open an[ github-issue](https://github.com/ehsaanullah0/ehsaanplay/issues)
 
 ---
 
