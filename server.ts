@@ -923,6 +923,31 @@ Selection Criteria:
     'trakt.tv',
   ];
 
+  const isPrivateOrLocalHostname = (hostname: string): boolean => {
+    const h = hostname.toLowerCase();
+    if (h === 'localhost' || h.endsWith('.localhost')) return true;
+
+    const ipv4Match = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4Match) {
+      const parts = ipv4Match.slice(1).map(Number);
+      if (parts.some((n) => n < 0 || n > 255)) return true;
+      const [a, b] = parts;
+      return (
+        a === 10 ||
+        a === 127 ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168)
+      );
+    }
+
+    if (h === '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80:')) {
+      return true;
+    }
+
+    return false;
+  };
+
   app.get('/api/image-proxy', async (req: Request, res: Response) => {
     const rawUrl = typeof req.query.url === 'string' ? req.query.url.trim() : '';
     if (!rawUrl) {
@@ -940,19 +965,30 @@ Selection Criteria:
       return res.status(403).json({ error: 'Only HTTPS image URLs are allowed' });
     }
 
+    if (parsed.username || parsed.password) {
+      return res.status(403).json({ error: 'URL credentials are not allowed' });
+    }
+
     const host = parsed.hostname.toLowerCase();
     const isAllowedHost = ALLOWED_IMAGE_HOST_SUFFIXES.some(
       (suffix) => host === suffix || host.endsWith(`.${suffix}`)
     );
-    if (!isAllowedHost) {
+    if (!isAllowedHost || isPrivateOrLocalHostname(host)) {
       return res.status(403).json({ error: 'Host not permitted for image proxy' });
+    }
+
+    const safeUrl = new URL(`https://${host}`);
+    safeUrl.pathname = parsed.pathname;
+    safeUrl.search = parsed.search;
+    if (parsed.port) {
+      safeUrl.port = parsed.port;
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
-      const upstream = await fetch(parsed.toString(), {
+      const upstream = await fetch(safeUrl.toString(), {
         signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; EhsaanPlay/1.0)',
